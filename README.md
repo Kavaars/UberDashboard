@@ -191,6 +191,41 @@ Uruchomienie:
 dotnet test UberDashboard.slnx -v q
 ```
 
-## Status repo
+## Repozytorium git
 
-Aktualnie katalog roboczy nie jest zainicjalizowany jako repozytorium git. Oznacza to, że pliki planów i zmian są tworzone lokalnie, ale commitów nie da się wykonać, dopóki repo nie zostanie zainicjalizowane albo podłączone.
+- repo zdalne: `https://github.com/Kavaars/UberDashboard` (prywatne)
+- gałąź główna: `main`, śledzi `origin/main`
+- remote `origin`: `https://github.com/Kavaars/UberDashboard.git`
+
+### Konwencja commitów
+
+Format: `typ: krótki opis` (Conventional Commits, opis po polsku, bez ogonków w nagłówku).
+
+Najczęściej używane typy:
+
+- `feat` — nowa funkcja
+- `fix` — poprawka błędu
+- `chore` — porządki, konfiguracja, zależności
+- `docs` — dokumentacja i pliki rejestrów
+- `test` — testy
+- `refactor` — zmiany bez wpływu na zachowanie
+
+### Workflow
+
+1. Praca odbywa się na `main` (projekt jednoosobowy).
+2. Po zamknięciu zadania: `git add <pliki>` → `git commit`.
+3. Wypchnięcie: `git push`.
+4. Rejestry projektu (`listaZmian.md`, `wersje.md`, `changelog.txt`) aktualizuje się razem ze zmianą kodu w tym samym commicie.
+
+### Tagi wersji
+
+- tag tworzy się z wersji w `Directory.Build.props`, w formacie `v<MAJOR>.<MINOR>.<PATCH>`
+- tag jest dołączony do commita reprezentującego dany stan wersji
+
+```powershell
+git tag -a v1.0.7 -m "UberDashboard 1.0.7 - opis"
+git push origin v1.0.7
+```
+
+- poprawka błędu podbija `PATCH`, nowa funkcja `MINOR`, zmiana łamiąca `MAJOR`
+- skrypty `buduj*.bat` podbijają wersję w `Directory.Build.props`, ale tag zakłada się ręcznie po weryfikacji builda
