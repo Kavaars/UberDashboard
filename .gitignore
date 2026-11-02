@@ -39,3 +39,6 @@ Backups/
 Thumbs.db
 Desktop.ini
 desktop.ini
+
+## Lokalne narzędzia i konfiguracja CLI (nie należą do repo)
+.tools/
