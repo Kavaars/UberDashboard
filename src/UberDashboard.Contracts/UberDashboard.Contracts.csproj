@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>UberDashboard.Contracts</RootNamespace>
+    <AssemblyName>UberDashboard.Contracts</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UberDashboard.Core\UberDashboard.Core.csproj" />
+  </ItemGroup>
+
+</Project>

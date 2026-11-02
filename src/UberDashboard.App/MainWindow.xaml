@@ -1,0 +1,229 @@
+﻿<Window x:Class="UberDashboard.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:platform="clr-namespace:UberDashboard.Application.Platform;assembly=UberDashboard.Application"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="UberDashboard"
+        Width="1280"
+        Height="820"
+        MinWidth="860"
+        MinHeight="560"
+        Background="{DynamicResource Brush.Window.Background}"
+        Foreground="{DynamicResource Brush.Text}">
+  <Grid Margin="8">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <!-- Pasek górny: wybór pulpitu, tryb edycji, dodawanie i zarządzanie panelami. -->
+    <Border Grid.Row="0" Style="{StaticResource ToolbarBorder}">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+          <Border Width="38"
+                  Height="38"
+                  Margin="0,0,12,0"
+                  Background="{DynamicResource Brush.Accent}"
+                  BorderBrush="{DynamicResource Brush.Accent}"
+                  BorderThickness="1"
+                  CornerRadius="{DynamicResource Token.CornerRadius.M}">
+            <TextBlock HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       FontFamily="Segoe MDL2 Assets"
+                       FontSize="18"
+                       Foreground="{DynamicResource Brush.Accent.Text}"
+                       Text="&#xE80F;" />
+          </Border>
+
+          <StackPanel>
+            <TextBlock FontSize="18"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource Brush.Text}"
+                       Text="UberDashboard"
+                       ToolTip="Nazwa aplikacji. Pasek górny grupuje sterowanie pulpitem, trybem okna i ustawieniami." />
+            <TextBlock Foreground="{DynamicResource Brush.Text.Muted}"
+                       Text="{Binding StatusMessage}"
+                       TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+
+          <ComboBox Width="220"
+                    Margin="20,0,0,0"
+                    VerticalAlignment="Center"
+                    ItemsSource="{Binding Dashboards}"
+                    SelectedItem="{Binding SelectedDashboard}"
+                    Style="{StaticResource ThemedComboBox}"
+                    ToolTip="Wybiera aktywny pulpit. Zmiana wyboru wczytuje jego układ i panele; poprzedni pulpit zostaje zapisany.">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+
+        <Border Grid.Column="1"
+                HorizontalAlignment="Center"
+                Background="{DynamicResource Brush.Surface.Alt}"
+                BorderBrush="{DynamicResource Brush.Border}"
+                BorderThickness="1"
+                CornerRadius="{DynamicResource Token.CornerRadius.L}"
+                Padding="4">
+          <UniformGrid Rows="1" Columns="3">
+            <Button Command="{Binding SwitchWindowModeCommand}"
+                    CommandParameter="{x:Static platform:WindowMode.Normal}"
+                    Content="Okno"
+                    Style="{StaticResource ModeSegmentButton}"
+                    ToolTip="Przywraca zwykłe okno aplikacji z klasycznym zachowaniem Windows. To tryb bazowy i awaryjny." />
+            <Button Command="{Binding SwitchWindowModeCommand}"
+                    CommandParameter="{x:Static platform:WindowMode.DesktopWidget}"
+                    Content="Widget"
+                    Style="{StaticResource ModeSegmentButton}"
+                    ToolTip="Próbuje osadzić aplikację jako warstwę pulpitu. Przy braku stabilnej integracji system automatycznie wraca do zwykłego okna." />
+            <Button Command="{Binding SwitchWindowModeCommand}"
+                    CommandParameter="{x:Static platform:WindowMode.DockedBar}"
+                    Content="Pasek"
+                    Style="{StaticResource ModeSegmentButton}"
+                    ToolTip="Dokuje aplikację do krawędzi monitora i rezerwuje dla niej obszar roboczy, tak aby maksymalizowane okna nie przykrywały paska." />
+          </UniformGrid>
+        </Border>
+
+        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+          <Button Command="{Binding ToggleEditModeCommand}"
+                  Content="Edytuj układ"
+                  Style="{StaticResource EditModeButton}"
+                  ToolTip="Włącza tryb edycji: na kartach paneli pojawiają się akcje zamiany, ukrycia i usunięcia instancji. Po wyłączeniu trybu układ pozostaje bez zmian." />
+
+          <Border Background="{DynamicResource Brush.Surface.Alt}"
+                  BorderBrush="{DynamicResource Brush.Border}"
+                  BorderThickness="1"
+                  CornerRadius="{DynamicResource Token.CornerRadius.M}"
+                  Margin="0,0,8,0">
+            <Menu Style="{StaticResource ToolbarMenu}"
+                  ToolTip="Menu dodawania nowych paneli do bieżącego pulpitu.">
+              <Menu.Resources>
+                <Style BasedOn="{StaticResource ToolbarMenuItem}" TargetType="MenuItem" />
+              </Menu.Resources>
+              <MenuItem Header="Dodaj panel ▾" Padding="12,8">
+                <MenuItem.ItemsSource>
+                  <Binding Path="PanelTypes" />
+                </MenuItem.ItemsSource>
+                <MenuItem.ItemContainerStyle>
+                  <Style BasedOn="{StaticResource ToolbarMenuItem}" TargetType="MenuItem">
+                    <Setter Property="Header" Value="{Binding DisplayName}" />
+                    <Setter Property="Command" Value="{Binding DataContext.AddPanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                    <Setter Property="CommandParameter" Value="{Binding TypeId}" />
+                    <Setter Property="ToolTip" Value="Tworzy nową instancję tego typu panelu obok pierwszego panelu i zapisuje układ w bazie." />
+                  </Style>
+                </MenuItem.ItemContainerStyle>
+              </MenuItem>
+            </Menu>
+          </Border>
+
+          <Border Background="{DynamicResource Brush.Surface.Alt}"
+                  BorderBrush="{DynamicResource Brush.Border}"
+                  BorderThickness="1"
+                  CornerRadius="{DynamicResource Token.CornerRadius.M}"
+                  Margin="0,0,8,0"
+                  Visibility="{Binding HasHiddenPanels, Converter={StaticResource BoolToVisibility}}">
+            <Menu Style="{StaticResource ToolbarMenu}"
+                  ToolTip="Lista paneli ukrytych na bieżącym pulpicie; przywrócenie odtwarza ich dane i pozycję.">
+              <Menu.Resources>
+                <Style BasedOn="{StaticResource ToolbarMenuItem}" TargetType="MenuItem" />
+              </Menu.Resources>
+              <MenuItem Header="Ukryte ▾" Padding="12,8">
+                <MenuItem.ItemsSource>
+                  <Binding Path="HiddenPanels" />
+                </MenuItem.ItemsSource>
+                <MenuItem.ItemContainerStyle>
+                  <Style BasedOn="{StaticResource ToolbarMenuItem}" TargetType="MenuItem">
+                    <Setter Property="Header" Value="{Binding DisplayName}" />
+                    <Setter Property="Command" Value="{Binding DataContext.RestorePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                    <Setter Property="CommandParameter" Value="{Binding}" />
+                    <Setter Property="ToolTip" Value="Przywraca panel na pulpicie z zachowanym stanem; jeśli zapisana pozycja jest nieosiągalna, panel trafia w miejsce zastępcze." />
+                  </Style>
+                </MenuItem.ItemContainerStyle>
+              </MenuItem>
+            </Menu>
+          </Border>
+
+          <Button Command="{Binding NewDashboardCommand}"
+                  Content="Nowy pulpit"
+                  Style="{StaticResource ToolbarButton}"
+                  ToolTip="Tworzy pusty pulpit i przełącza się na niego; poprzedni pulpit zostaje zapisany." />
+
+          <Button Command="{Binding OpenSettingsCommand}"
+                  Content="Opcje"
+                  Style="{StaticResource ToolbarButton}"
+                  ToolTip="Otwiera pełne ustawienia aplikacji z zakładkami personalizacji, wyświetlania i preferencji działania." />
+
+          <Button Command="{Binding ToggleThemeCommand}"
+                  Content="Motyw"
+                  Style="{StaticResource ToolbarButton}"
+                  ToolTip="Przełącza motyw jasny i ciemny; zmiana działa natychmiast i jest zapamiętywana w ustawieniach." />
+
+          <Button Command="{Binding ReloadCommand}"
+                  Content="Odśwież"
+                  Style="{StaticResource ToolbarButton}"
+                  ToolTip="Ponownie wczytuje układ i panele bieżącego pulpitu z bazy, odrzucając niezapisane zmiany w widoku." />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Obszar roboczy: rekursywnie renderowane drzewo paneli bieżącego pulpitu. -->
+    <Grid Grid.Row="1" Margin="0,4,0,4">
+      <ContentControl Content="{Binding Root}"
+                      ContentTemplateSelector="{DynamicResource LayoutNodeTemplateSelector}"
+                      ToolTip="Obszar roboczy pulpitu. Panele można rozdzielać dzielnikami, które reagują na przeciąganie i strzałki klawiatury." />
+
+      <TextBlock HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 Foreground="{DynamicResource Brush.Text.Muted}"
+                 Text="Ten pulpit nie ma jeszcze paneli. Użyj „Dodaj panel”, aby rozpocząć."
+                 TextWrapping="Wrap"
+                 Visibility="{Binding IsLayoutEmpty, Converter={StaticResource BoolToVisibility}}" />
+    </Grid>
+
+    <!-- Pasek stanu: opis bieżącej operacji i wskaźnik pracy w tle. -->
+    <Border Grid.Row="2"
+            Style="{StaticResource ToolbarBorder}">
+      <DockPanel>
+        <ProgressBar DockPanel.Dock="Right"
+                     Width="120"
+                     Height="12"
+                     VerticalAlignment="Center"
+                     IsIndeterminate="True"
+                     Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"
+                     ToolTip="Wskaźnik operacji wykonywanej w tle (wczytywanie, zapis). Interfejs pozostaje w tym czasie aktywny." />
+        <TextBlock VerticalAlignment="Center"
+                   Foreground="{DynamicResource Brush.Text.Muted}"
+                   Text="{Binding CurrentWindowMode, StringFormat=Aktywny tryb: {0}}"
+                   TextWrapping="Wrap"
+                   ToolTip="Opis aktywnego trybu pracy głównego okna aplikacji." />
+      </DockPanel>
+    </Border>
+
+    <!-- Nakładka komunikatów globalnych; nie przechwytuje kliknięć poza kartami. -->
+    <ItemsControl Grid.RowSpan="3"
+                  Margin="16"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Bottom"
+                  ItemsSource="{Binding Toasts}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate>
+          <Border Style="{StaticResource ToastCard}">
+            <TextBlock Style="{StaticResource ToastText}" Text="{Binding Text}" />
+          </Border>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </Grid>
+</Window>

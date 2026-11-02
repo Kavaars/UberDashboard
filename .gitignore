@@ -1,0 +1,41 @@
+## .NET / MSBuild
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+artifacts/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.binlog
+[Ll]ogs_NUnit/
+
+## Build results
+Release/
+publish/
+*.nupkg
+*.snupkg
+
+## Rider / VS Code
+.idea/
+.vscode/
+
+## Test results
+[Tt]est[Rr]esult*/
+coverage*.json
+coverage*.xml
+coverage*.info
+
+## Aplikacja — dane użytkownika nie należą do repo
+LOGS/
+Backups/
+*.db
+*.db-wal
+*.db-shm
+
+## System
+Thumbs.db
+Desktop.ini
+desktop.ini

@@ -1,0 +1,24 @@
+2026-11-02 11:15 +01:00 | v1.0.7
+- Panel Pogoda pokazuje teraz duże ikony warunków, temperaturę max/min, godziny świtu i zmierzchu oraz krótką prognozę godzinową.
+- Naprawiono nakładanie się tekstów w panelu Pogoda i zawijanie długich opisów w tooltipach.
+- Poprawiono wyświetlanie glifów ikon akcji oraz nazwę aktywnego pulpitu w selektorze.
+- Ujednolicono wygląd przycisku Dodaj panel z resztą górnego paska.
+
+2026-11-02 10:05 +01:00 | v1.0.5
+- Dodano popupy opcji dla paneli oraz ikonowe akcje w nagłówkach i na listach.
+- Panel Notatnik dostał bogaty edytor z formatowaniem, przełączanym paskiem narzędzi i zapisem obrazów wklejanych ze schowka.
+- Poprawiono kontrast i spójność kontrolek WPF: ComboBox, CheckBox, RichTextBox, tooltipy i listy w jasnym oraz ciemnym motywie.
+- Ujednolicono integrację traya/pickera kolorów z WinForms i usunięto konflikty typów blokujące build.
+- Ustalono i utrwalono nowy zakres grubości trybu paska: 200..1200 px.
+
+2026-11-02 09:02 +01:00 | v1.0.4
+- Dodano panel Pogoda z wyszukiwaniem lokalizacji, cache i odświeżaniem danych Open-Meteo.
+- Dodano 3 tryby pracy okna: zwykłe okno, widget pulpitu best-effort i dokowany pasek rezerwujący obszar ekranu.
+- Dodano okno Opcje i Ustawienia z zakładką Personalizacja do zmiany kolorów, fontów, narożników i gęstości UI.
+- Odświeżono wygląd shella i kart paneli: ikony, większe zaokrąglenia, lepszy spacing i nowy topbar.
+
+2026-11-02 07:28 +01:00 | v1.0.4
+- Dodano skrypty build/test dla Windows 11: budujdev, budujprod, budujfast, budujinst, testuj, usun, folder.
+- Dodano wspólny helper PowerShell z automatycznym podbijaniem wersji i tworzeniem katalogów Release.
+- Dodano konfigurację instalatora Inno Setup dla instalacji per-user.
+- Dodano README z architekturą, szybkim startem i opisem pipeline'u wydaniowego.

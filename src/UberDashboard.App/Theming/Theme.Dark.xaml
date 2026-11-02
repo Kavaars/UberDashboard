@@ -1,0 +1,20 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Tokeny motywu ciemnego. Kontrast tekstu i tekstu pomocniczego >= 4.5:1. -->
+  <SolidColorBrush x:Key="Brush.Window.Background" Color="#FF1B1D21" />
+  <SolidColorBrush x:Key="Brush.Surface" Color="#FF26282C" />
+  <SolidColorBrush x:Key="Brush.Surface.Alt" Color="#FF2F3237" />
+  <SolidColorBrush x:Key="Brush.Text" Color="#FFF2F3F5" />
+  <SolidColorBrush x:Key="Brush.Text.Muted" Color="#FFB6BBC2" />
+  <SolidColorBrush x:Key="Brush.Border" Color="#FF3C4046" />
+  <SolidColorBrush x:Key="Brush.Accent" Color="#FF4C9AFF" />
+  <SolidColorBrush x:Key="Brush.Accent.Text" Color="#FF08131F" />
+  <SolidColorBrush x:Key="Brush.Danger" Color="#FFFF7B70" />
+  <SolidColorBrush x:Key="Brush.Success" Color="#FF6FD177" />
+  <SolidColorBrush x:Key="Brush.Warning" Color="#FFFFCF6B" />
+  <SolidColorBrush x:Key="Brush.Splitter" Color="#FF4A4E55" />
+  <SolidColorBrush x:Key="Brush.Badge.Background" Color="#FFE8EAED" />
+  <SolidColorBrush x:Key="Brush.Badge.Text" Color="#FF1B1D21" />
+
+</ResourceDictionary>
