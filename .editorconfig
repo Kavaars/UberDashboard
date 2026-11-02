@@ -1,0 +1,50 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{cs,csx}]
+indent_size = 4
+dotnet_sort_system_directives_first = true
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_using_directive_placement = outside_namespace:suggestion
+
+[*.{xml,xaml,csproj,props,targets,config}]
+indent_size = 2
+
+[*.{json,jsonc}]
+indent_size = 2
+
+[*.{md,txt}]
+trim_trailing_whitespace = false
+
+# Reguły analizatora świadomie dostrojone do tego projektu.
+[*.cs]
+# Wywołania P/Invoke i mapowania DTO nie wymagają konfiguracji kultury.
+dotnet_diagnostic.CA1305.severity = suggestion
+# Parametry konstruktorów DI są wstrzykiwane przez kontener, nie walidowane publicznie.
+dotnet_diagnostic.CA1062.severity = suggestion
+# Typy DTO i rekordy domenowe są celowo publiczne dla testów i wtyczek.
+dotnet_diagnostic.CA1034.severity = none
+dotnet_diagnostic.CA1002.severity = none
+# Zdarzenia w kontraktach używają EventHandler/delegatów zgodnie z konwencją.
+dotnet_diagnostic.CA1003.severity = none
+# Typy DTO i rekordy wewnętrzne są tworzone przez serializator oraz kontener DI.
+dotnet_diagnostic.CA1812.severity = none
+# Formatowanie pilnuje `dotnet format`; nie blokuje builda.
+dotnet_diagnostic.IDE0055.severity = suggestion
+
+# Testy: nazwy metod z podkreśleniami opisują scenariusz i są konwencją xUnit.
+[tests/**/*.cs]
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA1861.severity = none
+dotnet_diagnostic.CA2007.severity = none
+dotnet_diagnostic.CA1515.severity = none
+dotnet_diagnostic.CA1859.severity = none
+dotnet_diagnostic.CA5394.severity = none
+dotnet_diagnostic.CA1812.severity = none

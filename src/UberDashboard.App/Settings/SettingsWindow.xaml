@@ -1,0 +1,286 @@
+<Window x:Class="UberDashboard.App.Settings.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:platform="clr-namespace:UberDashboard.Application.Platform;assembly=UberDashboard.Application"
+        xmlns:theming="clr-namespace:UberDashboard.App.Theming"
+        mc:Ignorable="d"
+        Title="Opcje i Ustawienia"
+        Width="980"
+        Height="720"
+        MinWidth="820"
+        MinHeight="620"
+        Background="{DynamicResource Brush.Window.Background}"
+        Foreground="{DynamicResource Brush.Text}"
+        WindowStartupLocation="CenterOwner">
+  <Grid Margin="16">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+
+    <StackPanel Grid.Row="0" Margin="0,0,0,14">
+      <TextBlock FontSize="24" FontWeight="SemiBold" Text="Opcje i Ustawienia" />
+      <TextBlock Margin="0,6,0,0"
+                 Foreground="{DynamicResource Brush.Text.Muted}"
+                 Text="Zmiany personalizacji działają od razu. Ustawienia trybu okna zapisują się i są stosowane bez restartu, z fallbackiem do trybu normalnego przy błędzie." />
+    </StackPanel>
+
+    <TabControl Grid.Row="1"
+                Background="Transparent"
+                BorderBrush="{DynamicResource Brush.Border}">
+      <TabItem Header="Personalizacja">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel Margin="12">
+            <Border Style="{StaticResource SettingsCard}">
+              <StackPanel>
+                <TextBlock Style="{StaticResource SettingsSectionTitle}" Text="Wygląd" />
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="220" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                  </Grid.RowDefinitions>
+
+                  <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="Motyw" />
+                  <ComboBox Grid.Row="0" Grid.Column="1"
+                            Style="{StaticResource ThemedComboBox}"
+                            ItemsSource="{Binding ThemeOptions}"
+                            SelectedItem="{Binding SelectedTheme}" />
+
+                  <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="Kolor akcentu" />
+                  <DockPanel Grid.Row="1" Grid.Column="1" Margin="0,0,0,10">
+                    <Button DockPanel.Dock="Right"
+                            Command="{Binding ChooseAccentColorCommand}"
+                            Content="&#xE790;"
+                            FontFamily="Segoe MDL2 Assets"
+                            Style="{StaticResource PanelActionButton}"
+                            ToolTip="Otwiera graficzny wybór koloru. Po wyborze możesz dalej doprecyzować wartość ręcznie jako hex." />
+                    <TextBox Style="{StaticResource ThemedTextBox}" Text="{Binding AccentColor, UpdateSourceTrigger=PropertyChanged}" />
+                  </DockPanel>
+
+                  <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="Tło okna" />
+                  <DockPanel Grid.Row="2" Grid.Column="1" Margin="0,0,0,10">
+                    <Button DockPanel.Dock="Right"
+                            Command="{Binding ChooseWindowBackgroundColorCommand}"
+                            Content="&#xE790;"
+                            FontFamily="Segoe MDL2 Assets"
+                            Style="{StaticResource PanelActionButton}"
+                            ToolTip="Otwiera graficzny wybór koloru tła okna. Kod hex pozostaje edytowalny obok." />
+                    <TextBox Style="{StaticResource ThemedTextBox}" Text="{Binding WindowBackgroundColor, UpdateSourceTrigger=PropertyChanged}" />
+                  </DockPanel>
+
+                  <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="Powierzchnia kart" />
+                  <DockPanel Grid.Row="3" Grid.Column="1" Margin="0,0,0,10">
+                    <Button DockPanel.Dock="Right"
+                            Command="{Binding ChooseSurfaceColorCommand}"
+                            Content="&#xE790;"
+                            FontFamily="Segoe MDL2 Assets"
+                            Style="{StaticResource PanelActionButton}"
+                            ToolTip="Otwiera graficzny wybór koloru powierzchni paneli. Możesz też wpisać własny kod hex." />
+                    <TextBox Style="{StaticResource ThemedTextBox}" Text="{Binding SurfaceColor, UpdateSourceTrigger=PropertyChanged}" />
+                  </DockPanel>
+
+                  <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="Powierzchnia pomocnicza" />
+                  <DockPanel Grid.Row="4" Grid.Column="1" Margin="0,0,0,10">
+                    <Button DockPanel.Dock="Right"
+                            Command="{Binding ChooseSurfaceAltColorCommand}"
+                            Content="&#xE790;"
+                            FontFamily="Segoe MDL2 Assets"
+                            Style="{StaticResource PanelActionButton}"
+                            ToolTip="Otwiera graficzny wybór koloru powierzchni pomocniczej. Pole tekstowe pozwala wpisać dokładny hex." />
+                    <TextBox Style="{StaticResource ThemedTextBox}" Text="{Binding SurfaceAltColor, UpdateSourceTrigger=PropertyChanged}" />
+                  </DockPanel>
+
+                  <TextBlock Grid.Row="5" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="Font" />
+                  <ComboBox Grid.Row="5" Grid.Column="1"
+                            Margin="0,0,0,10"
+                            Style="{StaticResource ThemedComboBox}"
+                            ItemsSource="{Binding AvailableFonts}"
+                            SelectedItem="{Binding SelectedFontFamily}" />
+
+                  <TextBlock Grid.Row="6" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="Rozmiar fontu" />
+                  <StackPanel Grid.Row="6" Grid.Column="1" Margin="0,0,0,10">
+                    <Slider Minimum="11" Maximum="24" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding FontSize}" />
+                    <TextBlock Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding FontSize, StringFormat={}{0:0} px}" />
+                  </StackPanel>
+
+                  <TextBlock Grid.Row="7" Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Center" Text="Promień narożników" />
+                  <StackPanel Grid.Row="7" Grid.Column="1">
+                    <Slider Minimum="4" Maximum="28" TickFrequency="2" IsSnapToTickEnabled="True" Value="{Binding CornerRadius}" />
+                    <TextBlock Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding CornerRadius, StringFormat={}{0:0} px}" />
+                  </StackPanel>
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <Border Margin="0,12,0,0" Style="{StaticResource SettingsCard}">
+              <StackPanel>
+                <TextBlock Style="{StaticResource SettingsSectionTitle}" Text="Gęstość i zachowanie" />
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="220" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                  </Grid.RowDefinitions>
+
+                  <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="Gęstość interfejsu" />
+                  <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,10">
+                    <Slider Minimum="0.85" Maximum="1.35" TickFrequency="0.05" IsSnapToTickEnabled="True" Value="{Binding DensityScale}" />
+                    <TextBlock Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding DensityScale, StringFormat={}{0:0.00}x}" />
+                  </StackPanel>
+
+                  <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Center" Text="Odświeżanie pogody" />
+                  <StackPanel Grid.Row="1" Grid.Column="1">
+                    <Slider Minimum="5" Maximum="180" TickFrequency="5" IsSnapToTickEnabled="True" Value="{Binding WeatherRefreshMinutes}" />
+                    <TextBlock Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding WeatherRefreshMinutes, StringFormat={}{0} min}" />
+                  </StackPanel>
+                </Grid>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Wyświetlanie">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel Margin="12">
+            <Border Style="{StaticResource SettingsCard}">
+              <StackPanel>
+                <TextBlock Style="{StaticResource SettingsSectionTitle}" Text="Tryb pracy okna" />
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="220" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                  </Grid.RowDefinitions>
+
+                  <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="Tryb startowy" />
+                  <ComboBox Grid.Row="0" Grid.Column="1"
+                            Margin="0,0,0,10"
+                            Style="{StaticResource ThemedComboBox}"
+                            ItemsSource="{Binding WindowModes}"
+                            SelectedItem="{Binding SelectedLaunchMode}" />
+
+                  <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="Monitor dla paska" />
+                  <ComboBox Grid.Row="1" Grid.Column="1"
+                            Margin="0,0,0,10"
+                            Style="{StaticResource ThemedComboBox}"
+                            ItemsSource="{Binding Monitors}"
+                            SelectedItem="{Binding SelectedMonitor}"
+                            DisplayMemberPath="Id" />
+
+                  <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="Krawędź paska" />
+                  <ComboBox Grid.Row="2" Grid.Column="1"
+                            Margin="0,0,0,10"
+                            Style="{StaticResource ThemedComboBox}"
+                            ItemsSource="{Binding DockEdges}"
+                            SelectedItem="{Binding SelectedDockEdge}" />
+
+                  <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="Grubość paska" />
+                  <StackPanel Grid.Row="3" Grid.Column="1" Margin="0,0,0,10">
+                    <Slider Minimum="200" Maximum="1200" TickFrequency="20" IsSnapToTickEnabled="True" Value="{Binding DockThickness}" />
+                    <TextBlock Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding DockThickness, StringFormat={}{0} px}" />
+                  </StackPanel>
+
+                  <TextBlock Grid.Row="4" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="Przezroczystość widgetu" />
+                  <StackPanel Grid.Row="4" Grid.Column="1" Margin="0,0,0,10">
+                    <Slider Minimum="0.2" Maximum="1.0" TickFrequency="0.05" IsSnapToTickEnabled="True" Value="{Binding WidgetOpacity}" />
+                    <TextBlock Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding WidgetOpacity, StringFormat={}{0:0.00}}" />
+                  </StackPanel>
+
+                  <TextBlock Grid.Row="5" Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Center" Text="Fallback widgetu" />
+                  <CheckBox Grid.Row="5" Grid.Column="1"
+                            Content="Wracaj do trybu normalnego, gdy osadzenie widgetu się nie uda"
+                            IsChecked="{Binding DesktopWidgetFallbackToNormal}" />
+                </Grid>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Aplikacja">
+        <StackPanel Margin="12">
+          <Border Style="{StaticResource SettingsCard}">
+            <StackPanel>
+              <TextBlock Style="{StaticResource SettingsSectionTitle}" Text="Integracja z systemem" />
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="220" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="Autostart" />
+                <CheckBox Grid.Row="0" Grid.Column="1"
+                          Content="Uruchamiaj UberDashboard razem z systemem"
+                          IsChecked="{Binding StartWithWindows}"
+                          ToolTip="Dodaje lub usuwa wpis autostartu bieżącego użytkownika Windows." />
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="Ikona w zasobniku" />
+                <CheckBox Grid.Row="1" Grid.Column="1"
+                          Content="Pokazuj ikonę w zasobniku systemowym"
+                          IsChecked="{Binding EnableTrayIcon}"
+                          ToolTip="Włącza ikonę obszaru powiadomień z szybkim przywróceniem okna i poleceniem zakończenia aplikacji." />
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Center" Text="Po zamknięciu okna" />
+                <ComboBox Grid.Row="2" Grid.Column="1"
+                          Style="{StaticResource ThemedComboBox}"
+                          ItemsSource="{Binding CloseBehaviorOptions}"
+                          SelectedItem="{Binding SelectedCloseBehavior}"
+                          ToolTip="Wybiera reakcję na kliknięcie krzyżyka okna: pełne zakończenie procesu albo ukrycie do zasobnika." />
+              </Grid>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </TabItem>
+    </TabControl>
+
+    <DockPanel Grid.Row="2" Margin="0,14,0,0">
+      <TextBlock DockPanel.Dock="Left"
+                 VerticalAlignment="Center"
+                 Foreground="{DynamicResource Brush.Text.Muted}"
+                 Text="Zmiany są zapisywane do trwałych ustawień aplikacji i stosowane bez restartu, gdy to możliwe." />
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+        <Button Command="{Binding ResetDefaultsCommand}"
+                Content="Domyślne"
+                Style="{StaticResource ToolbarButton}"
+                ToolTip="Przywraca domyślne kolory, fonty i tryb pracy okna oraz wraca do bezpiecznego trybu normalnego." />
+        <Button Command="{Binding ApplyCommand}"
+                Content="Zastosuj"
+                Style="{StaticResource ToolbarButton}"
+                ToolTip="Zapisuje ustawienia i od razu stosuje personalizację oraz wybrany tryb okna." />
+        <Button Command="{Binding CloseCommand}"
+                Content="Zamknij"
+                Style="{StaticResource ToolbarButton}"
+                ToolTip="Zamyka okno ustawień. Ostatnio zapisane ustawienia pozostają aktywne." />
+      </StackPanel>
+    </DockPanel>
+  </Grid>
+</Window>

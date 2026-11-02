@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
+    <RootNamespace>UberDashboard.App</RootNamespace>
+    <AssemblyName>UberDashboard</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Serilog.Extensions.Hosting" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Serilog.Sinks.File" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UberDashboard.Contracts\UberDashboard.Contracts.csproj" />
+    <ProjectReference Include="..\UberDashboard.Core\UberDashboard.Core.csproj" />
+    <ProjectReference Include="..\UberDashboard.Application\UberDashboard.Application.csproj" />
+    <ProjectReference Include="..\UberDashboard.Infrastructure\UberDashboard.Infrastructure.csproj" />
+    <ProjectReference Include="..\UberDashboard.Platform.Windows\UberDashboard.Platform.Windows.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="UberDashboard.App.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/UberDashboard.App/UberDashboard.App.csproj" />
+    <Project Path="src/UberDashboard.Application/UberDashboard.Application.csproj" />
+    <Project Path="src/UberDashboard.Contracts/UberDashboard.Contracts.csproj" />
+    <Project Path="src/UberDashboard.Core/UberDashboard.Core.csproj" />
+    <Project Path="src/UberDashboard.Infrastructure/UberDashboard.Infrastructure.csproj" />
+    <Project Path="src/UberDashboard.Platform.Windows/UberDashboard.Platform.Windows.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/UberDashboard.App.Tests/UberDashboard.App.Tests.csproj" />
+    <Project Path="tests/UberDashboard.Application.Tests/UberDashboard.Application.Tests.csproj" />
+    <Project Path="tests/UberDashboard.Core.Tests/UberDashboard.Core.Tests.csproj" />
+    <Project Path="tests/UberDashboard.Infrastructure.Tests/UberDashboard.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>
