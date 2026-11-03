@@ -36,6 +36,7 @@ public sealed class BindableRichTextBox : WpfRichTextBox
     /// <summary>Tworzy kontrolkę z domyślnym dokumentem i aktywnym zawijaniem.</summary>
     public BindableRichTextBox()
     {
+        BindDocumentAppearance();
         ApplyWordWrap();
     }
 
@@ -58,6 +59,30 @@ public sealed class BindableRichTextBox : WpfRichTextBox
     {
         get => (bool)GetValue(IsDocumentWordWrapEnabledProperty);
         set => SetValue(IsDocumentWordWrapEnabledProperty, value);
+    }
+
+    private void BindDocumentAppearance()
+    {
+        ClearSerializedThemeColors(Document);
+        System.Windows.Data.BindingOperations.SetBinding(Document, FlowDocument.FontFamilyProperty, new System.Windows.Data.Binding(nameof(FontFamily)) { Source = this });
+        System.Windows.Data.BindingOperations.SetBinding(Document, FlowDocument.FontSizeProperty, new System.Windows.Data.Binding(nameof(FontSize)) { Source = this });
+        System.Windows.Data.BindingOperations.SetBinding(Document, FlowDocument.ForegroundProperty, new System.Windows.Data.Binding(nameof(Foreground)) { Source = this });
+    }
+
+    // XamlPackage materializes inherited foregrounds on paragraphs and runs.
+    // Restore inheritance for neutral theme colors; preserve intentional colored text.
+    internal static void ClearSerializedThemeColors(DependencyObject node)
+    {
+        if (node is TextElement text && text.ReadLocalValue(TextElement.ForegroundProperty) is System.Windows.Media.SolidColorBrush brush)
+        {
+            var color = brush.Color;
+            if ((color.R == 0 && color.G == 0 && color.B == 0)
+                || (color.R == 255 && color.G == 255 && color.B == 255)
+                || (color.R == 15 && color.G == 23 && color.B == 42)
+                || (color.R == 242 && color.G == 243 && color.B == 245))
+                text.ClearValue(TextElement.ForegroundProperty);
+        }
+        foreach (var child in LogicalTreeHelper.GetChildren(node).OfType<DependencyObject>()) ClearSerializedThemeColors(child);
     }
 
     protected override void OnTextChanged(TextChangedEventArgs e)
@@ -88,6 +113,7 @@ public sealed class BindableRichTextBox : WpfRichTextBox
                 e.NewValue as string,
                 NotesContentFormat.XamlPackage,
                 richTextBox.PlainText);
+            richTextBox.BindDocumentAppearance();
             richTextBox.ApplyWordWrap();
         }
         finally

@@ -29,7 +29,7 @@ public sealed class NotesPanelDescriptor : IPanelDescriptor
     public string? IconKey => "panel.notes";
 
     /// <inheritdoc />
-    public MinSize MinSize => new(280d, 200d);
+    public MinSize MinSize => new(280d, 150d);
 
     /// <inheritdoc />
     public int StateSchemaVersion => NotesDocument.SchemaVersion;

@@ -23,6 +23,7 @@ public sealed class WeatherPanelRegistrationTests
         var catalog = provider.GetRequiredService<PanelCatalog>();
 
         Assert.NotNull(catalog.DescriptorOf("weather"));
-        Assert.Equal(3, catalog.Registrations.Count);
+        Assert.Equal(4, catalog.Registrations.Count);
+        Assert.NotNull(catalog.DescriptorOf(UberDashboard.App.Features.Space.SpacePanelDescriptor.Id));
     }
 }

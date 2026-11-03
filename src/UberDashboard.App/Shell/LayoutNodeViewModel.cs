@@ -10,4 +10,6 @@ namespace UberDashboard.App.Shell;
 /// </summary>
 public abstract class LayoutNodeViewModel : ObservableObject
 {
+    /// <summary>Minimum poddrzewa w DIP, używane również przez przewijany widok WPF.</summary>
+    public UberDashboard.Core.Layout.MinSize Minimum { get; init; }
 }

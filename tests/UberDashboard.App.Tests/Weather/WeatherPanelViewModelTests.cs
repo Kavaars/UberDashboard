@@ -7,6 +7,17 @@ namespace UberDashboard.App.Tests.Weather;
 public sealed class WeatherPanelViewModelTests
 {
     [Fact]
+    public async Task Legacy_location_without_explicit_consent_does_not_send_requests()
+    {
+        var service = new FakeWeatherService();
+        using var vm = new WeatherPanelViewModel(service, new FakeWeatherLocationSearchService(), new FakeWeatherCacheStore(), new FakePanelNotifier());
+        vm.Load(new WeatherPanelDocument { SelectedLocation = new WeatherLocationOption("Test", "", "", 50, 20, "Europe/Warsaw") });
+        await vm.ActivateAsync(CancellationToken.None);
+        await vm.RefreshAsync();
+        Assert.Equal(0, service.CallCount);
+    }
+
+    [Fact]
     public async Task Refresh_without_location_skips_weather_request()
     {
         var weatherService = new FakeWeatherService();
@@ -50,6 +61,7 @@ public sealed class WeatherPanelViewModelTests
             cacheStore,
             new FakePanelNotifier())
         {
+            IsNetworkEnabled = true,
             SelectedLocation = location,
         };
 
@@ -94,6 +106,7 @@ public sealed class WeatherPanelViewModelTests
             new FakeWeatherCacheStore(),
             new FakePanelNotifier())
         {
+            IsNetworkEnabled = true,
             SelectedLocation = location,
         };
 
@@ -123,5 +136,38 @@ public sealed class WeatherPanelViewModelTests
                 Assert.Equal("☀", hour.Glyph);
                 Assert.Equal("10,1 °C", hour.TemperatureText);
             });
+    }
+    [Fact]
+    public async Task Revoking_consent_cancels_inflight_weather_and_clears_saved_consent()
+    {
+        var waiting = new TaskCompletionSource<WeatherSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var weather = new FakeWeatherService { OnGetCurrentAsync = (_, _, token) => waiting.Task.WaitAsync(token) };
+        using var vm = new WeatherPanelViewModel(weather, new FakeWeatherLocationSearchService(), new FakeWeatherCacheStore(), new FakePanelNotifier())
+        {
+            IsNetworkEnabled = true,
+            SelectedLocation = new WeatherLocationOption("Test", "", "", 50, 20, "Europe/Warsaw"),
+        };
+        Assert.NotNull(vm.Snapshot().NetworkConsentGrantedAtUtc);
+        var request = vm.RefreshAsync();
+        Assert.Equal(1, weather.CallCount);
+        vm.IsNetworkEnabled = false;
+        await request;
+        Assert.False(vm.IsLoading);
+        Assert.False(vm.HasSnapshot);
+        Assert.Null(vm.Snapshot().NetworkConsentGrantedAtUtc);
+        await vm.RefreshAsync();
+        Assert.Equal(1, weather.CallCount);
+    }
+
+    [Fact]
+    public void Explicit_consent_survives_document_roundtrip()
+    {
+        using var source = new WeatherPanelViewModel(new FakeWeatherService(), new FakeWeatherLocationSearchService(), new FakeWeatherCacheStore(), new FakePanelNotifier());
+        source.IsNetworkEnabled = true;
+        var saved = source.Snapshot();
+        using var restored = new WeatherPanelViewModel(new FakeWeatherService(), new FakeWeatherLocationSearchService(), new FakeWeatherCacheStore(), new FakePanelNotifier());
+        restored.Load(saved);
+        Assert.True(restored.IsNetworkEnabled);
+        Assert.Equal(saved.NetworkConsentGrantedAtUtc, restored.Snapshot().NetworkConsentGrantedAtUtc);
     }
 }

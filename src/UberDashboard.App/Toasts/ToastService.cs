@@ -43,7 +43,7 @@ public sealed class ToastService : IToastService, IDisposable
         }
 
         var message = new ToastMessage(Guid.NewGuid(), text, severity);
-        _logger.LogDebug("Toast [{Severity}]: {Text}", severity, text);
+        _logger.LogDebug("Pokazano powiadomienie {Severity}.", severity);
 
         var dispatcher = System.Windows.Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
         dispatcher.BeginInvoke(() =>

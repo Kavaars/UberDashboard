@@ -1,4 +1,40 @@
 # Rejestr problemów
+## 2026-11-03T09:34:03+01:00 | v1.4.0, stan roboczy 4910420 | pogoda, menu, tło, pasek
+
+- Moduły: Theming, Settings, Shell, okno główne. Środowisko: Windows, WPF, .NET SDK 10.0.403; rozmiary i konfiguracja użytkownika nieznane.
+- Zgłoszenie: znikające ikony pogody po zmniejszeniu poziomego panelu, nieczytelne menu w ciemnym motywie, brak opcji przezroczystego tła do pulpitu oraz brak dynamicznej zmiany grubości paska.
+- Oczekiwane: ikony dostępne w poziomym panelu, czytelne menu, widoczny pulpit bez ukrywania treści oraz zmiana grubości w aktywnym pasku. Odtwarzanie: przełączyć ciemny motyw i otworzyć menu paska; zmniejszyć poziomy panel pogody; zmieniać grubość w aktywnym pasku. Pozostałe szczegóły nieznane.
+- Korelacja: ostatnie commity dotyczą dokumentacji; wcześniejsze niezacommitowane zmiany wprowadziły kompaktowy szablon pogody, autozapis i tapetę. Wpis z 08:27 dotyczy tych samych obszarów.
+- Przyczyny w kodzie: kompaktowy szablon pomijał glify; menu kontekstowe miało systemowe tło z tekstem motywu; zapis ustawień uruchamiał tryb startowy zamiast aktywnego. Dodano glify, styl menu i zachowanie aktywnego trybu; test regresyjny obejmuje ustawienie grubości.
+- Ograniczenia: samodzielna przezroczystość tła do pulpitu bez zanikania tekstu nie została wdrożona; bieżące krycie obejmuje całe okno. Weryfikacja efektu menu i paska w rzeczywistym pulpicie Windows pozostaje wymagana.
+
+## 2026-11-03T08:27:43+01:00 | v1.3.0, stan roboczy 4910420 | orientacja paneli i wygląd okna
+
+- Moduły: App/Theming, Settings, Shell, panele i wtyczki.
+- Zgłoszenie: zawartość paneli powinna dynamicznie dostosowywać się do poziomej i pionowej orientacji; potrzebne są również tapeta aplikacji z rozmyciem oraz przezroczystość okna z rozmyciem pulpitu.
+- Oczekiwane: dane w poziomym panelu układają się od lewej i pozostają dostępne podczas zmiany rozmiaru; ustawienia tła działają w całej aplikacji.
+- Stan obecny: kod poziomego widoku pogody umieszcza część danych w rozwijanej sekcji; suwak przezroczystości widgetu jest nieaktywny. Pozostałe przypadki wymagają sprawdzenia w uruchomionej aplikacji.
+- Odtwarzanie: szczegółowe rozmiary i konfiguracja zgłoszenia nieznane. Dla pogody kod wybiera widok kompaktowy przy szerokości co najmniej 480 DIP i wysokości poniżej 260 DIP.
+- Środowisko: Windows, WPF, .NET SDK 10.0.403. W repozytorium istnieją liczne wcześniejsze niezacommitowane zmiany; ostatnie commity dotyczą dokumentacji i konfiguracji Git. Powiązany wpis v1.0.7 dotyczy czytelności pogody.
+- Potwierdzona przyczyna widoku pogody: kompaktowy szablon umieszczał świt, zmierzch i prognozę pod zwiniętym elementem Expander. Zastąpiono go poziomą listą z przewijaniem; pozostałe panele i wtyczki nie zostały jeszcze dostosowane.
+- Częściowa realizacja: dodano tapetę okna, jej rozmycie oraz krycie powierzchni i okna. Rozmycie pulpitu za oknem nie zostało wdrożone. Wygląd wymaga sprawdzenia w działającym oknie Windows.
+- Dalsze zmiany 2026-11-03: dodano opcję systemowego materiału Acrylic, układy poziome notatek i zadań oraz kontrakt rozmiaru dla wtyczek i jego obsługę w ramce zdjęć. Wtyczki bez tego opcjonalnego kontraktu zachowują własny układ.
+- Weryfikacja: 287 testów automatycznych PASS, w tym test ograniczania wartości ustawień i przełączenia układu tam i z powrotem; integracja wtyczki 37 kontroli PASS. Rendery WPF paneli w różnych rozmiarach PASS; efekt Acrylic i tapeta wymagają odbioru w rzeczywistym oknie na pulpicie.
+
+## 2026-11-02T21:05:54.3677930+01:00 | v1.0.8 | audyt planu, trwałość paneli, tryby i UI
+
+- Moduły: App/Shell, Panels, Theming, Settings, Weather, Infrastructure/Stores/Logging, Platform.Windows, BuildTools.
+- Zgłoszenie: sprawdzić zgodność z planem i wymaganiami paneli/trybów/wtyczek/personalizacji, czytelność UI i zasoby; od razu poprawić potwierdzone usterki.
+- Oczekiwane: trwałe operacje paneli, rzetelne stany i zgody, czytelne motywy i tryby zgodne z faktycznymi możliwościami aplikacji.
+- Rzeczywiste: m.in. usuwanie bez potwierdzenia, nadpisywanie IsHidden autozapisem, resize wyłącznie wizualny, brak pozycjonowania okna AppBar i callbacku, fullscreen udający widget, utrata tokenów motywu, kwadraty ikon, czarne etykiety opcji w ciemnym motywie, techniczna nazwa monitora, pogoda bez zgody, brak części operacji układu w UI.
+- Odtwarzanie: dodać ToDo i ukryć/reload; zmienić splitter i reload; usunąć panel; uruchomić legacy pogodę z lokalizacją bez zgody; przełączyć motyw i wejść w Opcje; przejrzeć host widgetu i połączenie AppBar z oknem. Scenariusze z testów używają odrębnych profili i fikcyjnych danych.
+- Środowisko: lokalny Windows, .NET SDK 10.0.403, WPF/net10.0-windows. Stan początkowy git 4910420, czysty. Ostatnie commity 4910420/998f560 dotyczą dokumentacji/ignorowania narzędzi, nie wprowadzają tych usterek. Kod bazowy pochodzi z 8164ac5; dokładnego wcześniejszego momentu powstania każdej usterki nie ustalono. Starsze wpisy o braku .git opisują poprzedni stan; w tej iteracji repo jest dostępne.
+- Powiązania: wcześniejsze wpisy v1.0.4, v1.0.5 i v1.0.7 o trybach, pogodzie, glifach i themingu. Poprzednie automatyczne PASS nie pokrywały wszystkich zachowań WPF.
+- Potwierdzone przyczyny i naprawy: szczegóły w docs/AUDYT_ZALOZEN_2026-11-02.md. Najważniejsze: zapis stanu aktualizuje wyłącznie StateJson/UpdatedAtUtc; układ jest utrwalany po resize; dodano potwierdzenie usuwania, kontrolkę ruchu/menu, jawny fallback widgetu, adapter pozycjonowania AppBar, poprawne zasoby/font glifów/kontrast opcji, utrwalaną zgodę z anulowaniem pogody i ponawianie zapisu układu.
+- Regresje przed poprawką: Cancelled_removal FAIL (0 wywołań potwierdzenia), Hide_survives FAIL (IsHidden=false), Legacy_location FAIL (2 żądania bez zgody). Po poprawkach wszystkie PASS.
+- Weryfikacja: 225 testów PASS; build Release 0 ostrzeżeń/błędów; 22 rendery WPF PASS; publish win-x64 self-contained PASS. Build Release/Dev/v1.0.8_20261102-210401-650-audit.
+- Ograniczenia: brak prawdziwej warstwy widgetu i kompletnego hosta wtyczek, tapet/per-panel personalization, pełnego restore/rollback i KPI. Nie wykonano odbioru AppBar/Explorera/monitorów/Narratora ani instalatora. Narzędzia pulpitu blokuje MXC os error 1005 przy enumeracji dysku D:; ustawień dysku nie zmieniano.
+- Status: potwierdzone usterki z tej iteracji naprawione i pokryte opisanymi testami; cała specyfikacja v1 nie jest ukończona. Lista otwartych wymagań i granice dowodów w raporcie audytu.
 
 ## 2026-11-02T11:15:16+01:00 | v1.0.7 | panel pogody, tooltipy i glify akcji
 
@@ -169,3 +205,68 @@
 - Status diagnozy:
   - przyczyna techniczna: nieustalona
   - test regresji: jeszcze nie dodany
+
+## 2026-11-02T21:27:17.5905229+01:00 | v1.1.0 | Układ, personalizacja i ustawienia na żywo
+
+- Moduły: Shell, Theming, Settings, Weather; baza Git 4910420 oraz zastane niezacommitowane zmiany v1.0.8.
+- Zgłoszenie: nieczytelny motyw ciemny/systemowy, konieczność używania Zastosuj, informacje dostawcy pogody widoczne na karcie.
+- Oczekiwane: czytelne motywy i zmiany wyglądu widoczne natychmiast; zgoda, opisy i źródła pogody wyłącznie w opcjach.
+- Rzeczywiste przed zmianą: SettingsViewModel stosował i zapisywał ustawienia dopiero na komendę; formularz materializował kolory jasnego motywu jako stałe nadpisania. Jawne style edytorów pomijały dynamiczne tokeny fontu. Blok informacji pogodowych znajdował się poza popupem opcji.
+- Reprodukcja: otworzyć Opcje, zmienić font/kolor bez Zastosuj; zapisać jasną paletę i przełączyć ciemny motyw; sprawdzić główną kartę pogody. Dokładna konfiguracja profilu użytkownika i moment powstania problemu: nieznane.
+- Środowisko: Windows, .NET SDK 10.0.403, WPF/net10.0-windows. Powiązany wpis audytu v1.0.8; ostatnie commity dotyczą dokumentacji, brak dowodu na regresję po nich.
+- Naprawa: natychmiastowy podgląd, grupowany autozapis i ponawianie; migracja dawnych domyślnych jasnych nadpisań w ciemnym motywie; dynamiczne fonty także w dokumencie notatki; reakcja na motyw Windows; przewijane opcje pogody zawierają zgody i źródła. Dodatkowo personalizacja osobnych instancji oraz wskazanie strefy upuszczenia i skrót trzech paneli w kolumnie.
+- Regresje: AppearanceRegressionTests, LiveSettingsTests, Three_panels_in_one_column_keep_original_content_and_reload; rozszerzone VisualChecks sprawdzają też podgląd fontu bez zapisu i font dokumentu per panel.
+- Granice: testy używają osobnych profili i danych przykładowych; odbiór prawdziwą myszą, rzeczywiste przełączenie motywu Windows i Explorer/AppBar nie są potwierdzone renderowaniem WPF. Tapeta jest odwołaniem do lokalnego pliku.
+- Weryfikacja końcowa: build Release PASS (0 ostrzeżeń/błędów), 233 testy PASS, 33 rendery WPF trzech motywów PASS, podgląd fontu i font dokumentu per panel PASS, publish win-x64 self-contained PASS. Build: Release/Dev/v1.1.0_20261102-213028-157.
+
+## 2026-11-02T21:51:51.5007905+01:00 | v1.2.0 | Panels — równoległe zamykanie instancji
+
+- Źródło: scenariusz integracyjny nowego hosta pluginów; nie jest to osobne zgłoszenie użytkownika.
+- Moduł: App/Panels/PanelHostManager, PluginManager, Shell.
+- Oczekiwane: usunięcie pluginu podczas przełączania pulpitu bez podwójnego zwalniania panelu i bez utraty stanu.
+- Rzeczywiste przed poprawką: ObjectDisposedException: The CancellationTokenSource has been disposed w SuspendAsync, gdy dwie operacje oczekiwały na zapis tej samej instancji.
+- Odtwarzanie: PluginChecks — dodać ramkę, ukryć/przywrócić, uruchomić tworzenie/przełączenie pulpitu i równocześnie usunąć plugin.
+- Środowisko: Windows/WPF, .NET SDK 10.0.403, baza Git 4910420 z istniejącymi zmianami roboczymi; wykryte podczas implementacji 1.2.0, nie przypisano do wcześniejszego commita.
+- Potwierdzona przyczyna: odczyt HostedPanel przed await i brak osobnej serializacji Suspend/Remove umożliwiał dwóm operacjom zwolnienie tego samego CTS.
+- Naprawa: LifecycleGate per instancja i ponowna kontrola tożsamości po uzyskaniu blokady; zapis nadal musi zakończyć się przed usunięciem aktywnej instancji.
+- Regresja: scenariusz PluginChecks nie przechodził przed poprawką; po poprawce przechodzi, łącznie z ponowną instalacją i odtworzeniem stanu SQLite.
+
+## 2026-11-03T07:20:30+01:00 | v1.2.0 / 4910420 + zmiany robocze | Lista zgłoszeń UI
+
+Środowisko: Windows, WPF/net10.0-windows. Wersja uruchomiona przez użytkownika i dokładny profil: nieznane. Ostatnie commity dotyczą dokumentacji; istotne wcześniejsze implementacje są w zmianach roboczych. Powiązane zgłoszenie: personalizacja i układ z 2026-11-02.
+
+- [x] 1. Motyw z górnego paska: zmieniają się ramki; oczekiwane pełne przełączenie jak w Opcjach. Reprodukcja: użyć przycisku motywu na pasku.
+- [x] 2. Wygląd panelu: osobny przycisk w nagłówku; oczekiwane ustawienia wyglądu wewnątrz opcji panelu.
+- [x] 3. Kolory: oczekiwane koło kolorów jako podstawowy wybór, wpis wartości schowany opcjonalnie; obecnie systemowy dialog i widoczne pola tekstowe.
+- [x] 4. Notatnik: po włączeniu ciemnego motywu tekst pozostaje czarny; oczekiwana czytelność istniejących i nowych notatek. Dokładny payload reprodukujący: nieznany.
+- [x] 5. Przenoszenie paneli: drag and drop nie działa; oczekiwane przenoszenie w trybie edycji. Dokładne miejsce rozpoczęcia i upuszczenia: nieznane.
+- [x] 6. Wysokość i układ: oczekiwane chwytanie górnej/dolnej krawędzi i wolne miejsce nad/pod panelem, możliwość dodania kolejnego panelu; wszystkie panele użyteczne w proporcjach pionowych i poziomych. Obecny model to pełny binarny podział bez pustych obszarów.
+
+Diagnoza potwierdzona w kodzie dla 1: SettingsViewModel czyści paletę przy zmianie motywu, ThemeService.ApplyAsync zachowuje nadpisania. Pozostałe przyczyny wymagają weryfikacji.
+
+### Wynik punktu 1 — 2026-11-03T07:24:00+01:00
+- Zmieniono ThemeService.ApplyAsync: jawny wybór motywu usuwa globalne nadpisania kolorów jak formularz Opcji; nie resetuje fontu ani pozostałych preferencji. Skutek: własna paleta globalna jest resetowana przy takim wyborze, zgodnie z istniejącym zachowaniem Opcji.
+- Dodano ToolbarThemeTests sprawdzający reset palety i zachowanie fontu. Test po poprawce PASS; próba przed poprawką nie zakończyła się w ograniczonym środowisku, więc nie deklaruje się potwierdzenia red/green.
+- Odbiór w uruchomionym UI i punkty 2–6 nadal niepotwierdzone.
+
+## 2026-11-03T07:41:20.1690202+01:00 | v1.3.0 | Zakończenie zgłoszeń 1–6
+
+- Punkt 1: poprawka z poprzedniego etapu; pasek i Opcje resetują globalną paletę przy jawnym wyborze motywu.
+- Punkt 2: wspólne opcje instancji zawierają rozwijaną sekcję Wygląd. Opcje wbudowanych paneli przeniesiono do szablonów wspólnego okna; pluginy zachowują własną komendę opcji.
+- Punkt 3: ColorWheel (HSV, jasność, alfa, klawiatura i dostępna nazwa); pole HEX domyślnie schowane. Globalne opcje, wygląd instancji i dialog IColorPickerService używają tej samej kontrolki.
+- Punkt 4: XamlPackage materializował neutralny kolor na akapitach i fragmentach. Przy odczycie edytor przywraca dziedziczenie kolorów motywu dla neutralnych kolorów; kolorowe fragmenty, formatowanie i obrazy pozostają. Nie da się rozróżnić ręcznie wybranego czarnego/białego od utrwalonego domyślnego — neutralne kolory podlegają dostosowaniu do motywu.
+- Punkt 5: rozszerzono uchwyt na tło nagłówka z wyłączeniem przycisków i edytorów, dodano przechwycenie myszy i obsługę PreviewDragOver/PreviewDrop, aby edytory nie przejmowały przenoszenia paneli. Wklejanie/przeciąganie obrazów oraz instalowanie pluginów pozostaje obsługiwane.
+- Punkt 6: uchwyty góra/dół wydzielają puste obszary; istniejąca krawędź zmienia proporcję bez dodawania kolejnego obszaru. Wolne miejsce można wypełnić z menu lub przez przeniesienie panelu. Zapis wykorzystuje wewnętrzny typ builtin.layout-space i istniejący schemat liści, bez migracji danych. Minimum wysokości wbudowanych paneli: 150 DIP; szerokie nagłówki mają jeden wiersz akcji, niska pogoda ma kompaktowy odczyt z rozwijanymi szczegółami.
+- Regresje: ToolbarThemeTests, PanelSpaceTests (obie krawędzie, ponowny odczyt, wypełnianie, przenoszenie, niepoprawne rozmiary, ponowienie błędu zapisu), PanelControlsTests (HSV, warunki kompaktowego widoku, kolor i formatowanie notatki).
+- Weryfikacja końcowa: build Release PASS, 0 ostrzeżeń/błędów; 285 testów PASS; VisualChecks PASS — 51 renderów, kontrola tekstu notatek i fontów; PluginChecks PASS; publish win-x64 self-contained PASS. Wcześniejsze błędy kompilacji i blokada plików przez własne okno testowe zostały usunięte przed końcową weryfikacją.
+- Próby prawdziwą myszą (Computer Use, osobny profil): dolna/górna krawędź notatnika, przeniesienie ToDo w wolne miejsce, dodanie poziomego notatnika, otwarcie opcji/Wyglądu i wybór na kole — wykonane. Nie testowano pełnej bazy użytkownika ani wszystkich zewnętrznych pluginów.
+- Build: F:\MyApps\UberDashboard\Release\Dev\v1.3.0_20261103-074019-175
+
+
+## 2026-11-03T09:39:23+01:00 | v1.4.0, stan roboczy 4910420 | przezroczyste tło
+
+- Moduł: App/Settings, MainWindow, SystemIntegration. Windows, WPF; wersja kompozytora i ustawienia systemu użytkownika nieznane.
+- Zgłoszenie: brak możliwości odsłonięcia pulpitu przez tło przy zachowaniu krycia tekstu. Oczekiwane: osobne przełączenie tła bez zmiany krycia treści. Odtwarzanie: otworzyć ustawienia wyglądu i włączyć opcję pokazywania pulpitu.
+- Powiązanie: poprzedni wpis z 2026-11-03 i niezacommitowane zmiany tapety; ostatnie commity dotyczą dokumentacji Git.
+- Zmiana: kompozycja DWM i przezroczyste tło obszaru okna; osobny przełącznik i krycie samych powierzchni. W razie błędu przewidziano powrót do zwykłego tła; wcześniej suwak zmieniał krycie całego okna.
+- Dodano testy zgodności zapisu ustawień i autozapisu. Faktyczna kompozycja DWM, czytelność i działanie w pasku wymagają sprawdzenia na pulpicie Windows.

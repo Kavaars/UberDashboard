@@ -14,6 +14,8 @@ public sealed class WeatherPanelInstance : IPanelInstance, IPanelPersistenceObse
     private readonly WeatherPanelViewModel _viewModel;
     private readonly PanelStateScheduler _scheduler;
     private bool _disposed;
+    private long _changeVersion;
+    public long ChangeVersion => Interlocked.Read(ref _changeVersion);
 
     /// <summary>Tworzy instancję panelu pogody.</summary>
     public WeatherPanelInstance(PanelContext context, WeatherPanelViewModel viewModel, PanelStateScheduler scheduler)
@@ -85,5 +87,9 @@ public sealed class WeatherPanelInstance : IPanelInstance, IPanelPersistenceObse
         return ValueTask.CompletedTask;
     }
 
-    private void OnViewModelChanged(object? sender, EventArgs e) => _scheduler.RequestSave(InstanceId);
+    private void OnViewModelChanged(object? sender, EventArgs e)
+    {
+        Interlocked.Increment(ref _changeVersion);
+        _scheduler.RequestSave(InstanceId);
+    }
 }

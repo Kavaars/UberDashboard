@@ -40,7 +40,7 @@ internal sealed class FakeAppBarNativeApi : IAppBarNativeApi
 
     public AppBarState GetState(IntPtr windowHandle) => AppBarState.None;
 
-    public void Activate(IntPtr windowHandle)
+    public void Activate(IntPtr windowHandle, bool active = true)
     {
     }
 
@@ -117,4 +117,12 @@ internal sealed class FakeDesktopWidgetWindowHost : IDesktopWidgetWindowHost
         Calls.Add("detach");
         return Task.CompletedTask;
     }
+}
+
+internal sealed class FakeDockedBarWindowHost : IDockedBarWindowHost
+{
+    public bool ApplyResult { get; set; } = true;
+    public PixelRect? AppliedBounds { get; private set; }
+    public bool Apply(IntPtr handle, PixelRect bounds) { AppliedBounds = bounds; return ApplyResult; }
+    public void Restore() { }
 }

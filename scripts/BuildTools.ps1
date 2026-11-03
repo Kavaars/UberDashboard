@@ -87,42 +87,15 @@ function Get-CurrentVersion {
     return [Version]$matches[1]
 }
 
-function Get-NextPatchVersion {
-    $current = Get-CurrentVersion
-    $patch = if ($current.Build -ge 0) { $current.Build + 1 } else { 0 }
-    return [Version]::new($current.Major, $current.Minor, $patch)
-}
-
-function Set-Version {
-    param([Version]$Version)
-
-    $newVersion = $Version.ToString(3)
-    $content = Get-Content $script:VersionFile -Raw
-    $updated = $content -replace '<Version>[^<]+</Version>', "<Version>$newVersion</Version>"
-
-    if ($updated -eq $content) {
-        throw "Nie udało się zaktualizować wersji w $script:VersionFile."
-    }
-
-    if ($DryRun) {
-        Write-Host "DRY-RUN: zapis wersji $newVersion do $script:VersionFile"
-        return $newVersion
-    }
-
-    $utf8 = [System.Text.UTF8Encoding]::new($false)
-    [System.IO.File]::WriteAllText($script:VersionFile, $updated, $utf8)
-    return $newVersion
-}
-
 function New-BuildContext {
     param(
         [string]$Channel,
         [string]$Suffix = ''
     )
 
-    $version = Get-NextPatchVersion
-    $versionText = Set-Version -Version $version
-    $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+    $version = Get-CurrentVersion
+    $versionText = $version.ToString(3)
+    $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss-fff'
     $buildId = "v{0}_{1}{2}" -f $versionText, $timestamp, $Suffix
     $channelRoot = Join-Path $script:ReleaseRoot $Channel
     $outputDirectory = Join-Path $channelRoot $buildId
@@ -184,6 +157,10 @@ function Run-TestSuite {
         '--nologo',
         '-v',
         'q'
+    )
+    $pluginCheckOutput = Join-Path $script:ReleaseRoot ('PluginChecks/v' + (Get-CurrentVersion) + '-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
+    Invoke-Checked -Description 'Integracja pluginów WPF, pokazu zdjęć i SQLite.' -FilePath 'dotnet' -Arguments @(
+        'run', '--project', 'tests/UberDashboard.PluginChecks', '-c', 'Release', '--no-build', '--', $pluginCheckOutput
     )
 }
 
@@ -315,11 +292,11 @@ function Open-ReleaseFolder {
 
 switch ($Mode) {
     'test' {
-        Set-StepPlan -Total 2
+        Set-StepPlan -Total 3
         Run-TestSuite
     }
     'dev' {
-        Set-StepPlan -Total 5
+        Set-StepPlan -Total 6
         $context = New-BuildContext -Channel 'Dev'
         Run-TestSuite
         Publish-App -Configuration 'Debug' -OutputDirectory $context.OutputDirectory -SelfContained $false -RuntimeIdentifier '' -ModeName 'dev'
@@ -327,7 +304,7 @@ switch ($Mode) {
         Start-BuildOutput -OutputDirectory $context.OutputDirectory
     }
     'prod' {
-        Set-StepPlan -Total 5
+        Set-StepPlan -Total 6
         $context = New-BuildContext -Channel 'Prod'
         Run-TestSuite
         Publish-App -Configuration 'Release' -OutputDirectory $context.OutputDirectory -SelfContained $true -RuntimeIdentifier 'win-x64' -ModeName 'prod'
@@ -342,7 +319,7 @@ switch ($Mode) {
         Start-BuildOutput -OutputDirectory $context.OutputDirectory
     }
     'inst' {
-        Set-StepPlan -Total 5
+        Set-StepPlan -Total 6
         $context = New-BuildContext -Channel 'Instal'
         Run-TestSuite
         Build-Installer -Context $context

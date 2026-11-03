@@ -7,10 +7,15 @@
     <Project Path="src/UberDashboard.Infrastructure/UberDashboard.Infrastructure.csproj" />
     <Project Path="src/UberDashboard.Platform.Windows/UberDashboard.Platform.Windows.csproj" />
   </Folder>
+  <Folder Name="/plugins/">
+    <Project Path="plugins/PhotoFrame/PhotoFrame.Plugin.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/UberDashboard.App.Tests/UberDashboard.App.Tests.csproj" />
     <Project Path="tests/UberDashboard.Application.Tests/UberDashboard.Application.Tests.csproj" />
     <Project Path="tests/UberDashboard.Core.Tests/UberDashboard.Core.Tests.csproj" />
     <Project Path="tests/UberDashboard.Infrastructure.Tests/UberDashboard.Infrastructure.Tests.csproj" />
+    <Project Path="tests/UberDashboard.PluginChecks/UberDashboard.PluginChecks.csproj" />
+    <Project Path="tests/UberDashboard.VisualChecks/UberDashboard.VisualChecks.csproj" />
   </Folder>
 </Solution>

@@ -9,4 +9,6 @@ public interface IPanelPersistenceObserver
 {
     /// <summary>Wywoływane po udanym zapisie stanu instancji.</summary>
     void OnStatePersisted();
+
+    long ChangeVersion => 0;
 }

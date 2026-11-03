@@ -210,4 +210,26 @@ public sealed class AppBarControllerTests
 
         Assert.Equal(["register", "query", "set", "activate", "poschanged"], api.Calls);
     }
+    [Fact]
+    public void Explorer_restart_registers_again_and_uses_new_monitor_bounds()
+    {
+        var native = new FakeAppBarNativeApi();
+        var controller = new AppBarController(native);
+        controller.Register(WindowHandle, AppBarEdge.Bottom, 200, WorkArea);
+        var result = controller.Restart(new PixelRect(-1280, 0, 0, 720));
+        Assert.True(result.IsSuccess);
+        Assert.Equal(new PixelRect(-1280, 520, 0, 720), result.Rect);
+        Assert.Equal(["register", "query", "set", "unregister", "register", "query", "set"], native.Calls);
+    }
+
+    [Fact]
+    public void Failed_reregistration_does_not_leave_registration_active()
+    {
+        var native = new FakeAppBarNativeApi();
+        var controller = new AppBarController(native);
+        controller.Register(WindowHandle, AppBarEdge.Bottom, 200, WorkArea);
+        native.RegisterResult = false;
+        Assert.False(controller.Restart().IsSuccess);
+        Assert.False(controller.IsRegistered);
+    }
 }

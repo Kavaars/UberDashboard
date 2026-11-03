@@ -14,6 +14,7 @@ internal sealed class Win32AppBarNativeApi : IAppBarNativeApi
     public bool Register(IntPtr windowHandle)
     {
         var data = CreateData(windowHandle);
+        data.CallbackMessage = ShellWindowInterop.AppBarCallbackMessage;
         return NativeMethods.SHAppBarMessage(NativeMethods.AbmNew, ref data) != IntPtr.Zero;
     }
 
@@ -49,9 +50,10 @@ internal sealed class Win32AppBarNativeApi : IAppBarNativeApi
     }
 
     /// <inheritdoc />
-    public void Activate(IntPtr windowHandle)
+    public void Activate(IntPtr windowHandle, bool active = true)
     {
         var data = CreateData(windowHandle);
+        data.Param = active ? new IntPtr(1) : IntPtr.Zero;
         NativeMethods.SHAppBarMessage(NativeMethods.AbmActivate, ref data);
     }
 

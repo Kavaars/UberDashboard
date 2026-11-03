@@ -31,21 +31,26 @@ public static class AppServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
+        services.AddSingleton<UberDashboard.App.Plugins.PluginManager>();
+        services.AddSingleton<UberDashboard.App.Plugins.PluginSettingsViewModel>();
         services.AddSingleton<ThemeService>();
         services.AddSingleton<IApplicationSettingsService, ApplicationSettingsService>();
         services.AddSingleton<IToastService, ToastService>();
         services.AddSingleton<ITrayIconService, TrayIconService>();
         services.AddSingleton<IStartupRegistrationService, WindowsStartupRegistrationService>();
         services.AddSingleton<IColorPickerService, WindowsColorPickerService>();
+        services.AddSingleton<IDockedBarWindowHost, DockedBarWindowHost>();
         services.AddSingleton<IDesktopWidgetWindowHost, DesktopWidgetWindowHost>();
         services.AddSingleton<IWindowModeCoordinator, MainWindowModeCoordinator>();
 
+        services.AddSingleton<IPanelRemovalConfirmation, PanelRemovalConfirmation>();
         services.AddSingleton<PanelStateScheduler>();
         services.AddSingleton<PanelHostManager>();
         services.AddSingleton<Func<PanelInstanceId, IPanelStateSink>>(
             _ => instanceId => throw new InvalidOperationException(
                 "Fabryka ujścia stanu panelu jest rozwiązywana wyłącznie przez kontener dla konkretnej instancji."));
 
+        services.AddSingleton<BuiltInPanelRegistration>(_ => new BuiltInPanelRegistration(Features.Space.SpacePanelDescriptor.Id, new Features.Space.SpacePanelDescriptor()));
         RegisterBuiltInPanels(services);
 
         services.AddSingleton(CreateCatalog);

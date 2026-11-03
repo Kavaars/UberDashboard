@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/UberDashboard.App/UberDashboard.App.csproj" />
+    <ProjectReference Include="../../plugins/PhotoFrame/PhotoFrame.Plugin.csproj" />
+    <None Include="../../plugins/PhotoFrame/plugin.json" Link="photo-plugin.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

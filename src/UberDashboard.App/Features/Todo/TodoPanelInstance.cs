@@ -17,6 +17,8 @@ public sealed class TodoPanelInstance : IPanelInstance, IPanelPersistenceObserve
     private readonly TodoPanelViewModel _viewModel;
     private readonly PanelStateScheduler _scheduler;
     private bool _disposed;
+    private long _changeVersion;
+    public long ChangeVersion => Interlocked.Read(ref _changeVersion);
 
     /// <summary>Tworzy instancję panelu listy zadań.</summary>
     public TodoPanelInstance(PanelContext context, TodoPanelViewModel viewModel, PanelStateScheduler scheduler)
@@ -87,5 +89,9 @@ public sealed class TodoPanelInstance : IPanelInstance, IPanelPersistenceObserve
         return ValueTask.CompletedTask;
     }
 
-    private void OnViewModelChanged(object? sender, EventArgs e) => _scheduler.RequestSave(InstanceId);
+    private void OnViewModelChanged(object? sender, EventArgs e)
+    {
+        Interlocked.Increment(ref _changeVersion);
+        _scheduler.RequestSave(InstanceId);
+    }
 }

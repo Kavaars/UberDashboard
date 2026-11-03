@@ -1,5 +1,6 @@
 using Serilog;
 using Serilog.Events;
+using Serilog.Formatting.Json;
 using UberDashboard.Application.Abstractions;
 
 namespace UberDashboard.Infrastructure.Logging;
@@ -13,7 +14,7 @@ public static class AppLogging
 {
     /// <summary>Szablon wiersza logu: znacznik czasu, poziom, moduł i komunikat.</summary>
     public const string OutputTemplate =
-        "{Timestamp:yyyy-MM-ddTHH:mm:ss.fffZ} [{Level:u3}] {SourceContext} {Message:lj}{NewLine}{Exception}";
+        "{Timestamp:yyyy-MM-ddTHH:mm:ss.fffzzz} [{Level:u3}] {SourceContext} {Message:lj}{NewLine}{Exception}";
 
     /// <summary>Liczba dni, przez które zachowywane są pliki logów.</summary>
     public const int RetainedFileCountLimit = 14;
@@ -28,10 +29,10 @@ public static class AppLogging
             .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
             .Enrich.FromLogContext()
             .WriteTo.File(
-                Path.Combine(paths.LogsDirectory, "app-.txt"),
+                path: Path.Combine(paths.LogsDirectory, "app-.txt"),
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: RetainedFileCountLimit,
-                outputTemplate: OutputTemplate,
+                formatter: new JsonFormatter(renderMessage: true),
                 shared: false);
 
         if (includeConsole)

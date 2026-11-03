@@ -14,7 +14,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\plugins\PhotoFrame\PhotoFrame.Plugin.csproj" />
     <ProjectReference Include="..\..\src\UberDashboard.App\UberDashboard.App.csproj" />
+    <ProjectReference Include="..\..\plugins\PhotoFrame\PhotoFrame.Plugin.csproj" />
     <ProjectReference Include="..\..\src\UberDashboard.Application\UberDashboard.Application.csproj" />
     <ProjectReference Include="..\..\src\UberDashboard.Core\UberDashboard.Core.csproj" />
   </ItemGroup>

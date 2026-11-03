@@ -6,9 +6,13 @@ public sealed record ApplicationSettings
     /// <summary>Domyślna konfiguracja bez nadpisanych tokenów.</summary>
     public static ApplicationSettings Default { get; } = new()
     {
+        PaletteVersion = 1,
         EnableTrayIcon = true,
         CloseBehavior = CloseBehavior.ExitApplication,
     };
+
+    /// <summary>Wersja zapisu palety; zero oznacza dawny formularz utrwalający kolory motywu.</summary>
+    public int PaletteVersion { get; init; }
 
     /// <summary>Kolor akcentu w formacie hex; pusty oznacza wartość z motywu.</summary>
     public string? AccentColor { get; init; }
@@ -37,6 +41,13 @@ public sealed record ApplicationSettings
     /// <summary>Domyślny interwał odświeżania danych pogodowych w minutach.</summary>
     public int? WeatherRefreshMinutes { get; init; }
 
+    public string? WallpaperPath { get; init; }
+    public double WallpaperBlur { get; init; }
+    public double BackgroundSurfaceOpacity { get; init; } = 0.7;
+    public double WindowOpacity { get; init; } = 1;
+    public bool DesktopBlur { get; init; }
+    public bool TransparentDesktopBackground { get; init; }
+
     /// <summary>Uruchamia aplikację razem z profilem bieżącego użytkownika Windows.</summary>
     public bool StartWithWindows { get; init; }
 
@@ -55,10 +66,14 @@ public sealed record ApplicationSettings
             SurfaceColor = NormalizeHex(SurfaceColor),
             SurfaceAltColor = NormalizeHex(SurfaceAltColor),
             FontFamilyName = NormalizeText(FontFamilyName),
-            FontSize = FontSize is null ? null : Math.Clamp(FontSize.Value, 11d, 24d),
-            CornerRadius = CornerRadius is null ? null : Math.Clamp(CornerRadius.Value, 4d, 28d),
-            DensityScale = DensityScale is null ? null : Math.Clamp(DensityScale.Value, 0.85d, 1.35d),
+            FontSize = FontSize is null ? null : (double.IsFinite(FontSize.Value) ? Math.Clamp(FontSize.Value, 11d, 24d) : 13d),
+            CornerRadius = CornerRadius is null ? null : (double.IsFinite(CornerRadius.Value) ? Math.Clamp(CornerRadius.Value, 4d, 28d) : 12d),
+            DensityScale = DensityScale is null ? null : (double.IsFinite(DensityScale.Value) ? Math.Clamp(DensityScale.Value, 0.85d, 1.35d) : 1d),
             WeatherRefreshMinutes = WeatherRefreshMinutes is null ? null : Math.Clamp(WeatherRefreshMinutes.Value, 5, 180),
+            WallpaperPath = NormalizeText(WallpaperPath),
+            WallpaperBlur = double.IsFinite(WallpaperBlur) ? Math.Clamp(WallpaperBlur, 0, 30) : 0,
+            BackgroundSurfaceOpacity = double.IsFinite(BackgroundSurfaceOpacity) ? Math.Clamp(BackgroundSurfaceOpacity, 0, 1) : 0.7,
+            WindowOpacity = double.IsFinite(WindowOpacity) ? Math.Clamp(WindowOpacity, 0.2, 1) : 1,
             EnableTrayIcon = EnableTrayIcon,
             StartWithWindows = StartWithWindows,
             CloseBehavior = NormalizeCloseBehavior(EnableTrayIcon, CloseBehavior),
@@ -72,7 +87,8 @@ public sealed record ApplicationSettings
         }
 
         var trimmed = value.Trim();
-        return trimmed.StartsWith('#') ? trimmed.ToUpperInvariant() : $"#{trimmed.ToUpperInvariant()}";
+        var hex = trimmed.StartsWith('#') ? trimmed[1..] : trimmed;
+        return hex.Length is 6 or 8 && hex.All(Uri.IsHexDigit) ? $"#{hex.ToUpperInvariant()}" : null;
     }
 
     private static string? NormalizeText(string? value) =>
