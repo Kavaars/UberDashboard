@@ -23,6 +23,62 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly IStartupRegistrationService _startupRegistrationService;
     private readonly ITrayIconService _trayIconService;
     private readonly IColorPickerService _colorPickerService;
+    private bool _loaded;
+    private bool _suppressChanges;
+    private bool _saving;
+    private int _revision;
+    private bool _windowDirty;
+    private bool _launchModeDirty;
+    private bool _integrationDirty;
+    private Task _pendingSave = Task.CompletedTask;
+    [ObservableProperty] private string saveStatus = "Zmiany zapisują się automatycznie.";
+    public Task FlushAsync() => _pendingSave;
+    public IAsyncRelayCommand RetrySaveCommand { get; }
+
+    protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        base.OnPropertyChanged(e);
+        if (!_loaded || _suppressChanges || e.PropertyName == nameof(SaveStatus)) return;
+        if (e.PropertyName == nameof(SelectedTheme))
+        {
+            _suppressChanges = true;
+            WindowBackgroundColor = ""; SurfaceColor = ""; SurfaceAltColor = ""; AccentColor = "";
+            _suppressChanges = false;
+        }
+        _integrationDirty |= e.PropertyName is nameof(StartWithWindows) or nameof(EnableTrayIcon) or nameof(SelectedCloseBehavior);
+        _windowDirty |= e.PropertyName is nameof(SelectedLaunchMode) or nameof(SelectedMonitor) or nameof(SelectedDockEdge) or nameof(DockThickness) or nameof(WidgetOpacity) or nameof(DesktopWidgetFallbackToNormal);
+        _launchModeDirty |= e.PropertyName == nameof(SelectedLaunchMode);
+        _themeService.Preview(SelectedTheme, CaptureSettings());
+        _revision++;
+        if (!_saving) _pendingSave = SaveChangesAsync();
+    }
+
+    private async Task SaveChangesAsync()
+    {
+        _saving = true;
+        try
+        {
+            int revision;
+            do
+            {
+                revision = _revision;
+                SaveStatus = "Zapisywanie…";
+                await Task.Delay(180).ConfigureAwait(true);
+                if (revision != _revision) continue;
+                var windowDirty = _windowDirty; _windowDirty = false;
+                var integrationDirty = _integrationDirty; _integrationDirty = false;
+                try { await ApplyAsync(windowDirty, integrationDirty).ConfigureAwait(true); }
+                catch { _windowDirty |= windowDirty; _integrationDirty |= integrationDirty; throw; }
+            } while (revision != _revision);
+            SaveStatus = "Zapisano automatycznie";
+        }
+        catch (Exception)
+        {
+            SaveStatus = "Nie zapisano ustawień. Użyj Ponów zapis.";
+            _toasts.Show(SaveStatus, ToastSeverity.Error);
+        }
+        finally { _saving = false; }
+    }
 
     /// <summary>Tworzy model widoku okna ustawień.</summary>
     public SettingsViewModel(
@@ -66,7 +122,7 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         Monitors = [];
 
-        ApplyCommand = new AsyncRelayCommand(ApplyAsync);
+        RetrySaveCommand = new AsyncRelayCommand(() => _saving ? _pendingSave : _pendingSave = SaveChangesAsync());
         ResetDefaultsCommand = new AsyncRelayCommand(ResetDefaultsAsync);
         CloseCommand = new RelayCommand(() => RequestClose?.Invoke());
         ChooseAccentColorCommand = new RelayCommand(() => PickColor(static vm => vm.AccentColor, static (vm, color) => vm.AccentColor = color));
@@ -126,6 +182,23 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private int weatherRefreshMinutes = 20;
 
+    [ObservableProperty] private string? wallpaperPath;
+    [ObservableProperty] private double wallpaperBlur;
+    [ObservableProperty] private double backgroundSurfaceOpacity = 0.7;
+    [ObservableProperty] private double windowOpacity = 1;
+    [ObservableProperty] private bool desktopBlur;
+    [ObservableProperty] private bool transparentDesktopBackground;
+
+    [RelayCommand]
+    private void ChooseWallpaper()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "Obrazy|*.png;*.jpg;*.jpeg;*.bmp", Title = "Wybierz tapetę aplikacji" };
+        if (dialog.ShowDialog() == true) WallpaperPath = dialog.FileName;
+    }
+
+    [RelayCommand]
+    private void RemoveWallpaper() => WallpaperPath = null;
+
     [ObservableProperty]
     private WindowMode selectedLaunchMode = WindowMode.Normal;
 
@@ -153,9 +226,6 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private CloseBehavior selectedCloseBehavior = CloseBehavior.ExitApplication;
 
-    /// <summary>Komenda zapisująca i stosująca ustawienia bez restartu.</summary>
-    public IAsyncRelayCommand ApplyCommand { get; }
-
     /// <summary>Komenda przywracająca wartości domyślne.</summary>
     public IAsyncRelayCommand ResetDefaultsCommand { get; }
 
@@ -177,6 +247,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>Wczytuje aktualne ustawienia do formularza.</summary>
     public async Task LoadAsync(CancellationToken cancellationToken = default)
     {
+        _loaded = false;
         Monitors.Clear();
         foreach (var monitor in _monitorProvider.Enumerate())
         {
@@ -186,15 +257,21 @@ public sealed partial class SettingsViewModel : ObservableObject
         SelectedTheme = _themeService.Current;
 
         var applicationSettings = await _applicationSettingsService.LoadAsync(cancellationToken).ConfigureAwait(true);
-        AccentColor = applicationSettings.AccentColor ?? _themeService.ReadBrushHex("Brush.Accent", "#FF1668C1");
-        WindowBackgroundColor = applicationSettings.WindowBackgroundColor ?? _themeService.ReadBrushHex("Brush.Window.Background", "#FFF6F7F9");
-        SurfaceColor = applicationSettings.SurfaceColor ?? _themeService.ReadBrushHex("Brush.Surface", "#FFFFFFFF");
-        SurfaceAltColor = applicationSettings.SurfaceAltColor ?? _themeService.ReadBrushHex("Brush.Surface.Alt", "#FFEFF1F4");
+        AccentColor = applicationSettings.AccentColor ?? "";
+        WindowBackgroundColor = applicationSettings.WindowBackgroundColor ?? "";
+        SurfaceColor = applicationSettings.SurfaceColor ?? "";
+        SurfaceAltColor = applicationSettings.SurfaceAltColor ?? "";
         SelectedFontFamily = applicationSettings.FontFamilyName ?? _themeService.ReadFontFamilyName();
         FontSize = applicationSettings.FontSize ?? _themeService.ReadDouble("Token.FontSize.Body", 13d);
         CornerRadius = applicationSettings.CornerRadius ?? _themeService.ReadDouble("Token.CornerRadius.M", 12d);
         DensityScale = applicationSettings.DensityScale ?? 1d;
         WeatherRefreshMinutes = applicationSettings.WeatherRefreshMinutes ?? 20;
+        WallpaperPath = applicationSettings.WallpaperPath;
+        WallpaperBlur = applicationSettings.WallpaperBlur;
+        BackgroundSurfaceOpacity = applicationSettings.BackgroundSurfaceOpacity;
+        WindowOpacity = applicationSettings.WindowOpacity;
+        DesktopBlur = applicationSettings.DesktopBlur;
+        TransparentDesktopBackground = applicationSettings.TransparentDesktopBackground;
         StartWithWindows = _startupRegistrationService.IsEnabled(Environment.ProcessPath ?? string.Empty) || applicationSettings.StartWithWindows;
         EnableTrayIcon = applicationSettings.EnableTrayIcon;
         SelectedCloseBehavior = applicationSettings.CloseBehavior;
@@ -214,12 +291,24 @@ public sealed partial class SettingsViewModel : ObservableObject
                 monitor => string.Equals(monitor.Id, windowSettings.MonitorId, StringComparison.OrdinalIgnoreCase))
                 ?? SelectedMonitor;
         }
+        _loaded = true;
     }
 
-    private async Task ApplyAsync()
+    private ApplicationSettings CaptureSettings() => new ApplicationSettings
+        {
+            PaletteVersion = 1,
+            AccentColor = AccentColor, WindowBackgroundColor = WindowBackgroundColor, SurfaceColor = SurfaceColor,
+            SurfaceAltColor = SurfaceAltColor, FontFamilyName = SelectedFontFamily, FontSize = FontSize,
+            CornerRadius = CornerRadius, DensityScale = DensityScale, WeatherRefreshMinutes = WeatherRefreshMinutes,
+            StartWithWindows = StartWithWindows, EnableTrayIcon = EnableTrayIcon, CloseBehavior = SelectedCloseBehavior,
+            WallpaperPath = WallpaperPath, WallpaperBlur = WallpaperBlur, BackgroundSurfaceOpacity = BackgroundSurfaceOpacity, WindowOpacity = WindowOpacity, DesktopBlur = DesktopBlur, TransparentDesktopBackground = TransparentDesktopBackground,
+        }.Normalize();
+
+    private async Task ApplyAsync(bool changeWindow = true, bool changeIntegration = true)
     {
         var applicationSettings = new ApplicationSettings
         {
+            PaletteVersion = 1,
             AccentColor = AccentColor,
             WindowBackgroundColor = WindowBackgroundColor,
             SurfaceColor = SurfaceColor,
@@ -232,13 +321,17 @@ public sealed partial class SettingsViewModel : ObservableObject
             StartWithWindows = StartWithWindows,
             EnableTrayIcon = EnableTrayIcon,
             CloseBehavior = SelectedCloseBehavior,
+            WallpaperPath = WallpaperPath, WallpaperBlur = WallpaperBlur, BackgroundSurfaceOpacity = BackgroundSurfaceOpacity, WindowOpacity = WindowOpacity, DesktopBlur = DesktopBlur, TransparentDesktopBackground = TransparentDesktopBackground,
         }.Normalize();
 
-        await _themeService.ApplyAsync(SelectedTheme, CancellationToken.None).ConfigureAwait(true);
-        await _themeService.ApplyApplicationSettingsAsync(applicationSettings, CancellationToken.None, persist: true).ConfigureAwait(true);
-        _startupRegistrationService.Apply(applicationSettings.StartWithWindows, Environment.ProcessPath ?? string.Empty);
-        _trayIconService.ApplySettings(applicationSettings);
+        await _themeService.PersistSelectionAsync(SelectedTheme, applicationSettings).ConfigureAwait(true);
+        if (changeIntegration)
+        {
+            _startupRegistrationService.Apply(applicationSettings.StartWithWindows, Environment.ProcessPath ?? string.Empty);
+            _trayIconService.ApplySettings(applicationSettings);
+        }
 
+        if (!changeWindow) return;
         var windowSettings = new WindowModeSettings
         {
             LaunchMode = SelectedLaunchMode,
@@ -250,12 +343,14 @@ public sealed partial class SettingsViewModel : ObservableObject
         }.Normalize();
 
         await _windowModeSettingsService.SetAsync(windowSettings, CancellationToken.None).ConfigureAwait(true);
-        var result = await _windowModeCoordinator.SwitchAsync(windowSettings.LaunchMode, CancellationToken.None).ConfigureAwait(true);
+        var targetMode = _launchModeDirty ? windowSettings.LaunchMode : _windowModeCoordinator.CurrentMode;
+        _launchModeDirty = false;
+        var result = await _windowModeCoordinator.SwitchAsync(targetMode, CancellationToken.None).ConfigureAwait(true);
         SyncShellWindowMode(result.ActiveMode);
 
         if (result.IsSuccess)
         {
-            _toasts.Show("Ustawienia zostały zastosowane.", ToastSeverity.Success);
+            SaveStatus = "Zapisano automatycznie";
         }
         else
         {
@@ -269,6 +364,8 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     private async Task ResetDefaultsAsync()
     {
+        await FlushAsync().ConfigureAwait(true);
+        _loaded = false;
         await _themeService.ApplyAsync(ThemeKind.System, CancellationToken.None).ConfigureAwait(true);
         await _themeService.ApplyApplicationSettingsAsync(ApplicationSettings.Default, CancellationToken.None, persist: true).ConfigureAwait(true);
         _startupRegistrationService.Apply(false, Environment.ProcessPath ?? string.Empty);

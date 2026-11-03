@@ -18,9 +18,17 @@ public sealed class PanelLeafViewModel : LayoutNodeViewModel, IDisposable
 
     private readonly INotifyPropertyChanged? _viewModelNotifications;
     private readonly PropertyInfo? _unsavedChangesProperty;
-    private readonly IPanelOptionsPresenter? _optionsPresenter;
     private readonly IPanelFormattingPresenter? _formattingPresenter;
     private bool _isEditMode;
+    public UberDashboard.App.Settings.PanelAppearanceViewModel? Appearance { get; set; }
+    private string? _dropHint;
+    public string? DropHint { get => _dropHint; set => SetProperty(ref _dropHint, value); }
+    private IReadOnlyList<PanelLayoutAction> _layoutActions = [];
+    public IReadOnlyList<PanelLayoutAction> LayoutActions
+    {
+        get => _layoutActions;
+        set => SetProperty(ref _layoutActions, value);
+    }
     private bool _hasUnsavedChanges;
     private bool _disposed;
 
@@ -42,7 +50,6 @@ public sealed class PanelLeafViewModel : LayoutNodeViewModel, IDisposable
         IconKey = iconKey;
         IconGlyph = ResolveIconGlyph(iconKey);
         ViewModel = viewModel;
-        _optionsPresenter = viewModel as IPanelOptionsPresenter;
         _formattingPresenter = viewModel as IPanelFormattingPresenter;
 
         if (viewModel is INotifyPropertyChanged notifications)
@@ -71,15 +78,20 @@ public sealed class PanelLeafViewModel : LayoutNodeViewModel, IDisposable
 
     /// <summary>Model widoku dostarczony przez panel.</summary>
     public object ViewModel { get; }
+    public object PanelContent => ViewModel is UberDashboard.Contracts.Panels.IPanelContent custom ? custom.Content : ViewModel;
 
     /// <summary><see langword="true"/>, gdy panel udostępnia pływające okno opcji.</summary>
-    public bool HasOptions => _optionsPresenter?.HasOptions == true;
+    public bool HasOptions => true;
+    public bool IsSpace => PanelTypeId == Features.Space.SpacePanelDescriptor.Id;
+    public bool IsEditableSpace => IsSpace && IsEditMode;
+    public bool IsEditablePanel => !IsSpace && IsEditMode;
 
     /// <summary><see langword="true"/>, gdy okno opcji panelu jest otwarte.</summary>
-    public bool IsOptionsOpen => _optionsPresenter?.IsOptionsOpen == true;
+    private bool _isOptionsOpen;
+    public bool IsOptionsOpen { get => _isOptionsOpen; set => SetProperty(ref _isOptionsOpen, value); }
 
     /// <summary>Komenda przełączająca widoczność opcji panelu.</summary>
-    public IRelayCommand? ToggleOptionsCommand => _optionsPresenter?.ToggleOptionsCommand;
+    public System.Windows.Input.ICommand ToggleOptionsCommand => new RelayCommand(() => IsOptionsOpen = !IsOptionsOpen);
 
     /// <summary><see langword="true"/>, gdy panel udostępnia pasek formatowania.</summary>
     public bool HasFormatting => _formattingPresenter?.HasFormatting == true;
@@ -94,7 +106,7 @@ public sealed class PanelLeafViewModel : LayoutNodeViewModel, IDisposable
     public bool IsEditMode
     {
         get => _isEditMode;
-        set => SetProperty(ref _isEditMode, value);
+        set { if (SetProperty(ref _isEditMode, value)) { OnPropertyChanged(nameof(IsEditableSpace)); OnPropertyChanged(nameof(IsEditablePanel)); } }
     }
 
     /// <summary><see langword="true"/>, gdy panel ma zmiany nieutrwalone w magazynie.</summary>
@@ -148,7 +160,7 @@ public sealed class PanelLeafViewModel : LayoutNodeViewModel, IDisposable
         iconKey switch
         {
             "panel.notes" => "\uE70B",
-            "panel.todo" => "\uE822",
+            "panel.todo" => "\uE73A",
             "panel.weather" => "\uE706",
             _ => "\uE8A5",
         };

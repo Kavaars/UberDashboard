@@ -153,6 +153,10 @@ public sealed class PanelStateScheduler : IAsyncDisposable
         {
             // Zmiana została nadpisana przez kolejną — zapis wykonamy później.
         }
+        catch (Exception)
+        {
+            // PersistAsync zapisał błąd. Panel pozostaje niezapisany; kolejna edycja lub flush ponowi zapis.
+        }
         finally
         {
             lock (entry.Gate)
@@ -175,11 +179,12 @@ public sealed class PanelStateScheduler : IAsyncDisposable
         }
         catch (OperationCanceledException)
         {
-            // Anulowanie nie jest błędem.
+            throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Autozapis stanu panelu {InstanceId} nie powiódł się.", entry.Sink.InstanceId);
+            throw;
         }
     }
 

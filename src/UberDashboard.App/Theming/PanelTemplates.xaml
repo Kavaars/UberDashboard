@@ -7,27 +7,10 @@
                     xmlns:todo="clr-namespace:UberDashboard.App.Features.Todo"
                     xmlns:weather="clr-namespace:UberDashboard.App.Features.Weather">
 
-  <DataTemplate DataType="{x:Type notes:NotesPanelViewModel}">
-    <Grid Margin="{DynamicResource Token.Padding.Panel}">
-      <Grid.RowDefinitions>
-        <RowDefinition Height="Auto" />
-        <RowDefinition Height="Auto" />
-        <RowDefinition Height="*" />
-      </Grid.RowDefinitions>
+  <DataTemplate DataType="{x:Type space:SpacePanelViewModel}" xmlns:space="clr-namespace:UberDashboard.App.Features.Space"><Grid /></DataTemplate>
 
-      <Border x:Name="NotesOptionsAnchor"
-              Width="1"
-              Height="1"
-              HorizontalAlignment="Right"
-              VerticalAlignment="Top" />
-
-      <Popup AllowsTransparency="True"
-             IsOpen="{Binding IsOptionsOpen, Mode=TwoWay}"
-             Placement="Bottom"
-             PlacementTarget="{Binding ElementName=NotesOptionsAnchor}"
-             PopupAnimation="Fade"
-             StaysOpen="False">
-        <Border Width="320" Style="{StaticResource PanelPopupCard}">
+<DataTemplate x:Key="NotesOptionsTemplate">
+        <Border>
           <StackPanel>
             <TextBlock FontWeight="SemiBold"
                        Foreground="{DynamicResource Brush.Text}"
@@ -59,85 +42,10 @@
                        TextWrapping="Wrap" />
           </StackPanel>
         </Border>
-      </Popup>
 
-      <TextBox Grid.Row="0"
-               Margin="0,0,0,8"
-               Style="{StaticResource ThemedTextBox}"
-               Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
-               ToolTip="Tytuł notatki. Zmiana zapisuje się automatycznie po krótkiej pauzie i pomaga odróżniać wiele instancji panelu." />
-
-      <Border Grid.Row="1"
-              Margin="0,0,0,8"
-              Background="{DynamicResource Brush.Surface.Alt}"
-              BorderBrush="{DynamicResource Brush.Border}"
-              BorderThickness="1"
-              CornerRadius="{DynamicResource Token.CornerRadius.S}"
-              Padding="6"
-              Visibility="{Binding IsFormattingVisible, Converter={StaticResource BoolToVisibility}}">
-        <WrapPanel>
-          <Button Command="{x:Static documents:EditingCommands.ToggleBold}"
-                  CommandTarget="{Binding ElementName=NotesEditor}"
-                  Content="B"
-                  FontWeight="Bold"
-                  Style="{StaticResource PanelActionButton}"
-                  ToolTip="Pogrubia zaznaczony tekst albo przełącza pogrubienie dla nowo wpisywanych znaków." />
-          <Button Command="{x:Static documents:EditingCommands.ToggleBullets}"
-                  CommandTarget="{Binding ElementName=NotesEditor}"
-                  Content="•"
-                  FontSize="16"
-                  Style="{StaticResource PanelActionButton}"
-                  ToolTip="Tworzy lub usuwa listę wypunktowaną dla bieżącego akapitu albo zaznaczenia." />
-          <Button Command="{x:Static documents:EditingCommands.AlignLeft}"
-                  CommandTarget="{Binding ElementName=NotesEditor}"
-                  Content="L"
-                  Style="{StaticResource PanelActionButton}"
-                  ToolTip="Wyrównuje bieżący akapit do lewej krawędzi dokumentu." />
-          <Button Command="{x:Static documents:EditingCommands.AlignCenter}"
-                  CommandTarget="{Binding ElementName=NotesEditor}"
-                  Content="C"
-                  Style="{StaticResource PanelActionButton}"
-                  ToolTip="Wyrównuje bieżący akapit do środka, dzięki czemu można tworzyć wyróżnione nagłówki i sekcje." />
-          <Button Command="{x:Static documents:EditingCommands.AlignRight}"
-                  CommandTarget="{Binding ElementName=NotesEditor}"
-                  Content="R"
-                  Style="{StaticResource PanelActionButton}"
-                  ToolTip="Wyrównuje bieżący akapit do prawej, co przydaje się np. do krótkich adnotacji lub podpisów." />
-        </WrapPanel>
-      </Border>
-
-      <controls:BindableRichTextBox x:Name="NotesEditor"
-                                    Grid.Row="2"
-                                    AcceptsTab="True"
-                                    DocumentPayload="{Binding RichContent, UpdateSourceTrigger=PropertyChanged}"
-                                    IsDocumentWordWrapEnabled="{Binding WordWrapEnabled}"
-                                    PlainText="{Binding PlainText, UpdateSourceTrigger=PropertyChanged}"
-                                    Style="{StaticResource ThemedRichTextBox}"
-                                    ToolTip="Bogaty edytor notatki. Obsługuje formatowanie tekstu oraz wklejanie obrazów ze schowka bez blokowania interfejsu." />
-    </Grid>
-  </DataTemplate>
-
-  <DataTemplate DataType="{x:Type todo:TodoPanelViewModel}">
-    <Grid Margin="{DynamicResource Token.Padding.Panel}">
-      <Grid.RowDefinitions>
-        <RowDefinition Height="Auto" />
-        <RowDefinition Height="*" />
-        <RowDefinition Height="Auto" />
-      </Grid.RowDefinitions>
-
-      <Border x:Name="TodoOptionsAnchor"
-              Width="1"
-              Height="1"
-              HorizontalAlignment="Right"
-              VerticalAlignment="Top" />
-
-      <Popup AllowsTransparency="True"
-             IsOpen="{Binding IsOptionsOpen, Mode=TwoWay}"
-             Placement="Bottom"
-             PlacementTarget="{Binding ElementName=TodoOptionsAnchor}"
-             PopupAnimation="Fade"
-             StaysOpen="False">
-        <Border Width="300" Style="{StaticResource PanelPopupCard}">
+</DataTemplate>
+<DataTemplate x:Key="TodoOptionsTemplate">
+        <Border>
           <StackPanel>
             <TextBlock FontWeight="SemiBold"
                        Foreground="{DynamicResource Brush.Text}"
@@ -149,101 +57,11 @@
                       ToolTip="Pokazuje dolny pasek z liczbą wykonanych pozycji i szybkim czyszczeniem zakończonych zadań." />
           </StackPanel>
         </Border>
-      </Popup>
 
-      <DockPanel Grid.Row="0">
-        <Button DockPanel.Dock="Right"
-                Command="{Binding AddItemCommand}"
-                Content="&#xE710;"
-                Style="{StaticResource PanelActionGlyphButton}"
-                ToolTip="Dodaje wpisaną treść jako nowe zadanie w tej konkretnej instancji listy." />
-        <TextBox Style="{StaticResource ThemedTextBox}"
-                 Text="{Binding NewItemText, UpdateSourceTrigger=PropertyChanged}"
-                 ToolTip="Treść nowego zadania. Naciśnij Enter albo ikonę plusa, aby dodać wpis bez opuszczania pola.">
-          <TextBox.InputBindings>
-            <KeyBinding Key="Enter" Command="{Binding AddItemCommand}" />
-          </TextBox.InputBindings>
-        </TextBox>
-      </DockPanel>
-
-      <ListBox Grid.Row="1"
-               Margin="0,8,0,0"
-               Background="Transparent"
-               BorderThickness="0"
-               ItemContainerStyle="{StaticResource ThemedListBoxItem}"
-               ItemsSource="{Binding Items}"
-               ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-        <ListBox.ItemTemplate>
-          <DataTemplate>
-            <DockPanel LastChildFill="True">
-              <Button DockPanel.Dock="Right"
-                      Command="{Binding DataContext.RemoveItemCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
-                      CommandParameter="{Binding}"
-                      Content="&#xE74D;"
-                      Style="{StaticResource PanelActionGlyphButton}"
-                      ToolTip="Usuwa to zadanie z listy i natychmiast zapisuje nowy stan instancji panelu." />
-              <CheckBox DockPanel.Dock="Left"
-                        IsChecked="{Binding IsDone}"
-                        Style="{StaticResource ThemedCheckBox}"
-                        ToolTip="Oznacza zadanie jako wykonane albo przywraca je do aktywnej listy." />
-              <TextBlock Margin="8,0,0,0"
-                         VerticalAlignment="Center"
-                         Foreground="{DynamicResource Brush.Text}"
-                         Text="{Binding Text}"
-                         TextWrapping="Wrap">
-                <TextBlock.Style>
-                  <Style TargetType="TextBlock">
-                    <Setter Property="TextDecorations" Value="{x:Null}" />
-                    <Style.Triggers>
-                      <DataTrigger Binding="{Binding IsDone}" Value="True">
-                        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
-                        <Setter Property="TextDecorations" Value="Strikethrough" />
-                      </DataTrigger>
-                    </Style.Triggers>
-                  </Style>
-                </TextBlock.Style>
-              </TextBlock>
-            </DockPanel>
-          </DataTemplate>
-        </ListBox.ItemTemplate>
-      </ListBox>
-
-      <DockPanel Grid.Row="2"
-                 Margin="0,8,0,0"
-                 Visibility="{Binding ShowSummary, Converter={StaticResource BoolToVisibility}}">
-        <Button DockPanel.Dock="Right"
-                Command="{Binding ClearCompletedCommand}"
-                Content="&#xE74D;"
-                Style="{StaticResource PanelActionGlyphButton}"
-                ToolTip="Usuwa wszystkie zadania oznaczone jako wykonane w tej liście, pozostawiając aktywne pozycje bez zmian." />
-        <TextBlock VerticalAlignment="Center"
-                   Foreground="{DynamicResource Brush.Text.Muted}"
-                   Text="{Binding CompletedCount, StringFormat=Wykonane: {0}}" />
-      </DockPanel>
-    </Grid>
-  </DataTemplate>
-
-  <DataTemplate DataType="{x:Type weather:WeatherPanelViewModel}">
-    <Grid Margin="{DynamicResource Token.Padding.Panel}">
-      <Grid.RowDefinitions>
-        <RowDefinition Height="Auto" />
-        <RowDefinition Height="*" />
-      </Grid.RowDefinitions>
-
-      <Border x:Name="WeatherOptionsAnchor"
-              Width="1"
-              Height="1"
-              HorizontalAlignment="Right"
-              VerticalAlignment="Top" />
-
-      <Popup AllowsTransparency="True"
-             IsOpen="{Binding IsOptionsOpen, Mode=TwoWay}"
-             Placement="Bottom"
-             PlacementTarget="{Binding ElementName=WeatherOptionsAnchor}"
-             PopupAnimation="Fade"
-             StaysOpen="False">
-        <Border Width="360" Style="{StaticResource PanelPopupCard}">
-          <Grid>
+</DataTemplate>
+<DataTemplate x:Key="WeatherOptionsTemplate">
+        <Border>
+          <ScrollViewer MaxHeight="480" VerticalScrollBarVisibility="Auto"><Grid>
             <Grid.RowDefinitions>
               <RowDefinition Height="Auto" />
               <RowDefinition Height="Auto" />
@@ -270,6 +88,8 @@
                         ToolTip="Czyści przypisaną lokalizację tego panelu, dzięki czemu kolejne odświeżenia nie będą wysyłane." />
               </StackPanel>
               <TextBox Style="{StaticResource ThemedTextBox}"
+                       IsEnabled="{Binding IsNetworkEnabled}"
+                       AutomationProperties.Name="Wyszukaj miejscowość"
                        Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                        ToolTip="Wpisz nazwę miasta. Panel wyśle wyszukiwanie do Open-Meteo i pokaże pasujące lokalizacje do wyboru." />
             </DockPanel>
@@ -331,16 +151,224 @@
                         IsChecked="{Binding ShowUpdatedTime}"
                         Style="{StaticResource ThemedCheckBox}"
                         ToolTip="Steruje widocznością czasu źródłowego odczytu albo ostatniego poprawnego cache dla tego panelu." />
-            </StackPanel>
-          </Grid>
-        </Border>
-      </Popup>
-
-      <TextBlock Grid.Row="0"
+      <StackPanel Margin="0,12,0,0">
+        <CheckBox Content="Zezwól na połączenia z Open-Meteo"
+                  IsChecked="{Binding IsNetworkEnabled}"
+                  Style="{StaticResource ThemedCheckBox}"
+                  ToolTip="Po włączeniu Open-Meteo otrzyma wyszukiwaną nazwę lub wybrane współrzędne oraz adres IP. Wyłączenie anuluje pobieranie. Bezpłatne API służy do użytku niekomercyjnego." />
+        <TextBlock Margin="0,6,0,0" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Muted}" Text="Bieżące warunki według modelu. Wybierz miasto w opcjach panelu." />
+        <TextBlock
                  Foreground="{DynamicResource Brush.Text.Muted}"
                  Text="{Binding StatusText}"
                  TextWrapping="Wrap"
                  ToolTip="Bieżący stan panelu pogody: wyszukiwanie lokalizacji, odświeżanie danych, użycie cache albo błąd pobrania." />
+        <WrapPanel Margin="0,6,0,0">
+          <Button Content="Open-Meteo" Command="{Binding OpenSourceCommand}" CommandParameter="weather" Style="{StaticResource PanelActionButton}" ToolTip="Otwiera stronę dostawcy prognozy w przeglądarce." />
+          <Button Content="Licencja danych" Command="{Binding OpenSourceCommand}" CommandParameter="licence" Style="{StaticResource PanelActionButton}" ToolTip="Otwiera informacje o źródłach i licencji danych pogodowych." />
+          <Button Content="GeoNames" Command="{Binding OpenSourceCommand}" CommandParameter="geonames" Style="{StaticResource PanelActionButton}" ToolTip="Otwiera źródło nazw miejscowości wykorzystywanych przez geokoder." />
+        </WrapPanel>
+        <TextBlock FontSize="11" Foreground="{DynamicResource Brush.Text.Muted}" TextWrapping="Wrap" Text="Dane: Open-Meteo, CC BY 4.0. Aplikacja tłumaczy opisy i formatuje wartości. Lokalizacje: GeoNames." />
+      </StackPanel>
+            </StackPanel>
+          </Grid></ScrollViewer>
+        </Border>
+
+</DataTemplate>
+<DataTemplate x:Key="ExtensionOptionsTemplate"><Button Content="Opcje rozszerzenia" Command="{Binding ToggleOptionsCommand}" Style="{StaticResource PanelActionButton}" /></DataTemplate>
+<controls:PanelOptionsTemplateSelector x:Key="PanelOptionsSelector" />
+  <DataTemplate DataType="{x:Type notes:NotesPanelViewModel}">
+    <controls:AdaptivePanelGrid Tag="notes" Margin="{DynamicResource Token.Padding.Panel}">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="0" /><ColumnDefinition Width="0" /></Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+
+      <Border x:Name="NotesOptionsAnchor"
+              Width="1"
+              Height="1"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Top" />
+
+
+
+      <TextBox Grid.Row="0"
+               controls:AdaptivePanelGrid.WideColumn="0" VerticalAlignment="Top"
+               Margin="0,0,0,8"
+               Style="{StaticResource ThemedTextBox}"
+               Text="{Binding Title, UpdateSourceTrigger=PropertyChanged}"
+               ToolTip="Tytuł notatki. Zmiana zapisuje się automatycznie po krótkiej pauzie i pomaga odróżniać wiele instancji panelu." />
+
+      <Border Grid.Row="1"
+              controls:AdaptivePanelGrid.WideColumn="2" VerticalAlignment="Top" MaxWidth="220"
+              Margin="0,0,0,8"
+              Background="{DynamicResource Brush.Surface.Alt}"
+              BorderBrush="{DynamicResource Brush.Border}"
+              BorderThickness="1"
+              CornerRadius="{DynamicResource Token.CornerRadius.S}"
+              Padding="6"
+              Visibility="{Binding IsFormattingVisible, Converter={StaticResource BoolToVisibility}}">
+        <WrapPanel>
+          <Button Command="{x:Static documents:EditingCommands.ToggleBold}"
+                  CommandTarget="{Binding ElementName=NotesEditor}"
+                  Content="B"
+                  FontWeight="Bold"
+                  Style="{StaticResource PanelActionButton}"
+                  ToolTip="Pogrubia zaznaczony tekst albo przełącza pogrubienie dla nowo wpisywanych znaków." />
+          <Button Command="{x:Static documents:EditingCommands.ToggleBullets}"
+                  CommandTarget="{Binding ElementName=NotesEditor}"
+                  Content="•"
+                  FontSize="16"
+                  Style="{StaticResource PanelActionButton}"
+                  ToolTip="Tworzy lub usuwa listę wypunktowaną dla bieżącego akapitu albo zaznaczenia." />
+          <Button Command="{x:Static documents:EditingCommands.AlignLeft}"
+                  CommandTarget="{Binding ElementName=NotesEditor}"
+                  Content="L"
+                  Style="{StaticResource PanelActionButton}"
+                  ToolTip="Wyrównuje bieżący akapit do lewej krawędzi dokumentu." />
+          <Button Command="{x:Static documents:EditingCommands.AlignCenter}"
+                  CommandTarget="{Binding ElementName=NotesEditor}"
+                  Content="C"
+                  Style="{StaticResource PanelActionButton}"
+                  ToolTip="Wyrównuje bieżący akapit do środka, dzięki czemu można tworzyć wyróżnione nagłówki i sekcje." />
+          <Button Command="{x:Static documents:EditingCommands.AlignRight}"
+                  CommandTarget="{Binding ElementName=NotesEditor}"
+                  Content="R"
+                  Style="{StaticResource PanelActionButton}"
+                  ToolTip="Wyrównuje bieżący akapit do prawej, co przydaje się np. do krótkich adnotacji lub podpisów." />
+        </WrapPanel>
+      </Border>
+
+      <controls:BindableRichTextBox x:Name="NotesEditor"
+                                    controls:AdaptivePanelGrid.WideColumn="1"
+                                    Grid.Row="2"
+                                    AcceptsTab="True"
+                                    DocumentPayload="{Binding RichContent, UpdateSourceTrigger=PropertyChanged}"
+                                    IsDocumentWordWrapEnabled="{Binding WordWrapEnabled}"
+                                    PlainText="{Binding PlainText, UpdateSourceTrigger=PropertyChanged}"
+                                    Style="{StaticResource ThemedRichTextBox}"
+                                    ToolTip="Bogaty edytor notatki. Obsługuje formatowanie tekstu oraz wklejanie obrazów ze schowka bez blokowania interfejsu." />
+    </controls:AdaptivePanelGrid>
+  </DataTemplate>
+
+  <DataTemplate DataType="{x:Type todo:TodoPanelViewModel}">
+    <controls:AdaptivePanelGrid Margin="{DynamicResource Token.Padding.Panel}">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="0" /><ColumnDefinition Width="0" /></Grid.ColumnDefinitions>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+
+      <Border x:Name="TodoOptionsAnchor"
+              Width="1"
+              Height="1"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Top" />
+
+
+
+      <DockPanel Grid.Row="0" controls:AdaptivePanelGrid.WideColumn="0" VerticalAlignment="Top">
+        <Button DockPanel.Dock="Right"
+                AutomationProperties.Name="Dodaj zadanie" Command="{Binding AddItemCommand}"
+                Content="&#xE710;"
+                Style="{StaticResource PanelActionGlyphButton}"
+                ToolTip="Dodaje wpisaną treść jako nowe zadanie w tej konkretnej instancji listy." />
+        <TextBox Style="{StaticResource ThemedTextBox}"
+                 Text="{Binding NewItemText, UpdateSourceTrigger=PropertyChanged}"
+                 ToolTip="Treść nowego zadania. Naciśnij Enter albo ikonę plusa, aby dodać wpis bez opuszczania pola.">
+          <TextBox.InputBindings>
+            <KeyBinding Key="Enter" AutomationProperties.Name="Dodaj zadanie" Command="{Binding AddItemCommand}" />
+          </TextBox.InputBindings>
+        </TextBox>
+      </DockPanel>
+
+      <ListBox Grid.Row="1"
+               controls:AdaptivePanelGrid.WideColumn="1"
+               Margin="0,8,0,0"
+               Background="Transparent"
+               BorderThickness="0"
+               ItemContainerStyle="{StaticResource ThemedListBoxItem}"
+               ItemsSource="{Binding Items}"
+               ScrollViewer.HorizontalScrollBarVisibility="Auto">
+        <ListBox.Style>
+          <Style TargetType="ListBox">
+            <Style.Triggers>
+              <DataTrigger Value="True">
+                <DataTrigger.Binding><MultiBinding Converter="{StaticResource CompactPanel}"><Binding Path="ActualWidth" RelativeSource="{RelativeSource AncestorType=controls:AdaptivePanelGrid}" /><Binding Path="ActualHeight" RelativeSource="{RelativeSource AncestorType=controls:AdaptivePanelGrid}" /></MultiBinding></DataTrigger.Binding>
+                <Setter Property="ItemsPanel"><Setter.Value><ItemsPanelTemplate><VirtualizingStackPanel Orientation="Horizontal" /></ItemsPanelTemplate></Setter.Value></Setter>
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </ListBox.Style>
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <DockPanel LastChildFill="True" MaxWidth="240">
+              <Button DockPanel.Dock="Right"
+                      AutomationProperties.Name="Usuń zadanie" Command="{Binding DataContext.RemoveItemCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                      CommandParameter="{Binding}"
+                      Content="&#xE74D;"
+                      Style="{StaticResource PanelActionGlyphButton}"
+                      ToolTip="Usuwa to zadanie z listy i natychmiast zapisuje nowy stan instancji panelu." />
+              <CheckBox DockPanel.Dock="Left"
+                        IsChecked="{Binding IsDone}"
+                        Style="{StaticResource ThemedCheckBox}"
+                        ToolTip="Oznacza zadanie jako wykonane albo przywraca je do aktywnej listy." />
+              <TextBlock Margin="8,0,0,0"
+                         VerticalAlignment="Center"
+                         Foreground="{DynamicResource Brush.Text}"
+                         Text="{Binding Text}"
+                         TextWrapping="Wrap">
+                <TextBlock.Style>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="TextDecorations" Value="{x:Null}" />
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding IsDone}" Value="True">
+                        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+                        <Setter Property="TextDecorations" Value="Strikethrough" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </TextBlock.Style>
+              </TextBlock>
+            </DockPanel>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+
+      <DockPanel Grid.Row="2"
+                 controls:AdaptivePanelGrid.WideColumn="2" VerticalAlignment="Top"
+                 Margin="0,8,0,0"
+                 Visibility="{Binding ShowSummary, Converter={StaticResource BoolToVisibility}}">
+        <Button DockPanel.Dock="Right"
+                Command="{Binding ClearCompletedCommand}"
+                Content="&#xE74D;"
+                Style="{StaticResource PanelActionGlyphButton}"
+                ToolTip="Usuwa wszystkie zadania oznaczone jako wykonane w tej liście, pozostawiając aktywne pozycje bez zmian." />
+        <TextBlock VerticalAlignment="Center"
+                   Foreground="{DynamicResource Brush.Text.Muted}"
+                   Text="{Binding CompletedCount, StringFormat=Wykonane: {0}}" />
+      </DockPanel>
+    </controls:AdaptivePanelGrid>
+  </DataTemplate>
+
+  <DataTemplate DataType="{x:Type weather:WeatherPanelViewModel}">
+    <Grid x:Name="WeatherSize"><ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><ScrollViewer.Style><Style TargetType="ScrollViewer"><Style.Triggers><DataTrigger Value="True"><DataTrigger.Binding><MultiBinding Converter="{StaticResource CompactPanel}"><Binding ElementName="WeatherSize" Path="ActualWidth" /><Binding ElementName="WeatherSize" Path="ActualHeight" /></MultiBinding></DataTrigger.Binding><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></ScrollViewer.Style><Grid Margin="{DynamicResource Token.Padding.Panel}">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+
+      <Border x:Name="WeatherOptionsAnchor"
+              Width="1"
+              Height="1"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Top" />
+
+
+
+
 
       <Border Grid.Row="1"
               Margin="0,8,0,0"
@@ -421,9 +449,9 @@
             </TextBlock.Style>
           </TextBlock>
 
-          <UniformGrid Grid.Row="2"
+          <WrapPanel ItemWidth="128" Grid.Row="2"
                        Margin="0,12,0,0"
-                       Columns="4"
+
                       Visibility="{Binding HasSnapshot, Converter={StaticResource BoolToVisibility}}">
             <Border Margin="0,0,8,0"
                     Padding="10,8"
@@ -482,7 +510,7 @@
                            TextWrapping="Wrap" />
               </StackPanel>
             </Border>
-          </UniformGrid>
+          </WrapPanel>
 
           <WrapPanel Grid.Row="3"
                      Margin="0,12,0,0"
@@ -506,7 +534,7 @@
                     CornerRadius="{DynamicResource Token.CornerRadius.S}"
                     Visibility="{Binding ShowUpdatedTime, Converter={StaticResource BoolToVisibility}}">
               <TextBlock Foreground="{DynamicResource Brush.Text}"
-                         Text="{Binding UpdatedText, StringFormat=Dane: {0}}"
+                         MaxWidth="210" TextWrapping="Wrap" Text="{Binding UpdatedText, StringFormat=Dane: {0}}"
                          ToolTip="Czas danych pogodowych z ostatniego poprawnego odczytu albo lokalnego cache." />
             </Border>
             <Border Margin="0,0,8,8"
@@ -563,34 +591,81 @@
                                  TextWrapping="Wrap" />
                     </StackPanel>
                   </Border>
-                </DataTemplate>
+
+  </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
           </StackPanel>
         </Grid>
       </Border>
-    </Grid>
+    </Grid></ScrollViewer>
+<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+<ScrollViewer.Style><Style TargetType="ScrollViewer"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Value="True"><DataTrigger.Binding><MultiBinding Converter="{StaticResource CompactPanel}"><Binding ElementName="WeatherSize" Path="ActualWidth" /><Binding ElementName="WeatherSize" Path="ActualHeight" /></MultiBinding></DataTrigger.Binding><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></ScrollViewer.Style>
+<StackPanel Orientation="Horizontal" Margin="14,8" VerticalAlignment="Top">
+<TextBlock Margin="0,0,12,0" VerticalAlignment="Center" FontFamily="Segoe UI Emoji" FontSize="36" Text="{Binding ConditionGlyph}" Visibility="{Binding HasSnapshot, Converter={StaticResource BoolToVisibility}}" ToolTip="Aktualne warunki pogodowe." />
+<StackPanel Margin="0,0,18,0"><TextBlock FontSize="28" Foreground="{DynamicResource Brush.Text}" Text="{Binding TemperatureCelsius, StringFormat={}{0:0.#} °C}" /><TextBlock Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding ConditionText}" /></StackPanel>
+<StackPanel Width="190" Margin="0,0,18,0"><TextBlock FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" Text="{Binding SelectedLocation.DisplayName}" TextTrimming="CharacterEllipsis" /><TextBlock Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding DailyRangeText}" /><TextBlock Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding StatusText}" TextWrapping="Wrap" /><ProgressBar Height="3" IsIndeterminate="True" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" /></StackPanel>
+<StackPanel Margin="0,0,18,0"><TextBlock Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding WindText, StringFormat=Wiatr: {0}}" Visibility="{Binding ShowWind, Converter={StaticResource BoolToVisibility}}" /><TextBlock Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding UpdatedText}" Visibility="{Binding ShowUpdatedTime, Converter={StaticResource BoolToVisibility}}" /><Button Content="Odśwież pogodę" Command="{Binding RefreshCommand}" Style="{StaticResource PanelActionButton}" ToolTip="Pobiera bieżącą pogodę dla wybranej lokalizacji." /></StackPanel>
+<StackPanel Margin="0,0,18,0" Visibility="{Binding HasSnapshot, Converter={StaticResource BoolToVisibility}}"><TextBlock Foreground="{DynamicResource Brush.Text}" Text="{Binding SunriseText, StringFormat=Świt: {0}}" /><TextBlock Foreground="{DynamicResource Brush.Text}" Text="{Binding SunsetText, StringFormat=Zmierzch: {0}}" /></StackPanel>
+<ItemsControl ItemsSource="{Binding HourlyForecast}" Visibility="{Binding HasHourlyForecast, Converter={StaticResource BoolToVisibility}}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate><StackPanel Margin="0,0,18,0"><TextBlock Foreground="{DynamicResource Brush.Text}" Text="{Binding TimeText}" /><TextBlock FontFamily="Segoe UI Emoji" FontSize="24" Text="{Binding Glyph}" /><TextBlock Foreground="{DynamicResource Brush.Text}" Text="{Binding TemperatureText}" /><TextBlock Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding ConditionText}" TextWrapping="Wrap" MaxWidth="140" /></StackPanel></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+</StackPanel></ScrollViewer></Grid>
+  </DataTemplate>
+
+  <DataTemplate DataType="{x:Type shell:UnavailablePanelViewModel}">
+    <TextBlock Margin="14" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text}" Text="{Binding Message}" />
   </DataTemplate>
 
   <DataTemplate x:Key="PanelLeafTemplate">
-    <Border Style="{StaticResource PanelCard}">
+    <controls:PanelAppearanceBorder Appearance="{Binding Appearance}" AutomationProperties.Name="{Binding DisplayName}" controls:PanelDragDrop.IsTarget="True">
+      <controls:PanelAppearanceBorder.Style><Style TargetType="controls:PanelAppearanceBorder" BasedOn="{StaticResource PanelCard}"><Style.Triggers><DataTrigger Binding="{Binding IsSpace}" Value="True"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /></DataTrigger></Style.Triggers></Style></controls:PanelAppearanceBorder.Style>
       <Grid>
         <Grid.RowDefinitions>
           <RowDefinition Height="Auto" />
           <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0"
+        <Border Grid.RowSpan="2" Panel.ZIndex="20" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="16,10" Background="{DynamicResource Brush.Accent}" CornerRadius="8" IsHitTestVisible="False">
+          <Border.Style><Style TargetType="Border"><Style.Triggers><DataTrigger Binding="{Binding DropHint}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></Border.Style>
+          <TextBlock Text="{Binding DropHint}" Foreground="{DynamicResource Brush.Accent.Text}" FontWeight="SemiBold" />
+        </Border>
+        <Popup IsOpen="{Binding IsOptionsOpen, Mode=TwoWay}" Placement="MousePoint" AllowsTransparency="True" StaysOpen="False">
+          <Border Width="360" Style="{StaticResource PanelPopupCard}">
+            <ScrollViewer MaxHeight="540" VerticalScrollBarVisibility="Auto">
+              <StackPanel>
+              <ContentControl Content="{Binding ViewModel}" ContentTemplateSelector="{StaticResource PanelOptionsSelector}" />
+              <Expander Header="Wygląd" Margin="0,12,0,0" IsExpanded="False" Foreground="{DynamicResource Brush.Text}">
+              <StackPanel DataContext="{Binding Appearance}" IsEnabled="{Binding IsReady}">
+                <TextBlock Text="Wygląd tego panelu" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+                <TextBlock Text="Kolor tła" Margin="0,12,0,4" Foreground="{DynamicResource Brush.Text}" />
+                <controls:ColorWheel SelectedColor="{Binding BackgroundColor}" AutomationProperties.Name="Kolor tła panelu" />
+                <CheckBox Content="Własna czcionka i rozmiar" IsChecked="{Binding CustomizeText}" Style="{StaticResource ThemedCheckBox}" Margin="0,12,0,4" />
+                <TextBlock Text="Czcionka" Margin="0,12,0,4" Foreground="{DynamicResource Brush.Text}" />
+                <ComboBox IsEnabled="{Binding CustomizeText}" ItemsSource="{Binding Fonts}" SelectedItem="{Binding FontFamily}" Style="{StaticResource ThemedComboBox}" AutomationProperties.Name="Czcionka panelu" />
+                <TextBlock Text="{Binding FontSize, StringFormat=Rozmiar tekstu: {0:0}}" Margin="0,12,0,4" Foreground="{DynamicResource Brush.Text}" />
+                <Slider IsEnabled="{Binding CustomizeText}" Minimum="11" Maximum="24" Value="{Binding FontSize}" AutomationProperties.Name="Rozmiar tekstu panelu" />
+                <Button Content="Wybierz tapetę…" Margin="0,12,0,0" Command="{Binding ChooseWallpaperCommand}" Style="{StaticResource ToolbarButton}" />
+                <TextBlock Text="{Binding WallpaperPath}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Brush.Text.Muted}" />
+                <TextBlock Text="Widoczność tapety" Margin="0,12,0,4" Foreground="{DynamicResource Brush.Text}" />
+                <Slider Minimum="0" Maximum="1" Value="{Binding WallpaperOpacity}" AutomationProperties.Name="Widoczność tapety panelu" />
+                <WrapPanel Margin="0,12,0,0">
+                  <Button Content="Domyślny wygląd" Command="{Binding ResetCommand}" Style="{StaticResource PanelActionButton}" />
+                  <Button Content="Ponów zapis" Command="{Binding RetrySaveCommand}" Style="{StaticResource PanelActionButton}" />
+                </WrapPanel>
+                <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Margin="0,8,0,0" Foreground="{DynamicResource Brush.Text.Muted}" />
+              </StackPanel></Expander></StackPanel>
+            </ScrollViewer>
+          </Border>
+        </Popup>
+        <Border Grid.Row="0" controls:PanelDragDrop.IsHandle="True"
                 Background="{DynamicResource Brush.Surface.Alt}"
                 BorderBrush="{DynamicResource Brush.Border}"
                 BorderThickness="0,0,0,1"
                 CornerRadius="{DynamicResource Token.CornerRadius.L}"
                 Padding="12,8"
-                ToolTip="Nagłówek panelu grupuje akcje tej instancji: formatowanie, opcje oraz operacje układu.">
+                ToolTip="Nagłówek panelu grupuje akcje tej instancji: formatowanie, opcje oraz operacje układu."><Border.Style><Style TargetType="Border"><Style.Triggers><DataTrigger Binding="{Binding IsSpace}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></Border.Style>
           <DockPanel>
-            <StackPanel DockPanel.Dock="Right"
-                        Orientation="Horizontal">
-              <Button Command="{Binding ToggleFormattingCommand}"
+            <WrapPanel DockPanel.Dock="Right" MaxWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=controls:PanelAppearanceBorder}, Converter={StaticResource PanelHeaderWidth}}">
+              <Button AutomationProperties.Name="Formatowanie tekstu" Command="{Binding ToggleFormattingCommand}"
                       Content="&#xE8D2;"
                       ToolTip="Pokazuje lub ukrywa pasek formatowania treści panelu, jeśli dany typ panelu go obsługuje."
                       Visibility="{Binding HasFormatting, Converter={StaticResource BoolToVisibility}}">
@@ -606,7 +681,7 @@
                   </Style>
                 </Button.Style>
               </Button>
-              <Button Command="{Binding ToggleOptionsCommand}"
+              <Button AutomationProperties.Name="Opcje panelu" Command="{Binding ToggleOptionsCommand}"
                       Content="&#xE713;"
                       ToolTip="Pokazuje lub ukrywa pływające opcje tej instancji panelu."
                       Visibility="{Binding HasOptions, Converter={StaticResource BoolToVisibility}}">
@@ -622,25 +697,40 @@
                   </Style>
                 </Button.Style>
               </Button>
-              <Button Command="{Binding DataContext.SwapPanelCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+              <controls:PanelLayoutMenuButton Content="Układ" Style="{StaticResource PanelActionButton}"
+                      AutomationProperties.Name="Układ panelu"
+                      ToolTip="Dodaje panel obok lub poniżej, przenosi wybrany panel albo zastępuje zawartość z zachowaniem poprzedniej instancji w Ukrytych."
+                      Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVisibility}}">
+                <controls:PanelLayoutMenuButton.ContextMenu>
+                  <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}" ItemsSource="{Binding LayoutActions}">
+                    <ContextMenu.ItemContainerStyle>
+                      <Style TargetType="MenuItem" BasedOn="{StaticResource ToolbarMenuItem}">
+                        <Setter Property="Header" Value="{Binding Header}" />
+                        <Setter Property="Command" Value="{Binding Command}" />
+                      </Style>
+                    </ContextMenu.ItemContainerStyle>
+                  </ContextMenu>
+                </controls:PanelLayoutMenuButton.ContextMenu>
+              </controls:PanelLayoutMenuButton>
+              <Button AutomationProperties.Name="Zamień panele miejscami" Command="{Binding DataContext.SwapPanelCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                       CommandParameter="{Binding}"
                       Content="&#xE8AB;"
                       Style="{StaticResource PanelActionGlyphButton}"
                       ToolTip="Wybiera ten panel do zamiany miejsc z innym panelem bez przenoszenia danych."
                       Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVisibility}}" />
-              <Button Command="{Binding DataContext.HidePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+              <Button AutomationProperties.Name="Ukryj panel" Command="{Binding DataContext.HidePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                       CommandParameter="{Binding}"
                       Content="&#xE8F4;"
                       Style="{StaticResource PanelActionGlyphButton}"
                       ToolTip="Ukrywa ten panel z zachowaniem jego danych i pozycji do późniejszego przywrócenia."
                       Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVisibility}}" />
-              <Button Command="{Binding DataContext.RemovePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+              <Button AutomationProperties.Name="Usuń panel" Command="{Binding DataContext.RemovePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                       CommandParameter="{Binding}"
                       Content="&#xE74D;"
                       Style="{StaticResource PanelActionGlyphButton}"
                       ToolTip="Trwale usuwa tę instancję panelu wraz z zapisanym stanem."
                       Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVisibility}}" />
-            </StackPanel>
+            </WrapPanel>
 
             <StackPanel Orientation="Horizontal">
               <Border Width="28"
@@ -662,7 +752,7 @@
                          Foreground="{DynamicResource Brush.Text}"
                          Text="{Binding DisplayName}"
                          TextTrimming="CharacterEllipsis"
-                         ToolTip="Nazwa typu panelu dla tej instancji." />
+                         ToolTip="W trybie edycji przeciągnij ten tytuł na wybraną krawędź innego panelu. Alternatywa klawiaturowa jest w menu Układ." />
               <Ellipse Width="7"
                        Height="7"
                        Margin="6,0,0,0"
@@ -674,24 +764,29 @@
           </DockPanel>
         </Border>
 
-        <ContentControl Grid.Row="1" Content="{Binding ViewModel}" />
+        <controls:PanelEdgeThumb IsTop="True" Height="7" Grid.RowSpan="2" VerticalAlignment="Top" Panel.ZIndex="30" Visibility="{Binding IsEditablePanel, Converter={StaticResource BoolToVisibility}}" AutomationProperties.Name="Zmień wysokość od góry" ToolTip="Przeciągnij w dół, aby zostawić wolne miejsce nad panelem. Strzałka w dół wydziela miejsce z klawiatury." />
+        <controls:PanelEdgeThumb Height="7" Grid.RowSpan="2" VerticalAlignment="Bottom" Panel.ZIndex="30" Visibility="{Binding IsEditablePanel, Converter={StaticResource BoolToVisibility}}" AutomationProperties.Name="Zmień wysokość od dołu" ToolTip="Przeciągnij w górę, aby zostawić wolne miejsce pod panelem. Strzałka w górę wydziela miejsce z klawiatury." />
+        <Grid Grid.Row="1" ClipToBounds="True"><Image Source="{Binding Appearance.Wallpaper}" Opacity="{Binding Appearance.WallpaperOpacity}" Stretch="UniformToFill" IsHitTestVisible="False" /><controls:ResponsivePanelContent Content="{Binding PanelContent}" /></Grid>
+        <controls:PanelLayoutMenuButton Grid.RowSpan="2" Content="Dodaj panel tutaj" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource PanelActionButton}" Visibility="{Binding IsEditableSpace, Converter={StaticResource BoolToVisibility}}" AutomationProperties.Name="Wypełnij wolne miejsce">
+          <controls:PanelLayoutMenuButton.ContextMenu><ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}" ItemsSource="{Binding LayoutActions}"><ContextMenu.ItemContainerStyle><Style TargetType="MenuItem" BasedOn="{StaticResource ToolbarMenuItem}"><Setter Property="Header" Value="{Binding Header}" /><Setter Property="Command" Value="{Binding Command}" /></Style></ContextMenu.ItemContainerStyle></ContextMenu></controls:PanelLayoutMenuButton.ContextMenu>
+        </controls:PanelLayoutMenuButton>
       </Grid>
-    </Border>
+    </controls:PanelAppearanceBorder>
   </DataTemplate>
 
   <DataTemplate x:Key="PanelSplitHorizontalTemplate">
     <Grid>
       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="{Binding FirstLength}" />
+        <ColumnDefinition Width="{Binding FirstLength}" MinWidth="{Binding First.Minimum.Width}" />
         <ColumnDefinition Width="Auto" />
-        <ColumnDefinition Width="{Binding SecondLength}" />
+        <ColumnDefinition Width="{Binding SecondLength}" MinWidth="{Binding Second.Minimum.Width}" />
       </Grid.ColumnDefinitions>
 
       <ContentControl Grid.Column="0"
                       Content="{Binding First}"
                       ContentTemplateSelector="{DynamicResource LayoutNodeTemplateSelector}" />
 
-      <GridSplitter Grid.Column="1"
+      <controls:PersistedGridSplitter Grid.Column="1"
                     Width="6"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Stretch"
@@ -709,16 +804,16 @@
   <DataTemplate x:Key="PanelSplitVerticalTemplate">
     <Grid>
       <Grid.RowDefinitions>
-        <RowDefinition Height="{Binding FirstLength}" />
+        <RowDefinition Height="{Binding FirstLength}" MinHeight="{Binding First.Minimum.Height}" />
         <RowDefinition Height="Auto" />
-        <RowDefinition Height="{Binding SecondLength}" />
+        <RowDefinition Height="{Binding SecondLength}" MinHeight="{Binding Second.Minimum.Height}" />
       </Grid.RowDefinitions>
 
       <ContentControl Grid.Row="0"
                       Content="{Binding First}"
                       ContentTemplateSelector="{DynamicResource LayoutNodeTemplateSelector}" />
 
-      <GridSplitter Grid.Row="1"
+      <controls:PersistedGridSplitter Grid.Row="1"
                     Height="6"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Center"

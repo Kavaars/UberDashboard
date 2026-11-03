@@ -145,6 +145,18 @@ public sealed class PanelInstanceStore : IPanelInstanceStore
             cancellationToken);
 
     /// <inheritdoc />
+    public Task UpdateStateAsync(PanelInstanceId instanceId, string stateJson, DateTimeOffset nowUtc, CancellationToken cancellationToken = default) =>
+        _queue.EnqueueAsync(_ =>
+        {
+            _database.EnsureInitialized();
+            using var command = _database.Connection.CreateCommand();
+            command.CommandText = "UPDATE PanelInstance SET StateJson = $state, UpdatedAtUtc = $updated WHERE InstanceId = $id;";
+            command.Parameters.AddWithValue("$state", stateJson);
+            command.Parameters.AddWithValue("$updated", SqliteText.ToIso(nowUtc));
+            command.Parameters.AddWithValue("$id", instanceId.ToString());
+            if (command.ExecuteNonQuery() != 1) throw new InvalidOperationException("Instancja nie istnieje; nie zapisano treści panelu.");
+        }, cancellationToken);
+
     public Task DeleteAsync(PanelInstanceId instanceId, CancellationToken cancellationToken = default) =>
         _queue.EnqueueAsync(
             _ =>

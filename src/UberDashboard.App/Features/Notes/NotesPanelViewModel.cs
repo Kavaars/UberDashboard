@@ -195,9 +195,10 @@ public sealed class NotesPanelViewModel : ObservableObject, IPanelOptionsPresent
         var dialog = new Win32SaveFileDialog
         {
             Title = "Eksport notatki",
-            Filter = "Plik tekstowy (*.txt)|*.txt|Wszystkie pliki (*.*)|*.*",
+            Filter = "Tekst i Markdown (*.txt;*.md)|*.txt;*.md|Wszystkie pliki (*.*)|*.*",
             DefaultExt = ".txt",
             AddExtension = true,
+            OverwritePrompt = true,
             FileName = BuildExportFileName(),
         };
 
@@ -223,7 +224,7 @@ public sealed class NotesPanelViewModel : ObservableObject, IPanelOptionsPresent
         var dialog = new Win32OpenFileDialog
         {
             Title = "Import notatki",
-            Filter = "Plik tekstowy (*.txt)|*.txt|Wszystkie pliki (*.*)|*.*",
+            Filter = "Tekst i Markdown (*.txt;*.md)|*.txt;*.md|Wszystkie pliki (*.*)|*.*",
             CheckFileExists = true,
             Multiselect = false,
         };
@@ -233,6 +234,13 @@ public sealed class NotesPanelViewModel : ObservableObject, IPanelOptionsPresent
             return;
         }
 
+        if (!IsEmpty && System.Windows.MessageBox.Show(
+            "Import zastąpi tytuł, tekst i obrazy w tej notatce. Kontynuować?",
+            "Zastąpienie notatki", System.Windows.MessageBoxButton.OKCancel,
+            System.Windows.MessageBoxImage.Warning, System.Windows.MessageBoxResult.Cancel) != System.Windows.MessageBoxResult.OK)
+        {
+            return;
+        }
         try
         {
             var payload = await File.ReadAllTextAsync(dialog.FileName).ConfigureAwait(true);

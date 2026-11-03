@@ -7,7 +7,7 @@ namespace UberDashboard.Contracts;
 public static class ContractVersions
 {
     /// <summary>Wersja API kontraktu wtyczek, np. w manifeście jako <c>apiVersion</c>.</summary>
-    public const string PanelApiVersion = "1.0.0";
+    public const string PanelApiVersion = "1.2.0";
 }
 
 /// <summary>Wersja semantyczna złożona z liczb major, minor i patch.</summary>

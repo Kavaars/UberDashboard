@@ -27,7 +27,7 @@ public sealed class WeatherPanelDescriptor : IPanelDescriptor
     public string? IconKey => "panel.weather";
 
     /// <inheritdoc />
-    public MinSize MinSize => new(320d, 220d);
+    public MinSize MinSize => new(320d, 150d);
 
     /// <inheritdoc />
     public int StateSchemaVersion => WeatherPanelDocument.SchemaVersion;

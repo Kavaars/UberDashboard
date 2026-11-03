@@ -1,3 +1,21 @@
+2026-11-03T08:36:48+01:00 | wersja źródła 1.4.0
+- Dodano opcję systemowego rozmycia tła za oknem Windows 11 oraz poziome układy notatek, zadań i ramki zdjęć.
+- Wtyczki mogą dostosowywać własny układ do rozmiaru panelu przez nowy opcjonalny kontrakt.
+
+2026-11-03T08:30:38+01:00 | wersja źródła 1.3.0 (prace w toku)
+- Dodano wybór i rozmycie tapety aplikacji, krycie powierzchni i przezroczystość całego okna.
+- Poziomy widok pogody pokazuje dane i prognozę w przewijanym rzędzie.
+- Rozmycie pulpitu za oknem oraz dostosowanie pozostałych paneli i wtyczek pozostają do wykonania.
+
+2026-11-02T21:05:54.3677930+01:00 | v1.0.8
+- Panele można dodawać obok i poniżej, przenosić za tytuł lub z menu Układ i zastępować bez kasowania poprzedniej instancji.
+- Naprawiono zapis proporcji oraz ukrywanie/przywracanie paneli po ponownym uruchomieniu. Usuwanie wymaga potwierdzenia.
+- Poprawiono ikony, kontrast ustawień, nazwy monitorów i polskie etykiety. Pasek ma kompaktowe menu, a treść zachowuje minimalną czytelną wielkość i przewijanie.
+- Pogoda wymaga jawnej zgody na połączenia; wyłączenie zgody anuluje pobieranie. Dodano źródła i linki do informacji o danych.
+- Naprawiono pozycjonowanie i cykl AppBar; odbiór na żywym pulpicie nadal wymagany. Niedokończony widget jawnie wraca do zwykłego okna.
+- Zamykanie czeka asynchronicznie na zapis. Błędy zapisu są widoczne, a układ można zapisać ponownie bez przeładowania.
+- Import notatki ostrzega przed zastąpieniem treści. Zmiana motywu zachowuje czcionki i odstępy.
+- Buildy nie zmieniają automatycznie wersji aplikacji. Pełny raport zgodności i braków: docs/AUDYT_ZALOZEN_2026-11-02.md.
 2026-11-02 11:15 +01:00 | v1.0.7
 - Panel Pogoda pokazuje teraz duże ikony warunków, temperaturę max/min, godziny świtu i zmierzchu oraz krótką prognozę godzinową.
 - Naprawiono nakładanie się tekstów w panelu Pogoda i zawijanie długich opisów w tooltipach.
@@ -22,3 +40,43 @@
 - Dodano wspólny helper PowerShell z automatycznym podbijaniem wersji i tworzeniem katalogów Release.
 - Dodano konfigurację instalatora Inno Setup dla instalacji per-user.
 - Dodano README z architekturą, szybkim startem i opisem pipeline'u wydaniowego.
+
+1.1.0 (2026-11-02T21:29:46.2040944+01:00)
+- Przenoszenie kart w trybie Edytuj układ pokazuje docelową stronę upuszczenia.
+- Menu Układ pozwala dodawać panele obok i poniżej oraz utworzyć trzy panele w kolumnie.
+- Każdy panel ma Wygląd: osobną tapetę lokalną, widoczność tapety, kolor i opcjonalną własną czcionkę.
+- Zgoda, opisy oraz źródła pogody są dostępne w opcjach panelu pogody.
+- Czytelny motyw ciemny/systemowy, aktualizacja po zmianie ustawień Windows, migracja dawnych jasnych nadpisań.
+- Ustawienia działają natychmiast i zapisują się automatycznie; usunięto Zastosuj.
+
+2026-11-02T21:56:33.4954056+01:00 | v1.2.0
+- Dodano instalowanie paneli z paczek .udplugin przez upuszczenie na okno lub z zakładki Pluginy w ustawieniach.
+- Lista pluginów pozwala usuwać kod bez utraty konfiguracji i miejsc paneli; ponowna instalacja przywraca ich działanie bez restartu.
+- Dodano plugin Ramka na zdjęcia: pojedynczy obraz lub folder, konfigurowany czas pokazu i odświeżanie źródła; odczyt zdjęć działa w tle.
+- Pluginy korzystają ze standardowych kart, układu, wyglądu i autozapisu aplikacji. Instalacja sprawdza paczkę, zgodność API i konflikty paneli.
+- Dodano dokumentację budowy i instalacji pluginów oraz integracyjne testy WPF/SQLite do testuj.bat.
+
+2026-11-03 — poprawka robocza do v1.2.0
+- Przycisk motywu na pasku przywraca pełną paletę wybranego motywu, tak jak wybór w Opcjach.
+
+2026-11-03T07:41:20.1690202+01:00 — v1.3.0
+- Wygląd panelu jest dostępny w jego ustawieniach.
+- Koło kolorów jest podstawowym wyborem; wpis HEX można rozwinąć.
+- Tekst starszych notatek dostosowuje się do ciemnego motywu.
+- Przenoszenie paneli działa przez nagłówek, również nad edytorami.
+- Tryb edycji pozwala zmieniać wysokość od góry i dołu oraz zostawiać miejsce na kolejne panele.
+- Niskie, szerokie panele mają oszczędniejsze nagłówki; pogoda ma kompaktowy widok.
+
+2026-11-03T09:35:38+01:00 (zmiany robocze)
+- Przywrócono ikony w poziomym widoku pogody.
+- Dopasowano kolory menu kontekstowego do motywu.
+- Zmiana grubości paska zachowuje aktualny tryb okna.
+
+
+2026-11-03T09:39:23+01:00 (zmiany robocze)
+- Dodano opcję pokazania pulpitu przez tło aplikacji bez zmiany krycia tekstu i kontrolek.
+- Można regulować krycie powierzchni paneli; tapeta aplikacji wraca po wyłączeniu opcji.
+
+2026-11-03T09:54:37+01:00 — synchronizacja źródeł 1.4.0
+- Zebrano w repozytorium zmiany układu i wyglądu paneli, obsługę pluginów PhotoFrame oraz poprawki pogody i trybów okna.
+- Synchronizacja źródeł nie stanowi nowego wydania instalatora.

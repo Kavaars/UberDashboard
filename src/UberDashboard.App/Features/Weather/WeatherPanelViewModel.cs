@@ -20,7 +20,7 @@ public sealed record WeatherHourlyForecastDisplayItem(
 public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposable, IPanelOptionsPresenter
 {
     private static readonly TimeSpan SearchDebounceDelay = TimeSpan.FromMilliseconds(350);
-    private static readonly TimeSpan DefaultCacheLifetime = TimeSpan.FromMinutes(20);
+    private static readonly TimeSpan DefaultCacheLifetime = TimeSpan.FromMinutes(30);
 
     private readonly IWeatherService _weatherService;
     private readonly IWeatherLocationSearchService _locationSearchService;
@@ -31,6 +31,26 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
     private CancellationTokenSource? _searchCts;
     private CancellationTokenSource? _autoRefreshCts;
     private bool _disposed;
+    private CancellationTokenSource _networkCts = new();
+    private DateTimeOffset? _networkConsentGrantedAtUtc;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
+    private bool isNetworkEnabled;
+
+    partial void OnIsNetworkEnabledChanged(bool value)
+    {
+        _networkCts.Cancel();
+        _networkCts.Dispose();
+        _networkCts = new CancellationTokenSource();
+        _networkConsentGrantedAtUtc = value ? DateTimeOffset.UtcNow : null;
+        CancelSearch();
+        ClearSearchResults();
+        IsSearching = false;
+        ScheduleAutoRefresh();
+        StatusText = value ? "Połączenia włączone. Wybierz lokalizację lub odśwież dane." : "Pogoda offline. Włącz połączenia w opcjach panelu, aby pobierać dane.";
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
     private bool _suppressSearch;
 
     /// <summary>Tworzy model widoku panelu pogody.</summary>
@@ -59,6 +79,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         ClearLocationCommand = new RelayCommand(ClearLocation, () => SelectedLocation is not null);
         ToggleOptionsCommand = new RelayCommand(() => IsOptionsOpen = !IsOptionsOpen);
 
+        OpenSourceCommand = new RelayCommand<string>(OpenSource);
         StatusText = "Wybierz lokalizację, aby pobrać pogodę.";
         Title = "Pogoda";
     }
@@ -123,7 +144,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
     private bool isOptionsOpen;
 
     [ObservableProperty]
-    private int autoRefreshMinutes = 20;
+    private int autoRefreshMinutes = 30;
 
     [ObservableProperty]
     private bool showWind = true;
@@ -205,6 +226,8 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
             _suppressSearch = false;
         }
 
+        IsNetworkEnabled = document.NetworkConsentGrantedAtUtc.HasValue;
+        _networkConsentGrantedAtUtc = document.NetworkConsentGrantedAtUtc;
         SelectedLocation = document.SelectedLocation;
         AutoRefreshMinutes = Math.Clamp(document.AutoRefreshMinutes, 5, 180);
         ShowWind = document.ShowWind;
@@ -219,6 +242,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
     /// <summary>Zwraca stan wymagający zapisu.</summary>
     public WeatherPanelDocument Snapshot() => new()
     {
+        NetworkConsentGrantedAtUtc = _networkConsentGrantedAtUtc,
         SelectedLocation = SelectedLocation,
         AutoRefreshMinutes = AutoRefreshMinutes,
         ShowWind = ShowWind,
@@ -246,10 +270,12 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         }
 
         _disposed = true;
+        _networkCts.Cancel();
+        _networkCts.Dispose();
         lock (_gate)
         {
             _searchCts?.Cancel();
-            _searchCts?.Dispose();
+
             _searchCts = null;
             _autoRefreshCts?.Cancel();
             _autoRefreshCts?.Dispose();
@@ -257,11 +283,27 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         }
     }
 
-    private bool CanRefresh() => SelectedLocation is not null && !IsLoading;
+    public IRelayCommand<string> OpenSourceCommand { get; }
+
+    private void OpenSource(string? source)
+    {
+        var url = source switch
+        {
+            "weather" => "https://open-meteo.com/",
+            "licence" => "https://open-meteo.com/en/licence",
+            "geonames" => "https://www.geonames.org/",
+            _ => null,
+        };
+        if (url is null) return;
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); }
+        catch (Exception) { _notifier.Publish("Nie udało się otworzyć strony źródła danych.", PanelNotificationSeverity.Warning); }
+    }
+
+    private bool CanRefresh() => IsNetworkEnabled && SelectedLocation is not null && !IsLoading;
 
     private async Task SelectLocationAsync(WeatherLocationOption? location)
     {
-        if (location is null)
+        if (_disposed || !IsNetworkEnabled || location is null)
         {
             return;
         }
@@ -290,6 +332,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         ClearSearchResults();
         ResetSnapshot();
         IsStale = false;
+
         StatusText = "Wybierz lokalizację, aby pobrać pogodę.";
         ScheduleAutoRefresh();
         Changed?.Invoke(this, EventArgs.Empty);
@@ -299,7 +342,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
     {
         CancelSearch();
 
-        if (string.IsNullOrWhiteSpace(rawQuery))
+        if (_disposed || !IsNetworkEnabled || string.IsNullOrWhiteSpace(rawQuery))
         {
             ClearSearchResults();
             IsSearching = false;
@@ -330,11 +373,11 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         catch (OperationCanceledException)
         {
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             ClearSearchResults();
             StatusText = "Nie udało się wyszukać lokalizacji.";
-            _notifier.Publish($"Wyszukiwanie lokalizacji nie powiodło się: {ex.Message}", PanelNotificationSeverity.Warning);
+            _notifier.Publish($"Wyszukiwanie lokalizacji nie powiodło się", PanelNotificationSeverity.Warning);
         }
         finally
         {
@@ -354,11 +397,14 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
     private async Task RefreshAsync(CancellationToken cancellationToken)
     {
         var location = SelectedLocation;
-        if (location is null)
+        if (_disposed || !IsNetworkEnabled || location is null)
         {
             return;
         }
 
+        using var requestCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _networkCts.Token);
+        cancellationToken = requestCts.Token;
+        if (IsLoading) return;
         IsLoading = true;
         IsStale = false;
         StatusText = "Pobieram bieżące warunki…";
@@ -370,6 +416,8 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
                 .GetCurrentAsync(location.Latitude, location.Longitude, cancellationToken)
                 .ConfigureAwait(true);
 
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_disposed || !IsNetworkEnabled || SelectedLocation != location) return;
             ApplySnapshot(snapshot);
 
             await _cacheStore
@@ -380,9 +428,9 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         }
         catch (OperationCanceledException)
         {
-            throw;
+            StatusText = "Pobieranie pogody anulowano.";
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             var cached = await _cacheStore.GetAsync(location.CacheKey, cancellationToken).ConfigureAwait(true);
             if (cached is not null)
@@ -390,13 +438,13 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
                 ApplySnapshot(cached.Snapshot with { IsFromCache = true });
                 IsStale = true;
                 StatusText = $"Brak świeżych danych. Pokazuję ostatni cache dla {location.DisplayName}.";
-                _notifier.Publish($"Odświeżenie pogody nie powiodło się, używam cache: {ex.Message}", PanelNotificationSeverity.Warning);
+                _notifier.Publish($"Odświeżenie pogody nie powiodło się, używam cache", PanelNotificationSeverity.Warning);
             }
             else
             {
                 ResetSnapshot();
                 StatusText = $"Nie udało się pobrać pogody dla {location.DisplayName}.";
-                _notifier.Publish($"Pobranie pogody nie powiodło się: {ex.Message}", PanelNotificationSeverity.Error);
+                _notifier.Publish($"Pobranie pogody nie powiodło się", PanelNotificationSeverity.Error);
             }
         }
         finally
@@ -412,12 +460,12 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         ConditionText = WeatherConditionCatalog.Describe(snapshot.WeatherCode);
         ConditionGlyph = WeatherConditionCatalog.Glyph(snapshot.WeatherCode, snapshot.IsDay);
         WindText = $"{snapshot.WindSpeedKph:0.#} km/h";
-        UpdatedText = snapshot.SourceTime.LocalDateTime.ToString("yyyy-MM-dd HH:mm");
+        UpdatedText = snapshot.SourceTime.ToString("yyyy-MM-dd HH:mm zzz");
         DailyRangeText = snapshot.DailyHighCelsius.HasValue || snapshot.DailyLowCelsius.HasValue
             ? $"Max: {FormatTemperature(snapshot.DailyHighCelsius)} | Min: {FormatTemperature(snapshot.DailyLowCelsius)}"
             : "—";
-        SunriseText = snapshot.Sunrise?.LocalDateTime.ToString("HH:mm") ?? "—";
-        SunsetText = snapshot.Sunset?.LocalDateTime.ToString("HH:mm") ?? "—";
+        SunriseText = snapshot.Sunrise?.ToString("HH:mm") ?? "—";
+        SunsetText = snapshot.Sunset?.ToString("HH:mm") ?? "—";
         ReplaceHourlyForecast(snapshot.HourlyForecast ?? Array.Empty<WeatherHourlyForecastPoint>());
         IsStale = snapshot.IsFromCache;
         OnPropertyChanged(nameof(HasSnapshot));
@@ -464,7 +512,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         lock (_gate)
         {
             _searchCts?.Cancel();
-            _searchCts?.Dispose();
+
             _searchCts = null;
         }
     }
@@ -475,7 +523,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         foreach (var point in forecast)
         {
             HourlyForecast.Add(new WeatherHourlyForecastDisplayItem(
-                point.Time.LocalDateTime.ToString("HH:mm"),
+                point.Time.ToString("HH:mm"),
                 WeatherConditionCatalog.Glyph(point.WeatherCode, point.IsDay),
                 $"{point.TemperatureCelsius:0.#} °C",
                 WeatherConditionCatalog.Describe(point.WeatherCode)));
@@ -501,7 +549,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
             _autoRefreshCts?.Dispose();
             _autoRefreshCts = null;
 
-            if (_disposed || SelectedLocation is null)
+            if (_disposed || !IsNetworkEnabled || SelectedLocation is null)
             {
                 return;
             }
@@ -518,7 +566,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         try
         {
             using var timer = new PeriodicTimer(interval);
-            while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
+            while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(true))
             {
                 await RefreshAsync(cancellationToken).ConfigureAwait(true);
             }

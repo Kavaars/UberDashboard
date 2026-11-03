@@ -11,11 +11,13 @@ namespace UberDashboard.App.Shell;
 public sealed class PanelSplitViewModel : LayoutNodeViewModel
 {
     /// <summary>Tworzy podział z dwojgiem dzieci.</summary>
-    public PanelSplitViewModel(Guid splitId, SplitAxis axis, double ratio, LayoutNodeViewModel first, LayoutNodeViewModel second)
+    public PanelSplitViewModel(Guid splitId, SplitAxis axis, double ratio, LayoutNodeViewModel first, LayoutNodeViewModel second,
+        Func<Guid, double, double, Task>? persistResize = null)
     {
         ArgumentNullException.ThrowIfNull(first);
         ArgumentNullException.ThrowIfNull(second);
 
+        PersistResize = persistResize;
         SplitId = splitId;
         Axis = axis;
         Ratio = double.IsFinite(ratio) ? ratio : 0.5d;
@@ -25,6 +27,9 @@ public sealed class PanelSplitViewModel : LayoutNodeViewModel
 
     /// <summary>Identyfikator podziału w dokumencie układu.</summary>
     public Guid SplitId { get; }
+
+    /// <summary>Zapisuje faktyczną proporcję po zakończeniu gestu lub zmianie klawiaturą.</summary>
+    public Func<Guid, double, double, Task>? PersistResize { get; }
 
     /// <summary>Oś podziału.</summary>
     public SplitAxis Axis { get; }

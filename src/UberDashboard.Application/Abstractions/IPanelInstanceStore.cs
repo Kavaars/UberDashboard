@@ -40,6 +40,9 @@ public interface IPanelInstanceStore
         DateTimeOffset nowUtc,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Zmienia wyłącznie treść; nie nadpisuje ukrycia, konfiguracji ani wskazówki odtworzenia.</summary>
+    Task UpdateStateAsync(PanelInstanceId instanceId, string stateJson, DateTimeOffset nowUtc, CancellationToken cancellationToken = default);
+
     /// <summary>Trwale usuwa instancję.</summary>
     Task DeleteAsync(PanelInstanceId instanceId, CancellationToken cancellationToken = default);
 }

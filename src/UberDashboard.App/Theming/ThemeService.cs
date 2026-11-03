@@ -17,7 +17,7 @@ namespace UberDashboard.App.Theming;
 /// przez <c>DynamicResource</c>, dzięki czemu zmiana motywu działa w czasie
 /// rzeczywistym bez przeładowania widoków.
 /// </summary>
-public sealed class ThemeService
+public sealed class ThemeService : IDisposable
 {
     private const string SettingsKey = "app.theme";
     private const string PersonalizeKey = @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
@@ -43,6 +43,7 @@ public sealed class ThemeService
         _applicationSettings = applicationSettings;
         _clock = clock;
         _logger = logger;
+        SystemEvents.UserPreferenceChanged += OnSystemPreferenceChanged;
     }
 
     /// <summary>Aktualnie wybrany motyw (uwzględnia rozstrzygnięcie trybu systemowego).</summary>
@@ -53,6 +54,8 @@ public sealed class ThemeService
 
     /// <summary>Podnoszone po zmianie słownika motywu.</summary>
     public event EventHandler? ThemeChanged;
+
+    public ApplicationSettings CurrentSettings { get; private set; } = ApplicationSettings.Default;
 
     /// <summary>Wczytuje zapisany wybór i stosuje go; brak zapisu oznacza motyw systemowy.</summary>
     public async Task LoadAndApplyAsync(CancellationToken cancellationToken)
@@ -75,7 +78,10 @@ public sealed class ThemeService
         Current = kind;
         ApplyToResources(kind);
         var settings = await _applicationSettings.LoadAsync(cancellationToken).ConfigureAwait(false);
-        ApplyPersonalizationToResources(settings);
+        var migrated = MigratePalette(settings, IsDark);
+        CurrentSettings = migrated.Normalize();
+        if (migrated != settings) await _applicationSettings.SaveAsync(migrated, cancellationToken).ConfigureAwait(false);
+        ApplyPersonalizationToResources(migrated);
         ThemeChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -90,7 +96,10 @@ public sealed class ThemeService
             .ConfigureAwait(false);
 
         var settings = await _applicationSettings.LoadAsync(cancellationToken).ConfigureAwait(false);
-        ApplyPersonalizationToResources(settings);
+        var migrated = settings with { PaletteVersion = 1, AccentColor = null, WindowBackgroundColor = null, SurfaceColor = null, SurfaceAltColor = null };
+        CurrentSettings = migrated.Normalize();
+        if (migrated != settings) await _applicationSettings.SaveAsync(migrated, cancellationToken).ConfigureAwait(false);
+        ApplyPersonalizationToResources(migrated);
         ThemeChanged?.Invoke(this, EventArgs.Empty);
         _logger.LogInformation("Zastosowano motyw {Theme}.", kind);
     }
@@ -104,6 +113,8 @@ public sealed class ThemeService
         ArgumentNullException.ThrowIfNull(settings);
 
         var normalized = settings.Normalize();
+        CurrentSettings = normalized;
+        ApplyPersonalizationToResources(normalized);
         if (persist)
         {
             await _applicationSettings.SaveAsync(normalized, cancellationToken).ConfigureAwait(false);
@@ -149,6 +160,44 @@ public sealed class ThemeService
             fallback);
     }
 
+    public async Task PersistSelectionAsync(ThemeKind kind, ApplicationSettings settings)
+    {
+        await _settings.SetAsync(SettingsKey, JsonSerializer.Serialize(kind), _clock.UtcNow).ConfigureAwait(false);
+        await _applicationSettings.SaveAsync(settings, CancellationToken.None).ConfigureAwait(false);
+    }
+
+    public void Preview(ThemeKind kind, ApplicationSettings settings)
+    {
+        CurrentSettings = settings.Normalize();
+        if (Current != kind) { Current = kind; ApplyToResources(kind); }
+        ApplyPersonalizationToResources(settings);
+        ThemeChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void RefreshSystemTheme()
+    {
+        if (Current == ThemeKind.System) ApplyToResources(Current);
+    }
+
+    public static ApplicationSettings MigratePalette(ApplicationSettings settings, bool dark)
+    {
+        if (settings.PaletteVersion != 0) return settings;
+        var migrated = settings with { PaletteVersion = 1 };
+        if (dark && settings.SurfaceColor == "#FFFFFFFF" && settings.WindowBackgroundColor == "#FFF6F7F9"
+            && settings.SurfaceAltColor == "#FFEFF1F4")
+            migrated = migrated with { SurfaceColor = null, SurfaceAltColor = null, WindowBackgroundColor = null };
+        return migrated;
+    }
+
+    public static string ContrastingText(string background) => ChooseTextColor(background) == "#FFFFFFFF" ? "#FFF2F3F5" : "#FF0F172A";
+
+    private void OnSystemPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
+    {
+        if (Current == ThemeKind.System) System.Windows.Application.Current?.Dispatcher.InvokeAsync(RefreshSystemTheme);
+    }
+
+    public void Dispose() => SystemEvents.UserPreferenceChanged -= OnSystemPreferenceChanged;
+
     private static void ApplyToResources(ThemeKind kind)
     {
         var application = System.Windows.Application.Current;
@@ -165,7 +214,7 @@ public sealed class ThemeService
 
         var dictionary = new ResourceDictionary
         {
-            Source = new Uri(SourceFor(kind), UriKind.Relative),
+            Source = new Uri($"pack://application:,,,/UberDashboard;component/{SourceFor(kind)}", UriKind.Absolute),
         };
 
         var merged = application.Resources.MergedDictionaries;
@@ -177,6 +226,7 @@ public sealed class ThemeService
         {
             merged[0] = dictionary;
         }
+        application.Resources["Token.ThemeRevision"] = new object();
     }
 
     private static void ApplyPersonalizationToResources(ApplicationSettings settings)
@@ -199,6 +249,8 @@ public sealed class ThemeService
         SetBrushOverride(application, "Brush.Window.Background", normalized.WindowBackgroundColor);
         SetBrushOverride(application, "Brush.Surface", normalized.SurfaceColor);
         SetBrushOverride(application, "Brush.Surface.Alt", normalized.SurfaceAltColor);
+        SetBrushOverride(application, "Brush.Text", normalized.SurfaceColor is { } surface ? ContrastingText(surface) : null);
+        SetBrushOverride(application, "Brush.Text.Muted", normalized.SurfaceColor is { } mutedSurface ? ContrastingText(mutedSurface) : null);
 
         SetOrRemoveResource(
             application,
@@ -243,6 +295,7 @@ public sealed class ThemeService
             application.Resources.Remove("Token.Padding.Toolbar");
             application.Resources.Remove("Token.Padding.Panel");
         }
+        application.Resources["Token.ThemeRevision"] = new object();
     }
 
     private static string SourceFor(ThemeKind kind)
@@ -315,8 +368,12 @@ public sealed class ThemeService
             return null;
         }
 
-        var luminance = ((0.299 * color.R) + (0.587 * color.G) + (0.114 * color.B)) / 255d;
-        return luminance >= 0.55d ? "#FF0F172A" : "#FFFFFFFF";
+        static double Linear(byte channel) { var value = channel / 255d; return value <= .04045 ? value / 12.92 : Math.Pow((value + .055) / 1.055, 2.4); }
+        static double Luminance(MediaColor c) => .2126 * Linear(c.R) + .7152 * Linear(c.G) + .0722 * Linear(c.B);
+        var luminance = Luminance(color);
+        var dark = Luminance(MediaColor.FromRgb(15, 23, 42));
+        var light = Luminance(MediaColor.FromRgb(242, 243, 245));
+        return (luminance + .05) / (dark + .05) >= (light + .05) / (luminance + .05) ? "#FF0F172A" : "#FFFFFFFF";
     }
 
     private static Thickness Scale(Thickness baseThickness, double scale) =>

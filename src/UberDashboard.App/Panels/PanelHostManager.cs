@@ -125,6 +125,11 @@ public sealed class PanelHostManager : IAsyncDisposable
             }
 
             var hosted = new HostedPanel(record, instance, closeToken);
+            if (instance is IPanelStateNotifications changes)
+            {
+                hosted.StateChangedHandler = (_, _) => _scheduler.RequestSave(record.InstanceId);
+                changes.StateChanged += hosted.StateChangedHandler;
+            }
             _hosted[record.InstanceId] = hosted;
             _scheduler.Track(new PanelStateSink(hosted, PersistAsync));
 
@@ -160,55 +165,43 @@ public sealed class PanelHostManager : IAsyncDisposable
     /// </summary>
     public async Task SuspendAsync(PanelInstanceId instanceId, CancellationToken cancellationToken)
     {
-        if (!_hosted.Remove(instanceId, out var hosted))
-        {
-            return;
-        }
-
-        _scheduler.Untrack(instanceId);
-        await PersistAsync(hosted, cancellationToken).ConfigureAwait(true);
-        hosted.CloseToken.Cancel();
-
+        if (!_hosted.TryGetValue(instanceId, out var hosted)) return;
+        await hosted.LifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(true);
         try
         {
-            await hosted.Instance.SuspendAsync(cancellationToken).ConfigureAwait(true);
+            if (!_hosted.TryGetValue(instanceId, out var current) || !ReferenceEquals(current, hosted)) return;
+            await PersistAsync(hosted, cancellationToken).ConfigureAwait(true);
+            if (hosted.Instance is IPanelStateNotifications changes) changes.StateChanged -= hosted.StateChangedHandler;
+            _scheduler.Untrack(instanceId);
+            _hosted.Remove(instanceId);
+            hosted.CloseToken.Cancel();
+            try { await hosted.Instance.SuspendAsync(cancellationToken).ConfigureAwait(true); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Panel {InstanceId} zgłosił błąd podczas wstrzymywania.", instanceId); }
+            await SafeDisposeAsync(hosted.Instance).ConfigureAwait(true);
+            hosted.CloseToken.Dispose();
         }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Panel {InstanceId} zgłosił błąd podczas wstrzymywania.", instanceId);
-        }
-
-        await SafeDisposeAsync(hosted.Instance).ConfigureAwait(true);
-        hosted.CloseToken.Dispose();
+        finally { hosted.LifecycleGate.Release(); }
     }
 
-    /// <summary>
-    /// Trwale usuwa instancję: daje panelowi możliwość zwolnienia zasobów, a
-    /// następnie zamyka ją i przestaje śledzić jej stan.
-    /// </summary>
+    /// <summary>Trwale usuwa aktywną instancję. Operacje zamykania jednej instancji są serializowane.</summary>
     public async Task RemoveAsync(PanelInstanceId instanceId, CancellationToken cancellationToken)
     {
-        if (!_hosted.Remove(instanceId, out var hosted))
-        {
-            return;
-        }
-
-        _scheduler.Untrack(instanceId);
-
+        if (!_hosted.TryGetValue(instanceId, out var hosted)) return;
+        await hosted.LifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(true);
         try
         {
-            await hosted.Instance.PrepareForRemovalAsync(cancellationToken).ConfigureAwait(true);
+            if (!_hosted.TryGetValue(instanceId, out var current) || !ReferenceEquals(current, hosted)) return;
+            _hosted.Remove(instanceId);
+            if (hosted.Instance is IPanelStateNotifications changes) changes.StateChanged -= hosted.StateChangedHandler;
+            _scheduler.Untrack(instanceId);
+            try { await hosted.Instance.PrepareForRemovalAsync(cancellationToken).ConfigureAwait(true); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Panel {InstanceId} zgłosił błąd podczas przygotowania do usunięcia.", instanceId); }
+            hosted.CloseToken.Cancel();
+            await SafeDisposeAsync(hosted.Instance).ConfigureAwait(true);
+            hosted.CloseToken.Dispose();
         }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Panel {InstanceId} zgłosił błąd podczas przygotowania do usunięcia.", instanceId);
-        }
-
-        hosted.CloseToken.Cancel();
-        await SafeDisposeAsync(hosted.Instance).ConfigureAwait(true);
-        hosted.CloseToken.Dispose();
+        finally { hosted.LifecycleGate.Release(); }
     }
-
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
@@ -226,11 +219,33 @@ public sealed class PanelHostManager : IAsyncDisposable
         }
     }
 
+    public async Task SuspendPluginAsync(string pluginId, CancellationToken token)
+    {
+        foreach (var entry in _hosted.Values.Where(p => p.Record.PluginId == pluginId).ToArray())
+            await SuspendAsync(entry.Record.InstanceId, token).ConfigureAwait(true);
+    }
+
     private async Task PersistAsync(HostedPanel hosted, CancellationToken cancellationToken)
+    {
+        await hosted.PersistenceGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try { await PersistCoreAsync(hosted, cancellationToken).ConfigureAwait(false); }
+        finally { hosted.PersistenceGate.Release(); }
+    }
+
+    private async Task PersistCoreAsync(HostedPanel hosted, CancellationToken cancellationToken)
     {
         try
         {
-            var state = await hosted.Instance.CaptureStateAsync(cancellationToken).ConfigureAwait(true);
+            long version = 0;
+            async Task<ReadOnlyMemory<byte>> CaptureAsync()
+            {
+                version = (hosted.Instance as IPanelPersistenceObserver)?.ChangeVersion ?? (hosted.Instance as IPanelStateNotifications)?.ChangeVersion ?? 0;
+                return await hosted.Instance.CaptureStateAsync(cancellationToken).ConfigureAwait(true);
+            }
+            var dispatcher = System.Windows.Application.Current?.Dispatcher;
+            var state = dispatcher is not null && !dispatcher.CheckAccess()
+                ? await dispatcher.InvokeAsync(CaptureAsync).Task.Unwrap().ConfigureAwait(false)
+                : await CaptureAsync().ConfigureAwait(true);
             var json = Encoding.UTF8.GetString(state.Span);
             hosted.Record = hosted.Record with
             {
@@ -238,19 +253,35 @@ public sealed class PanelHostManager : IAsyncDisposable
                 UpdatedAtUtc = _clock.UtcNow,
             };
 
-            await _store.UpsertAsync(hosted.Record, cancellationToken).ConfigureAwait(true);
+            await _store.UpdateStateAsync(hosted.Record.InstanceId, json, hosted.Record.UpdatedAtUtc, cancellationToken).ConfigureAwait(true);
 
+            hosted.SaveFailureReported = false;
+            if (hosted.Instance is IPanelStateNotifications pluginObserver)
+            {
+                void ConfirmPlugin() { if (pluginObserver.ChangeVersion == version) pluginObserver.OnStatePersisted(); }
+                if (dispatcher is not null && !dispatcher.CheckAccess()) await dispatcher.InvokeAsync(ConfirmPlugin);
+                else ConfirmPlugin();
+            }
             if (hosted.Instance is IPanelPersistenceObserver observer)
             {
-                observer.OnStatePersisted();
+                void ConfirmCurrentVersion() { if (observer.ChangeVersion == version) observer.OnStatePersisted(); }
+                if (dispatcher is not null && !dispatcher.CheckAccess()) await dispatcher.InvokeAsync(ConfirmCurrentVersion);
+                else ConfirmCurrentVersion();
             }
         }
+        catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             _logger.LogError(
                 ex,
                 "Nie udało się utrwalić stanu panelu {InstanceId}.",
                 hosted.Record.InstanceId);
+            if (!hosted.SaveFailureReported)
+            {
+                hosted.SaveFailureReported = true;
+                _toasts.Show("Nie zapisano zmian panelu. Kolejna edycja lub próba zamknięcia ponowi zapis.", ToastSeverity.Error);
+            }
+            throw;
         }
     }
 
@@ -268,6 +299,10 @@ public sealed class PanelHostManager : IAsyncDisposable
 
     private sealed class HostedPanel(PanelInstanceRecord record, IPanelInstance instance, CancellationTokenSource closeToken)
     {
+        public EventHandler? StateChangedHandler { get; set; }
+        public bool SaveFailureReported { get; set; }
+        public SemaphoreSlim LifecycleGate { get; } = new(1, 1);
+        public SemaphoreSlim PersistenceGate { get; } = new(1, 1);
         public PanelInstanceRecord Record { get; set; } = record;
 
         public IPanelInstance Instance { get; } = instance;

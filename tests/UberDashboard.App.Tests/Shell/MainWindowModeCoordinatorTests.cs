@@ -71,10 +71,41 @@ public sealed class MainWindowModeCoordinatorTests
         Assert.Equal(["register", "query", "set"], api.Calls);
     }
 
+    [Fact]
+    public async Task Docking_applies_exact_rect_returned_by_shell()
+    {
+        var native = new FakeAppBarNativeApi { SetTransform = (_, _) => new PixelRect(-1280, 500, 0, 740) };
+        var window = new FakeDockedBarWindowHost();
+        var coordinator = CreateCoordinator(appBar: new AppBarController(native), dockedWindow: window);
+        coordinator.AttachWindow(new IntPtr(42));
+        var result = await coordinator.SwitchAsync(WindowMode.DockedBar);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(new PixelRect(-1280, 500, 0, 740), window.AppliedBounds);
+    }
+
+    [Fact]
+    public async Task Failed_window_position_releases_reservation_and_falls_back()
+    {
+        var native = new FakeAppBarNativeApi();
+        var appBar = new AppBarController(native);
+        var coordinator = CreateCoordinator(appBar: appBar, dockedWindow: new FakeDockedBarWindowHost { ApplyResult = false });
+        coordinator.AttachWindow(new IntPtr(42));
+        var result = await coordinator.SwitchAsync(WindowMode.DockedBar);
+        Assert.False(result.IsSuccess);
+        Assert.Equal(WindowMode.Normal, coordinator.CurrentMode);
+        Assert.False(appBar.IsRegistered);
+        Assert.Contains("unregister", native.Calls);
+    }
+
+    [Fact]
+    public async Task Desktop_host_does_not_claim_a_fullscreen_window_is_a_desktop_layer()
+    {
+        Assert.False(await new DesktopWidgetWindowHost().TryAttachAsync(new IntPtr(42), 1, CancellationToken.None));
+    }
     private static MainWindowModeCoordinator CreateCoordinator(
         AppBarController? appBar = null,
         WindowModeSettings? settings = null,
-        FakeDesktopWidgetWindowHost? desktopWidgetHost = null)
+        FakeDesktopWidgetWindowHost? desktopWidgetHost = null, FakeDockedBarWindowHost? dockedWindow = null)
     {
         return new MainWindowModeCoordinator(
             appBar ?? new AppBarController(new FakeAppBarNativeApi()),
@@ -87,6 +118,7 @@ public sealed class MainWindowModeCoordinatorTests
             {
                 Settings = settings ?? WindowModeSettings.Default,
             },
-            desktopWidgetHost ?? new FakeDesktopWidgetWindowHost());
+            desktopWidgetHost ?? new FakeDesktopWidgetWindowHost(),
+            dockedWindow ?? new FakeDockedBarWindowHost());
     }
 }

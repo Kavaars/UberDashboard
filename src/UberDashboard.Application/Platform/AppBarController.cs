@@ -77,6 +77,17 @@ public sealed class AppBarController
     /// Ponawia cykl pozycjonowania dla zarejestrowanego paska. Wywoływane przy
     /// <c>ABN_POSCHANGED</c> oraz po zmianie DPI lub konfiguracji monitorów.
     /// </summary>
+    public AppBarDockResult Restart(PixelRect? monitorBounds = null)
+    {
+        if (!_isRegistered) return AppBarDockResult.Fail("Pasek nie jest zarejestrowany.");
+        var handle = _windowHandle;
+        var edge = _edge;
+        var thickness = _thickness;
+        var area = monitorBounds ?? _monitorWorkArea;
+        Remove();
+        return Register(handle, edge, thickness, area);
+    }
+
     public AppBarDockResult Reapply()
     {
         if (!_isRegistered)
@@ -118,11 +129,11 @@ public sealed class AppBarController
     }
 
     /// <summary>Powiadamia powłokę o aktywacji okna paska.</summary>
-    public void NotifyActivated()
+    public void NotifyActivated(bool active = true)
     {
         if (_isRegistered)
         {
-            _nativeApi.Activate(_windowHandle);
+            _nativeApi.Activate(_windowHandle, active);
         }
     }
 

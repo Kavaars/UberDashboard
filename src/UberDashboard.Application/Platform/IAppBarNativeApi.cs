@@ -29,7 +29,7 @@ public interface IAppBarNativeApi
     AppBarState GetState(IntPtr windowHandle);
 
     /// <summary>Powiadamia powłokę o aktywacji okna paska (<c>ABM_ACTIVATE</c>).</summary>
-    void Activate(IntPtr windowHandle);
+    void Activate(IntPtr windowHandle, bool active = true);
 
     /// <summary>Powiadamia powłokę o zmianie pozycji okna paska (<c>ABM_WINDOWPOSCHANGED</c>).</summary>
     void NotifyWindowPositionChanged(IntPtr windowHandle);

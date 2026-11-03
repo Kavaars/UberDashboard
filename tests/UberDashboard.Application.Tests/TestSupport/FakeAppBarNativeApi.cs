@@ -57,7 +57,7 @@ internal sealed class FakeAppBarNativeApi : IAppBarNativeApi
         return State;
     }
 
-    public void Activate(IntPtr windowHandle) => Calls.Add("activate");
+    public void Activate(IntPtr windowHandle, bool active = true) => Calls.Add("activate");
 
     public void NotifyWindowPositionChanged(IntPtr windowHandle) => Calls.Add("poschanged");
 

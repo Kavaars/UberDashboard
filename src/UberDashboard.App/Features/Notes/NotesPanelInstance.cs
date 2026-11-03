@@ -17,6 +17,8 @@ public sealed class NotesPanelInstance : IPanelInstance, IPanelPersistenceObserv
     private readonly NotesPanelViewModel _viewModel;
     private readonly PanelStateScheduler _scheduler;
     private bool _disposed;
+    private long _changeVersion;
+    public long ChangeVersion => Interlocked.Read(ref _changeVersion);
 
     /// <summary>Tworzy instancję panelu notatnika.</summary>
     public NotesPanelInstance(PanelContext context, NotesPanelViewModel viewModel, PanelStateScheduler scheduler)
@@ -87,7 +89,11 @@ public sealed class NotesPanelInstance : IPanelInstance, IPanelPersistenceObserv
         return ValueTask.CompletedTask;
     }
 
-    private void OnViewModelChanged(object? sender, EventArgs e) => _scheduler.RequestSave(InstanceId);
+    private void OnViewModelChanged(object? sender, EventArgs e)
+    {
+        Interlocked.Increment(ref _changeVersion);
+        _scheduler.RequestSave(InstanceId);
+    }
 
     private static NotesDocument DeserializeDocument(ReadOnlySpan<byte> state)
     {

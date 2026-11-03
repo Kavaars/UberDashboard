@@ -5,24 +5,30 @@ namespace UberDashboard.App.Shell;
 /// <summary>Koordynuje przejścia głównego okna między trybem normalnym, paskiem i widgetem.</summary>
 public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
 {
+    private readonly IDockedBarWindowHost _dockedWindow;
     private readonly AppBarController _appBar;
     private readonly IMonitorProvider _monitorProvider;
     private readonly IWindowModeSettingsService _settingsService;
     private readonly IDesktopWidgetWindowHost _desktopWidgetWindowHost;
     private IntPtr _windowHandle;
+    private WindowMode _currentMode;
+    private readonly SemaphoreSlim _transitionGate = new(1, 1);
 
     /// <summary>Tworzy koordynator trybów okna.</summary>
     public MainWindowModeCoordinator(
         AppBarController appBar,
         IMonitorProvider monitorProvider,
         IWindowModeSettingsService settingsService,
-        IDesktopWidgetWindowHost desktopWidgetWindowHost)
+        IDesktopWidgetWindowHost desktopWidgetWindowHost,
+        IDockedBarWindowHost dockedWindow)
     {
         ArgumentNullException.ThrowIfNull(appBar);
+        ArgumentNullException.ThrowIfNull(dockedWindow);
         ArgumentNullException.ThrowIfNull(monitorProvider);
         ArgumentNullException.ThrowIfNull(settingsService);
         ArgumentNullException.ThrowIfNull(desktopWidgetWindowHost);
 
+        _dockedWindow = dockedWindow;
         _appBar = appBar;
         _monitorProvider = monitorProvider;
         _settingsService = settingsService;
@@ -30,7 +36,11 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
     }
 
     /// <inheritdoc />
-    public WindowMode CurrentMode { get; private set; } = WindowMode.Normal;
+    public WindowMode CurrentMode
+    {
+        get => _currentMode == WindowMode.DockedBar && !_appBar.IsRegistered ? WindowMode.Normal : _currentMode;
+        private set => _currentMode = value;
+    }
 
     /// <inheritdoc />
     public bool IsAttached => _windowHandle != IntPtr.Zero;
@@ -51,7 +61,15 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
         ApplyLaunchModeAsync(cancellationToken);
 
     /// <inheritdoc />
+
     public async Task<WindowModeTransitionResult> SwitchAsync(WindowMode mode, CancellationToken cancellationToken = default)
+    {
+        await _transitionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try { return await SwitchCoreAsync(mode, cancellationToken).ConfigureAwait(false); }
+        finally { _transitionGate.Release(); }
+    }
+
+    private async Task<WindowModeTransitionResult> SwitchCoreAsync(WindowMode mode, CancellationToken cancellationToken)
     {
         var settings = (await _settingsService.GetAsync(cancellationToken).ConfigureAwait(false)).Normalize();
         await ExitSpecialModesAsync(cancellationToken).ConfigureAwait(false);
@@ -98,7 +116,14 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
             return WindowModeTransitionResult.Fail(WindowMode.Normal, "No usable monitor is available for docked bar mode.");
         }
 
-        var result = EnterDockedBar(_windowHandle, settings.MonitorId, settings.DockEdge, settings.DockThickness, monitor.WorkArea);
+        var result = EnterDockedBar(_windowHandle, settings.MonitorId, settings.DockEdge, settings.DockThickness, monitor.Bounds);
+        if (result.IsSuccess && !_dockedWindow.Apply(_windowHandle, result.Rect))
+        {
+            _appBar.Remove();
+            _dockedWindow.Restore();
+            CurrentMode = WindowMode.Normal;
+            return WindowModeTransitionResult.Fail(WindowMode.Normal, "Nie udało się ustawić okna w obszarze paska. Przywrócono zwykłe okno.");
+        }
         return result.IsSuccess
             ? WindowModeTransitionResult.Success(WindowMode.DockedBar)
             : WindowModeTransitionResult.Fail(WindowMode.Normal, result.Message ?? "Docked bar activation failed.");
@@ -126,8 +151,8 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
 
         CurrentMode = WindowMode.Normal;
         return settings.DesktopWidgetFallbackToNormal
-            ? WindowModeTransitionResult.Fail(WindowMode.Normal, "Desktop widget activation failed.")
-            : WindowModeTransitionResult.Fail(WindowMode.Normal, "Desktop widget activation failed without fallback target.");
+            ? WindowModeTransitionResult.Fail(WindowMode.Normal, "Widget pulpitu jest eksperymentalny i nie ma jeszcze zweryfikowanej integracji z powłoką. Pozostawiono zwykłe okno.")
+            : WindowModeTransitionResult.Fail(WindowMode.Normal, "Widget pulpitu jest niedostępny. Zachowano zwykłe okno, aby aplikacja pozostała osiągalna.");
     }
 
     private async Task ExitSpecialModesAsync(CancellationToken cancellationToken)
@@ -142,6 +167,7 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
             await _desktopWidgetWindowHost.DetachAsync(_windowHandle, cancellationToken).ConfigureAwait(false);
         }
 
+        _dockedWindow.Restore();
         CurrentMode = WindowMode.Normal;
     }
 

@@ -28,7 +28,7 @@ public sealed class TodoPanelDescriptor : IPanelDescriptor
     public string? IconKey => "panel.todo";
 
     /// <inheritdoc />
-    public MinSize MinSize => new(280d, 220d);
+    public MinSize MinSize => new(280d, 150d);
 
     /// <inheritdoc />
     public int StateSchemaVersion => TodoDocument.SchemaVersion;

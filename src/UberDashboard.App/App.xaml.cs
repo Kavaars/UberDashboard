@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -56,6 +56,32 @@ public partial class App : System.Windows.Application
         TryShutdownHost();
         Log.CloseAndFlush();
         base.OnExit(e);
+    }
+
+    /// <summary>Opróżnia autozapis i zwalnia host przed zniknięciem działającego Dispatchera.</summary>
+    public async Task<bool> PrepareShutdownAsync()
+    {
+        if (_host is null) return true;
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            await _host.Services.GetRequiredService<UberDashboard.App.Plugins.PluginSettingsViewModel>().StopAsync().WaitAsync(timeout.Token).ConfigureAwait(true);
+            if (MainWindow?.DataContext is UberDashboard.App.Shell.ShellViewModel shell)
+                await shell.FlushAppearancesAsync().WaitAsync(timeout.Token).ConfigureAwait(true);
+            foreach (var settingsWindow in Windows.OfType<UberDashboard.App.Settings.SettingsWindow>().ToArray())
+                await settingsWindow.FlushAsync().WaitAsync(timeout.Token).ConfigureAwait(true);
+            await _host.Services.GetRequiredService<UberDashboard.App.Panels.PanelStateScheduler>().FlushAllAsync(timeout.Token).ConfigureAwait(true);
+            await _host.StopAsync(timeout.Token).ConfigureAwait(true);
+            if (_host is IAsyncDisposable asyncHost) await asyncHost.DisposeAsync().ConfigureAwait(true);
+            else _host.Dispose();
+            _host = null;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Nie zakończono zamykania: zapis danych nie został potwierdzony.");
+            return false;
+        }
     }
 
     private void TryShutdownHost()
