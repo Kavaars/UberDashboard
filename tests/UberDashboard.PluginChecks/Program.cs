@@ -71,7 +71,7 @@ internal static class Program
         var output = Path.GetFullPath(args.Length > 0 ? args[0] : "Release/PluginChecks/" + DateTime.Now.ToString("yyyyMMdd-HHmmss-fff"));
         Directory.CreateDirectory(output);
         var app = new System.Windows.Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        foreach (var resource in new[] { "Theme.Light", "VisualTokens", "Controls", "PanelTemplates" })
+        foreach (var resource in new[] { "Theme.Light", "VisualTokens", "Controls", "WindowFrame", "PanelTemplates" })
             app.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri($"pack://application:,,,/UberDashboard;component/Theming/{resource}.xaml") });
         SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext());
         Dispatcher.CurrentDispatcher.BeginInvoke(new Action(async () =>

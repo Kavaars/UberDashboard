@@ -17,6 +17,8 @@ namespace UberDashboard.App;
 public partial class App : System.Windows.Application
 {
     private IHost? _host;
+    private Features.Todo.MicrosoftTodoRefresh? _todoRefresh;
+    internal Settings.MicrosoftTodoWizard? MicrosoftTodo => _host?.Services.GetRequiredService<Settings.MicrosoftTodoWizard>();
 
     /// <inheritdoc />
     protected override void OnStartup(StartupEventArgs e)
@@ -48,11 +50,14 @@ public partial class App : System.Windows.Application
         var window = _host.Services.GetRequiredService<MainWindow>();
         MainWindow = window;
         window.Show();
+        _todoRefresh = _host.Services.GetRequiredService<Features.Todo.MicrosoftTodoRefresh>();
+        _todoRefresh.Start();
     }
 
     /// <inheritdoc />
     protected override void OnExit(ExitEventArgs e)
     {
+        _todoRefresh?.Dispose();
         TryShutdownHost();
         Log.CloseAndFlush();
         base.OnExit(e);

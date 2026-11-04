@@ -1,4 +1,4 @@
-<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:platform="clr-namespace:UberDashboard.Application.Platform;assembly=UberDashboard.Application" xmlns:controls="clr-namespace:UberDashboard.App.Controls" xmlns:theming="clr-namespace:UberDashboard.App.Theming" x:Class="UberDashboard.App.Settings.SettingsWindow" mc:Ignorable="d" Title="Ustawienia" Width="860" Height="650" MinWidth="740" MinHeight="520" Background="{DynamicResource Brush.Window.Background}" Foreground="{DynamicResource Brush.Text}" WindowStartupLocation="CenterOwner" FontFamily="{DynamicResource Token.FontFamily}" FontSize="{DynamicResource Token.FontSize.Body}">
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:platform="clr-namespace:UberDashboard.Application.Platform;assembly=UberDashboard.Application" xmlns:controls="clr-namespace:UberDashboard.App.Controls" xmlns:theming="clr-namespace:UberDashboard.App.Theming" x:Class="UberDashboard.App.Settings.SettingsWindow" mc:Ignorable="d" Title="Ustawienia" Style="{DynamicResource ThemedWindow}" Width="860" Height="650" MinWidth="740" MinHeight="520" Background="{DynamicResource Brush.Window.Background}" Foreground="{DynamicResource Brush.Text}" WindowStartupLocation="CenterOwner" FontFamily="{DynamicResource Token.FontFamily}" FontSize="{DynamicResource Token.FontSize.Body}">
   <Window.Resources>
     <Style TargetType="TabItem">
       <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
@@ -257,6 +257,19 @@
           </StackPanel>
         </ScrollViewer>
       </TabItem>
+      <TabItem Header="Integracje">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <Border Margin="8" Style="{StaticResource SettingsCard}">
+            <StackPanel>
+              <TextBlock Style="{StaticResource SettingsSectionTitle}" Text="Microsoft To Do"/>
+              <TextBlock TextWrapping="Wrap" Margin="0,6,0,12"
+                         Text="Połącz konto, wybierz listy do importu lub synchronizacji i zarządzaj zapisanym połączeniem."/>
+              <Button HorizontalAlignment="Left" Content="Otwórz kreator Microsoft To Do…" Style="{StaticResource ToolbarButton}" Click="OpenMicrosoftTodo_Click"
+                      ToolTip="Otwiera konfigurację konta i wybór list Microsoft To Do."/>
+            </StackPanel>
+          </Border>
+        </ScrollViewer>
+      </TabItem>
       <TabItem x:Name="PluginsTab" Header="Pluginy">
         <Grid Margin="12">
           <Grid.RowDefinitions>
@@ -273,7 +286,7 @@
             </WrapPanel>
             <ProgressBar Height="4" Margin="0,8,0,0" IsIndeterminate="{Binding IsBusy}">
               <ProgressBar.Style>
-                <Style TargetType="ProgressBar">
+                <Style TargetType="ProgressBar" BasedOn="{StaticResource ThemedProgressBar}">
                   <Setter Property="Visibility" Value="Collapsed"/>
                   <Style.Triggers>
                     <DataTrigger Binding="{Binding IsBusy}" Value="True">

@@ -11,6 +11,7 @@ public interface IPanelTabGroupStore
 {
     Task CreateAsync(PanelTabGroup group, IReadOnlyList<PanelInstanceRecord> records, string? originalStateJson, CancellationToken cancellationToken = default);
     Task AddAsync(PanelTabGroup expected, PanelTabGroup updated, PanelInstanceRecord added, CancellationToken cancellationToken = default);
+    Task AddBatchAsync(PanelTabGroup expected, PanelTabGroup updated, IReadOnlyList<PanelInstanceRecord> added, CancellationToken cancellationToken = default);
     Task RemoveAsync(PanelTabGroup expected, PanelTabGroup updated, PanelInstanceId removed, CancellationToken cancellationToken = default);
     Task DeleteAsync(PanelTabGroup expected, CancellationToken cancellationToken = default);
     Task UpdateAsync(PanelTabGroup expected, PanelTabGroup updated, CancellationToken cancellationToken = default);

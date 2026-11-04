@@ -1,3 +1,4 @@
+using UberDashboard.App.Features.Todo;
 using Microsoft.Extensions.DependencyInjection;
 using UberDashboard.Application.Abstractions;
 using UberDashboard.App.Hosting;
@@ -12,6 +13,47 @@ namespace UberDashboard.App.Tests.Shell;
 
 public sealed class ShellPersistenceRegressionTests
 {
+    [Fact]
+    public async Task Microsoft_link_refreshes_the_same_tab_and_survives_reload_without_touching_local_tasks()
+    {
+        await RunOnStaAsync(async () =>
+        {
+            await using var fixture = new ShellFixture();
+            await fixture.Shell.InitializeAsync();
+            await fixture.Shell.AddPanelCommand.ExecuteAsync("todo");
+            var leaf = Assert.IsType<PanelLeafViewModel>(fixture.Shell.Root);
+            var group = leaf.TabSession!;
+            var originalId = group.Group.ActiveId;
+            var local = Assert.IsType<TodoPanelViewModel>(leaf.ViewModel);
+            local.NewItemText = "Lokalne";
+            local.AddItemCommand.Execute(null);
+
+            var link = new MicrosoftTodoLink(Guid.NewGuid(), "account", "list");
+            var old = MicrosoftTodoPreferences.Empty(link.ClientId).Refresh(link.ClientId, link.AccountId,
+                [new(link, "Lista", new() { Items = [new("Pierwsze", false)] })], DateTimeOffset.UtcNow);
+            await fixture.MicrosoftTodo.SaveAsync(old, CancellationToken.None);
+            var tab = new ImportedPanelTab("Lista", "{}", TodoDocument.SchemaVersion, link);
+            await group.ImportTabsAsync([tab], CancellationToken.None);
+            await group.ImportTabsAsync([tab], CancellationToken.None);
+            Assert.Equal(2, group.Group.Tabs.Length);
+            var linkedId = group.Group.Tabs[1].InstanceId;
+            await group.SelectAsync(linkedId);
+            var linked = Assert.IsType<MicrosoftTodoListViewModel>(leaf.ViewModel);
+            Assert.Equal("Pierwsze", Assert.Single(linked.Items).Text);
+
+            var next = old.Refresh(link.ClientId, link.AccountId,
+                [new(link, "Lista", new() { Items = [new("Drugie", true)] })], DateTimeOffset.UtcNow);
+            await fixture.MicrosoftTodo.SaveAsync(next, CancellationToken.None);
+            Assert.True(Assert.Single(linked.Items).IsDone);
+
+            await fixture.Shell.ReloadCommand.ExecuteAsync(null);
+            leaf = Assert.IsType<PanelLeafViewModel>(fixture.Shell.Root);
+            Assert.Equal("Drugie", Assert.Single(Assert.IsType<MicrosoftTodoListViewModel>(leaf.ViewModel).Items).Text);
+            await leaf.TabSession!.SelectAsync(originalId);
+            Assert.Equal("Lokalne", Assert.Single(Assert.IsType<TodoPanelViewModel>(leaf.ViewModel).Items).Text);
+        });
+    }
+
     [Theory]
     [InlineData("weather")]
     [InlineData("affirmations")]
@@ -212,6 +254,8 @@ public sealed class ShellPersistenceRegressionTests
                 Assert.Equal(2, items.Children.Count);
                 var first = session.Group.ActiveId;
                 Assert.False(((System.Windows.Controls.MenuItem)((System.Windows.Controls.Button)items.Children[0]).ContextMenu.Items[0]).IsEnabled);
+                var import = Assert.IsType<System.Windows.Controls.MenuItem>(((System.Windows.Controls.Button)items.Children[0]).ContextMenu.Items[1]);
+                Assert.True(import.IsEnabled);
                 ((System.Windows.Controls.Button)items.Children[1]).RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
                 await UntilAsync(() => session.Group.Tabs.Length == 2 && session.Group.ActiveId != first && !session.IsBusy);
                 var second = session.Group.ActiveId;
@@ -718,6 +762,7 @@ public sealed class ShellPersistenceRegressionTests
             await inner.UpdateAsync(expected, updated, token);
         }
         public Task AddAsync(UberDashboard.Core.Panels.PanelTabGroup expected, UberDashboard.Core.Panels.PanelTabGroup updated, PanelInstanceRecord added, CancellationToken token = default) => inner.AddAsync(expected, updated, added, token);
+        public Task AddBatchAsync(UberDashboard.Core.Panels.PanelTabGroup expected, UberDashboard.Core.Panels.PanelTabGroup updated, IReadOnlyList<PanelInstanceRecord> added, CancellationToken token = default) => inner.AddBatchAsync(expected, updated, added, token);
         public Task RemoveAsync(UberDashboard.Core.Panels.PanelTabGroup expected, UberDashboard.Core.Panels.PanelTabGroup updated, PanelInstanceId removed, CancellationToken token = default) => FailRemove ? Task.FromException(new IOException("Błąd testowy")) : inner.RemoveAsync(expected, updated, removed, token);
         public Task DeleteAsync(UberDashboard.Core.Panels.PanelTabGroup expected, CancellationToken token = default) => FailDelete ? Task.FromException(new IOException("Błąd testowy")) : inner.DeleteAsync(expected, token);
         public Task<IReadOnlySet<PanelInstanceId>> GetChildInstanceIdsAsync(Guid dashboardId, CancellationToken token = default) => inner.GetChildInstanceIdsAsync(dashboardId, token);
@@ -758,6 +803,7 @@ public sealed class ShellPersistenceRegressionTests
         public FailingLayoutStore LayoutFailure { get; private set; } = null!;
         public FailingGroupStore GroupFailure { get; private set; } = null!;
         public FailingInstanceStore InstanceFailure { get; private set; } = null!;
+        public MicrosoftTodoSettings MicrosoftTodo => _provider.GetRequiredService<MicrosoftTodoSettings>();
         public PanelHostManager Host => _provider.GetRequiredService<PanelHostManager>();
         public IWorkQueue Queue => _provider.GetRequiredService<IWorkQueue>();
         public UberDashboard.Infrastructure.Database.SqliteDatabase Database => _provider.GetRequiredService<UberDashboard.Infrastructure.Database.SqliteDatabase>();

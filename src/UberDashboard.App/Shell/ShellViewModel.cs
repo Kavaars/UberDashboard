@@ -815,7 +815,14 @@ public sealed class ShellViewModel : ObservableObject
 
     private Task OpenSettingsAsync()
     {
+        if (System.Windows.Application.Current?.Windows.OfType<SettingsWindow>().FirstOrDefault() is { } existing)
+        {
+            existing.Activate();
+            return Task.CompletedTask;
+        }
         var window = _settingsWindowFactory();
+        window.TodoTargets = () => _groups.Values.Where(group => group.ImportsTasks && !group.IsClosed)
+            .OrderBy(group => group.ImportDisplayName).ToArray();
         if (System.Windows.Application.Current?.MainWindow is { } mainWindow && !ReferenceEquals(mainWindow, window))
         {
             window.Owner = mainWindow;

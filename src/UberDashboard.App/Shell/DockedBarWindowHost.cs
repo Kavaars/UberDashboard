@@ -37,6 +37,7 @@ public sealed class DockedBarWindowHost(AppBarController appBar, IMonitorProvide
             window.MinWidth = 0;
             window.MinHeight = 0;
             window.WindowState = WindowState.Normal;
+            window.SetValue(System.Windows.Shell.WindowChrome.WindowChromeProperty, null);
             window.WindowStyle = WindowStyle.None;
             window.ResizeMode = ResizeMode.NoResize;
         }
@@ -51,6 +52,7 @@ public sealed class DockedBarWindowHost(AppBarController appBar, IMonitorProvide
         if (!window.Dispatcher.CheckAccess()) { window.Dispatcher.Invoke(Restore); return; }
         _source?.RemoveHook(WindowProc);
         window.WindowStyle = snapshot.Style;
+        window.ClearValue(System.Windows.Shell.WindowChrome.WindowChromeProperty);
         window.ResizeMode = snapshot.Resize;
         window.MinWidth = snapshot.MinWidth;
         window.MinHeight = snapshot.MinHeight;

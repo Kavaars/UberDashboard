@@ -9,10 +9,11 @@ public sealed class TodoItemViewModel : ObservableObject
     private bool _isDone;
 
     /// <summary>Tworzy zadanie o wskazanej treści i stanie wykonania.</summary>
-    public TodoItemViewModel(string text, bool isDone)
+    public TodoItemViewModel(string text, bool isDone, Guid? id = null)
     {
         _text = text;
         _isDone = isDone;
+        Id = id ?? Guid.NewGuid();
     }
 
     /// <summary>Treść zadania.</summary>
@@ -30,5 +31,7 @@ public sealed class TodoItemViewModel : ObservableObject
     }
 
     /// <summary>Zwraca niezmienny stan zadania do utrwalenia.</summary>
-    public TodoItemState ToState() => new(_text, _isDone);
+    public Guid Id { get; }
+
+    public TodoItemState ToState() => new(_text, _isDone, Id);
 }

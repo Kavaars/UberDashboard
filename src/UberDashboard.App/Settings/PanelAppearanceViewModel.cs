@@ -131,7 +131,7 @@ public sealed partial class PanelAppearanceViewModel : ObservableObject
     }
     private void ChooseWallpaper()
     {
-        var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "Obrazy|*.png;*.jpg;*.jpeg;*.bmp", Title = "Tapeta tego panelu" };
+        var dialog = new UberDashboard.App.Controls.ThemedFileDialog { Filter = "Obrazy|*.png;*.jpg;*.jpeg;*.bmp", Title = "Tapeta tego panelu" };
         if (dialog.ShowDialog() == true) WallpaperPath = dialog.FileName;
     }
     private async Task LoadWallpaperAsync()

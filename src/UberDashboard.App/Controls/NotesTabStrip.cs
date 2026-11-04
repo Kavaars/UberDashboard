@@ -64,7 +64,7 @@ public sealed class NotesTabStrip : ScrollViewer
             button.Drop += (_, e) => { if (e.Data.GetData(typeof(NotesTab)) is NotesTab moving) model.MoveTab(moving, model.Tabs.IndexOf(tab)); e.Handled = true; };
             var menu = new ContextMenu();
             var remove = new MenuItem { Header = "Usuń notatkę", IsEnabled = model.Tabs.Count > 1 };
-            remove.Click += (_, _) => model.RemoveTab(tab, !model.TabHasContent(tab) || MessageBox.Show($"Usunąć notatkę „{tab.Title}” wraz z jej treścią?", "Usuwanie notatki", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes);
+            remove.Click += (_, _) => model.RemoveTab(tab, !model.TabHasContent(tab) || ThemedMessageBox.Show($"Usunąć notatkę „{tab.Title}” wraz z jej treścią?", "Usuwanie notatki", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes);
             menu.Items.Add(remove); button.ContextMenu = menu;
             _items.Children.Add(button);
         }

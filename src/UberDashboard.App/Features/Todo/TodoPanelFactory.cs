@@ -1,3 +1,5 @@
+using System.Text.Json;
+using UberDashboard.Application.Abstractions;
 using UberDashboard.App.Panels;
 using UberDashboard.Contracts.Panels;
 
@@ -10,6 +12,8 @@ namespace UberDashboard.App.Features.Todo;
 public sealed class TodoPanelFactory : IPanelFactory
 {
     private readonly PanelStateScheduler _scheduler;
+    private readonly IPanelInstanceStore? _instances;
+    private readonly MicrosoftTodoSettings? _settings;
 
     /// <summary>Tworzy fabrykę z harmonogramem autozapisu.</summary>
     public TodoPanelFactory(PanelStateScheduler scheduler)
@@ -18,14 +22,30 @@ public sealed class TodoPanelFactory : IPanelFactory
         _scheduler = scheduler;
     }
 
+    internal TodoPanelFactory(PanelStateScheduler scheduler, IPanelInstanceStore instances, MicrosoftTodoSettings settings) : this(scheduler)
+    {
+        _instances = instances;
+        _settings = settings;
+    }
+
     /// <inheritdoc />
-    public ValueTask<IPanelInstance> CreateAsync(PanelContext context, CancellationToken cancellationToken)
+    public async ValueTask<IPanelInstance> CreateAsync(PanelContext context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
 
         var viewModel = new TodoPanelViewModel(context.Notifier);
         var instance = new TodoPanelInstance(context, viewModel, _scheduler);
 
-        return ValueTask.FromResult<IPanelInstance>(instance);
+        if (_instances is not null && _settings is not null &&
+            (await _instances.GetAsync(context.InstanceId, cancellationToken))?.ConfigJson is { } config)
+        {
+            MicrosoftTodoLink? link = null;
+            try { link = JsonSerializer.Deserialize<MicrosoftTodoLink>(config); }
+            catch (JsonException) { /* Older panel configuration may use a different format. */ }
+            if (link is { AccountId.Length: > 0, ListId.Length: > 0 } && link.ClientId != Guid.Empty)
+                instance.AttachLink(link, _settings);
+        }
+
+        return instance;
     }
 }
