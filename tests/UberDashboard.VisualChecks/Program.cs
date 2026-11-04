@@ -71,7 +71,7 @@ internal static class Program
                 await using var provider = services.BuildServiceProvider();
                 var window = provider.GetRequiredService<UberDashboard.App.MainWindow>();
                 window.ApplyTemplate();
-                if (window.Template.FindName("Caption", window) is not Border ||
+                if (window.Template.FindName("Caption", window) is not Border caption ||
                     System.Windows.Shell.WindowChrome.GetWindowChrome(window) is null)
                     throw new InvalidOperationException("Missing themed window caption");
 
@@ -161,6 +161,31 @@ internal static class Program
                     Console.WriteLine($"Applying theme {kind}");
                     await theme.ApplyAsync(kind, CancellationToken.None);
                     Console.WriteLine("Theme applied");
+                    foreach (var state in new[] { WindowState.Normal, WindowState.Maximized })
+                    {
+                        window.WindowState = state;
+                        caption.Measure(new Size(640, 39));
+                        caption.Arrange(new Rect(0, 0, 640, 39));
+                        caption.UpdateLayout();
+                        await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+                        ValidateGlyphs(caption);
+                        var icons = Descendants(caption).OfType<Button>()
+                            .Where(button => button.Visibility == Visibility.Visible)
+                            .Select(button => button.Content)
+                            .OfType<System.Windows.Shapes.Path>()
+                            .ToArray();
+                        if (icons.Length != 3 || icons.Any(icon => icon.Stroke is null || icon.Data.IsEmpty()) ||
+                            icons.Select(icon => icon.Data.ToString()).Distinct().Count() != 3)
+                            throw new InvalidOperationException($"Invalid caption icons in {kind} / {state}");
+
+                        var bitmap = new RenderTargetBitmap(640, 39, 96, 96, PixelFormats.Pbgra32);
+                        bitmap.Render(caption);
+                        var encoder = new PngBitmapEncoder();
+                        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                        using var stream = File.Create(Path.Combine(output, $"{kind}-caption-{state}.png"));
+                        encoder.Save(stream);
+                    }
+                    window.WindowState = WindowState.Normal;
                     foreach (var key in new[] { "Token.FontFamily", "Token.Padding.Panel", "Token.FontSize.Body", "Token.CornerRadius.L" })
                         if (app.TryFindResource(key) is null) throw new InvalidOperationException($"Missing resource after theme switch: {key}");
                     foreach (var editMode in new[] { false, true })

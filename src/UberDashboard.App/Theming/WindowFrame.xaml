@@ -7,8 +7,14 @@
     <Setter Property="MinWidth" Value="0"/>
     <Setter Property="Margin" Value="2,0,0,0"/>
     <Setter Property="Padding" Value="4"/>
-    <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
     <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
+  </Style>
+
+  <Style x:Key="CaptionIcon" TargetType="Path">
+    <Setter Property="Width" Value="12"/>
+    <Setter Property="Height" Value="12"/>
+    <Setter Property="Stroke" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+    <Setter Property="SnapsToDevicePixels" Value="True"/>
   </Style>
 
   <Style x:Key="ThemedWindow" TargetType="Window">
@@ -32,18 +38,26 @@
                       Background="{DynamicResource Brush.Surface}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1">
                 <DockPanel>
                   <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                    <Button x:Name="Minimize" Style="{StaticResource CaptionButton}" Content="&#xE921;"
+                    <Button x:Name="Minimize" Style="{StaticResource CaptionButton}"
                             Command="{x:Static SystemCommands.MinimizeWindowCommand}" ToolTip="Minimalizuje okno do paska zadań."
-                            AutomationProperties.Name="Minimalizuj"/>
-                    <Button x:Name="Maximize" Style="{StaticResource CaptionButton}" Content="&#xE922;"
+                            AutomationProperties.Name="Minimalizuj">
+                      <Path Style="{StaticResource CaptionIcon}" Data="M 1,6.5 H 11"/>
+                    </Button>
+                    <Button x:Name="Maximize" Style="{StaticResource CaptionButton}"
                             Command="{x:Static SystemCommands.MaximizeWindowCommand}" ToolTip="Powiększa okno do obszaru roboczego ekranu."
-                            AutomationProperties.Name="Maksymalizuj"/>
-                    <Button x:Name="Restore" Style="{StaticResource CaptionButton}" Content="&#xE923;" Visibility="Collapsed"
+                            AutomationProperties.Name="Maksymalizuj">
+                      <Path Style="{StaticResource CaptionIcon}" Data="M 1.5,1.5 H 10.5 V 10.5 H 1.5 Z"/>
+                    </Button>
+                    <Button x:Name="Restore" Style="{StaticResource CaptionButton}" Visibility="Collapsed"
                             Command="{x:Static SystemCommands.RestoreWindowCommand}" ToolTip="Przywraca poprzedni rozmiar okna."
-                            AutomationProperties.Name="Przywróć rozmiar"/>
-                    <Button Style="{StaticResource CaptionButton}" Content="&#xE8BB;"
+                            AutomationProperties.Name="Przywróć rozmiar">
+                      <Path Style="{StaticResource CaptionIcon}" Data="M 1.5,4.5 H 7.5 V 10.5 H 1.5 Z M 4.5,4.5 V 1.5 H 10.5 V 7.5 H 7.5"/>
+                    </Button>
+                    <Button Style="{StaticResource CaptionButton}"
                             Command="{x:Static SystemCommands.CloseWindowCommand}" ToolTip="Zamyka to okno."
-                            AutomationProperties.Name="Zamknij"/>
+                            AutomationProperties.Name="Zamknij">
+                      <Path Style="{StaticResource CaptionIcon}" Data="M 2,2 L 10,10 M 10,2 L 2,10"/>
+                    </Button>
                   </StackPanel>
                   <TextBlock Text="{TemplateBinding Title}" FontWeight="SemiBold" VerticalAlignment="Center"
                              Margin="4,0,8,0" TextTrimming="CharacterEllipsis"/>

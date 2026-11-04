@@ -1,3 +1,6 @@
+Zmiany robocze 1.8.0 (2026-11-04T11:31:34+01:00)
+- Przyciski na paskach tytułu znów pokazują ikony minimalizacji, maksymalizacji, przywracania i zamknięcia.
+
 Zmiany robocze 1.8.0 (2026-11-04T11:17:17+01:00)
 - Paski tytułu, przewijania i postępu, suwaki, wybór plików, potwierdzenia oraz menu zasobnika korzystają z palety aplikacji.
 - Ustawienia → Integracje zawierają kreator Microsoft To Do. Można zmieniać konto, Client ID, panel docelowy i wybór list.
