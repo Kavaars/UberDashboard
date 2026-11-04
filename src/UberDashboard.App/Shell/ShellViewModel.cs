@@ -49,6 +49,10 @@ public sealed class ShellViewModel : ObservableObject
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<ShellViewModel> _logger;
     private readonly Dictionary<PanelInstanceId, PanelLeafViewModel> _leaves = [];
+    private readonly Dictionary<PanelInstanceId, PanelGroupSession> _groups = [];
+    private readonly HashSet<PanelInstanceId> _groupChildren = [];
+    private readonly PanelGroupInitializer? _groupInitializer;
+    private readonly IPanelTabGroupStore? _groupStore;
     private readonly Dictionary<PanelInstanceId, PanelAppearanceViewModel> _appearances = [];
     private PanelAppearanceViewModel AppearanceFor(PanelInstanceId id)
     {
@@ -62,6 +66,10 @@ public sealed class ShellViewModel : ObservableObject
     {
         await Task.WhenAll(_appearances.Values.Select(value => value.FlushAsync())).ConfigureAwait(true);
         if (_appearances.Values.Any(value => value.HasSaveError)) throw new System.IO.IOException("Nie zapisano wyglądu paneli.");
+    }
+    public async Task FlushTabGroupsAsync(CancellationToken cancellationToken)
+    {
+        foreach (var session in _groups.Values.ToArray()) await session.FlushAsync(cancellationToken).ConfigureAwait(true);
     }
     private readonly Dictionary<PanelInstanceId, PanelInstanceRecord> _records = [];
     private readonly List<PanelInstanceId> _visible = [];
@@ -93,7 +101,7 @@ public sealed class ShellViewModel : ObservableObject
         IClock clock,
         ILoggerFactory loggerFactory,
         ILogger<ShellViewModel> logger,
-        IPanelRemovalConfirmation removalConfirmation, IAppSettingsStore appearanceStore)
+        IPanelRemovalConfirmation removalConfirmation, IAppSettingsStore appearanceStore, PanelGroupInitializer? groupInitializer = null, IPanelTabGroupStore? groupStore = null)
     {
         ArgumentNullException.ThrowIfNull(dashboards);
         ArgumentNullException.ThrowIfNull(layouts);
@@ -110,6 +118,7 @@ public sealed class ShellViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(logger);
 
         _appearanceStore = appearanceStore;
+        _groupInitializer = groupInitializer; _groupStore = groupStore;
         _removalConfirmation = removalConfirmation;
         _dashboards = dashboards;
         _layouts = layouts;
@@ -382,7 +391,7 @@ public sealed class ShellViewModel : ObservableObject
         }
     }
 
-    private async Task LoadDashboardAsync(Guid dashboardId, CancellationToken cancellationToken)
+    private async Task LoadDashboardAsync(Guid dashboardId, CancellationToken cancellationToken, bool propagateFailure = false)
     {
         if (dashboardId == Guid.Empty)
         {
@@ -407,6 +416,7 @@ public sealed class ShellViewModel : ObservableObject
             var load = await editor.LoadAsync(dashboardId, token).ConfigureAwait(true);
             if (!load.IsSuccess)
             {
+                if (propagateFailure) throw new InvalidOperationException($"Nie udało się wczytać układu: {load.Message}");
                 _logger.LogWarning(
                     "Układ pulpitu {DashboardId} wczytany z problemem: {Error} — {Message}.",
                     dashboardId,
@@ -416,28 +426,28 @@ public sealed class ShellViewModel : ObservableObject
             }
 
             var records = await _instances.ListForDashboardAsync(dashboardId, token).ConfigureAwait(true);
-            foreach (var record in records)
-            {
-                _records[record.InstanceId] = record;
-            }
+            foreach (var record in records) _records[record.InstanceId] = record;
+            if (_groupStore is not null)
+                _groupChildren.UnionWith(await _groupStore.GetChildInstanceIdsAsync(dashboardId, token).ConfigureAwait(true));
 
             foreach (var record in records)
             {
-                if (record.IsHidden)
+                if (_groupChildren.Contains(record.InstanceId) || record.IsHidden)
                 {
                     continue;
                 }
 
                 _minSizes.Set(record.InstanceId, _catalog.DescriptorOf(record.PanelTypeId)?.MinSize ?? new MinSize(280, 200));
 
-                var instance = await _host.ActivateAsync(record, token).ConfigureAwait(true);
+                await ActivatePanelAsync(record, token).ConfigureAwait(true);
                 _visible.Add(record.InstanceId);
             }
 
             ReconcileLayout();
             editor.SetVisibleInstances(_visible);
 
-            await editor.SaveAsync(force: false, token).ConfigureAwait(true);
+            var savedLayout = await editor.SaveAsync(force: false, token).ConfigureAwait(true);
+            if (propagateFailure && !savedLayout.IsSuccess) throw new InvalidOperationException($"Nie udało się zapisać układu: {savedLayout.Message}");
 
             RebuildTree();
             RefreshHiddenPanels();
@@ -449,12 +459,14 @@ public sealed class ShellViewModel : ObservableObject
         catch (OperationCanceledException)
         {
             _logger.LogDebug("Wczytywanie pulpitu {DashboardId} anulowane.", dashboardId);
+            if (propagateFailure) throw;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Nie udało się wczytać pulpitu {DashboardId}.", dashboardId);
             StatusMessage = "Nie udało się wczytać pulpitu.";
             _toasts.Show("Nie udało się wczytać pulpitu.", ToastSeverity.Error);
+            if (propagateFailure) throw;
         }
         finally
         {
@@ -467,12 +479,32 @@ public sealed class ShellViewModel : ObservableObject
 
     private async Task UnloadCurrentAsync(CancellationToken cancellationToken)
     {
+        // Poczekaj na operacje zakładek, zanim zwolnisz ich widoki i hosty.
+        var suspended = new List<PanelGroupSession>();
+        try
+        {
+            foreach (var session in _groups.Values.ToArray())
+            {
+                if (await session.SuspendAsync(cancellationToken).ConfigureAwait(true)) suspended.Add(session);
+            }
+        }
+        catch
+        {
+            foreach (var session in suspended)
+            {
+                try { await session.ActivateAsync(CancellationToken.None).ConfigureAwait(true); }
+                catch (Exception ex) { _logger.LogWarning(ex, "Nie udało się wznowić panelu po przerwaniu przełączania pulpitu."); }
+            }
+            throw;
+        }
         foreach (var leaf in _leaves.Values)
         {
             leaf.Dispose();
         }
 
         _leaves.Clear();
+        _groups.Clear();
+        _groupChildren.Clear();
         _records.Clear();
         HiddenPanels.Clear();
         _visible.Clear();
@@ -555,7 +587,7 @@ public sealed class ShellViewModel : ObservableObject
             _editor.SetVisibleInstances(_visible);
             await _instances.SetHiddenAsync(target, true, null, _clock.UtcNow, CancellationToken.None).ConfigureAwait(true);
             _records[target] = record! with { IsHidden = true };
-            await _host.SuspendAsync(target, CancellationToken.None).ConfigureAwait(true);
+            await SuspendPanelAsync(target, CancellationToken.None).ConfigureAwait(true);
         }
         await SaveLayoutAsync().ConfigureAwait(true);
         RebuildTree();
@@ -721,20 +753,55 @@ public sealed class ShellViewModel : ObservableObject
         }
 
         var instance = _host.Find(instanceId);
+        _groups.TryGetValue(instanceId, out var session);
         var leaf = new PanelLeafViewModel(
             instanceId,
             record.PanelTypeId,
             record.DisplayName,
             _catalog.DescriptorOf(record.PanelTypeId)?.IconKey,
-            instance?.ViewModel ?? new UnavailablePanelViewModel(record.PluginId, record.DisplayName))
+            session?.ActiveViewModel ?? instance?.ViewModel ?? new UnavailablePanelViewModel(record.PluginId, record.DisplayName))
         {
             Appearance = AppearanceFor(instanceId),
             IsEditMode = IsEditMode,
             Minimum = _catalog.Contains(record.PanelTypeId) ? _minSizes.MinimumOf(instanceId) : new MinSize(280, 200),
         };
 
+        if (session is not null) leaf.SetTabSession(session);
         _leaves[instanceId] = leaf;
         return leaf;
+    }
+
+    private async Task ActivatePanelAsync(PanelInstanceRecord root, CancellationToken token)
+    {
+        if (root.PanelTypeId == Features.Space.SpacePanelDescriptor.Id || _groupInitializer is null || _groupStore is null)
+        {
+            await _host.ActivateAsync(root, token).ConfigureAwait(true);
+            return;
+        }
+        try
+        {
+            var group = await _groupInitializer.EnsureAsync(root, token).ConfigureAwait(true);
+            foreach (var member in await _groupInitializer.ReadMembersAsync(group, token).ConfigureAwait(true))
+            {
+                _records[member.InstanceId] = member;
+                if (member.InstanceId != root.InstanceId) _groupChildren.Add(member.InstanceId);
+            }
+            var session = new PanelGroupSession(root, group, _groupStore, _instances, _host, _clock, _toasts);
+            await session.ActivateAsync(token).ConfigureAwait(true);
+            _groups[root.InstanceId] = session;
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Nie udało się odtworzyć zakładek panelu {PanelId}. Dane pozostawiono bez zmian.", root.InstanceId);
+            _toasts.Show("Nie udało się odtworzyć zakładek panelu. Zachowano zapisane dane; ponów odczyt.", ToastSeverity.Error);
+        }
+    }
+
+    private async Task SuspendPanelAsync(PanelInstanceId id, CancellationToken token)
+    {
+        if (_groups.TryGetValue(id, out var session)) await session.SuspendAsync(token).ConfigureAwait(true);
+        else await _host.SuspendAsync(id, token).ConfigureAwait(true);
     }
 
     private void ToggleEditMode() => IsEditMode = !IsEditMode;
@@ -782,6 +849,40 @@ public sealed class ShellViewModel : ObservableObject
     {
         CurrentWindowMode = mode;
         StatusMessage = $"Tryb okna: {WindowModeLabel}.";
+    }
+
+    public async Task DeleteDashboardAsync(DashboardSummary dashboard)
+    {
+        if (IsBusy || Dashboards.Count <= 1 || !Dashboards.Contains(dashboard)) return;
+        var active = dashboard.DashboardId == CurrentDashboardId;
+        if (active && Controls.ThemedMessageBox.Show($"Usunąć aktywny pulpit „{dashboard.Name}” wraz z panelami i ich danymi? Operacji nie można cofnąć.", "Usuwanie pulpitu", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning, System.Windows.MessageBoxResult.No) != System.Windows.MessageBoxResult.Yes) return;
+        try
+        {
+            if (active)
+            {
+                var next = Dashboards.First(item => item.DashboardId != dashboard.DashboardId);
+                await FlushAppearancesAsync().ConfigureAwait(true);
+                await FlushTabGroupsAsync(CancellationToken.None).ConfigureAwait(true);
+                if (!await SaveLayoutAsync().ConfigureAwait(true)) return;
+                try { await LoadDashboardAsync(next.DashboardId, CancellationToken.None, true).ConfigureAwait(true); }
+                catch
+                {
+                    try { await LoadDashboardAsync(dashboard.DashboardId, CancellationToken.None, true).ConfigureAwait(true); }
+                    catch (Exception restoreError) { _logger.LogError(restoreError, "Nie udało się przywrócić poprzedniego pulpitu."); }
+                    throw;
+                }
+                _suppressDashboardReload = true;
+                try { SelectedDashboard = next; } finally { _suppressDashboardReload = false; }
+            }
+            await _dashboards.DeleteAsync(dashboard.DashboardId, CancellationToken.None).ConfigureAwait(true);
+            Dashboards.Remove(dashboard);
+            _toasts.Show($"Usunięto pulpit „{dashboard.Name}”.", ToastSeverity.Success);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Nie udało się usunąć pulpitu {DashboardId}.", dashboard.DashboardId);
+            _toasts.Show("Nie udało się usunąć pulpitu. Sprawdź zapis danych i spróbuj ponownie.", ToastSeverity.Error);
+        }
     }
 
     private async Task NewDashboardAsync()
@@ -842,7 +943,8 @@ public sealed class ShellViewModel : ObservableObject
             _records[instanceId] = record;
             _minSizes.Set(instanceId, descriptor.MinSize);
 
-            var instance = await _host.ActivateAsync(record, CancellationToken.None).ConfigureAwait(true);
+            await ActivatePanelAsync(record, CancellationToken.None).ConfigureAwait(true);
+            var instance = _groups.TryGetValue(instanceId, out var createdGroup) ? _host.Find(createdGroup.Group.ActiveId) : _host.Find(instanceId);
             if (instance is null)
             {
                 await RollbackAsync(instanceId).ConfigureAwait(true);
@@ -876,7 +978,7 @@ public sealed class ShellViewModel : ObservableObject
             {
                 var hintJson = JsonSerializer.Serialize(hint);
                 await _instances.SetHiddenAsync(previous, true, hintJson, _clock.UtcNow, CancellationToken.None).ConfigureAwait(true);
-                await _host.SuspendAsync(previous, CancellationToken.None).ConfigureAwait(true);
+                await SuspendPanelAsync(previous, CancellationToken.None).ConfigureAwait(true);
                 _records[previous] = previousRecord with { IsHidden = true, RestoreHintJson = hintJson, UpdatedAtUtc = _clock.UtcNow };
                 _visible.Remove(previous);
             }
@@ -903,6 +1005,8 @@ public sealed class ShellViewModel : ObservableObject
         await _host.RemoveAsync(instanceId, CancellationToken.None).ConfigureAwait(true);
         await _instances.DeleteAsync(instanceId, CancellationToken.None).ConfigureAwait(true);
         _records.Remove(instanceId);
+        _groups.Remove(instanceId);
+        _groupChildren.Remove(instanceId);
         _minSizes.Remove(instanceId);
         _visible.Remove(instanceId);
     }
@@ -925,21 +1029,27 @@ public sealed class ShellViewModel : ObservableObject
         _visible.Remove(leaf.InstanceId);
         _editor.SetVisibleInstances(_visible);
 
-        await _instances
-            .SetHiddenAsync(leaf.InstanceId, true, JsonSerializer.Serialize(hint), _clock.UtcNow, CancellationToken.None)
-            .ConfigureAwait(true);
-
-        if (_records.TryGetValue(leaf.InstanceId, out var record))
+        try
         {
-            _records[leaf.InstanceId] = record with
-            {
-                IsHidden = true,
-                RestoreHintJson = JsonSerializer.Serialize(hint),
-                UpdatedAtUtc = _clock.UtcNow,
-            };
+            // Nie zmieniaj flagi ukrycia, dopóki bieżąca treść nie zostanie utrwalona.
+            await SuspendPanelAsync(leaf.InstanceId, CancellationToken.None).ConfigureAwait(true);
+            await _instances.SetHiddenAsync(leaf.InstanceId, true, JsonSerializer.Serialize(hint), _clock.UtcNow, CancellationToken.None).ConfigureAwait(true);
+            if (_records.TryGetValue(leaf.InstanceId, out var record))
+                _records[leaf.InstanceId] = record with { IsHidden = true, RestoreHintJson = JsonSerializer.Serialize(hint), UpdatedAtUtc = _clock.UtcNow };
         }
-
-        await _host.SuspendAsync(leaf.InstanceId, CancellationToken.None).ConfigureAwait(true);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Nie udało się ukryć panelu {PanelId}.", leaf.InstanceId);
+            if (_groups.TryGetValue(leaf.InstanceId, out var session) && !_host.IsActive(session.Group.ActiveId))
+                await session.ActivateAsync(CancellationToken.None).ConfigureAwait(true);
+            _visible.Add(leaf.InstanceId);
+            _editor.SetVisibleInstances(_visible);
+            var restore = _editor.Restore(leaf.InstanceId, hint);
+            if (!restore.IsSuccess) _logger.LogError("Nie udało się przywrócić położenia panelu {PanelId}: {Error}.", leaf.InstanceId, restore.ErrorMessage);
+            RebuildTree(); RefreshHiddenPanels();
+            _toasts.Show("Nie ukryto panelu; jego dane zostały zachowane.", ToastSeverity.Error);
+            return;
+        }
         if (!await SaveLayoutAsync().ConfigureAwait(true)) { RebuildTree(); RefreshHiddenPanels(); return; }
 
         RebuildTree();
@@ -959,6 +1069,7 @@ public sealed class ShellViewModel : ObservableObject
             return;
         }
 
+        var hint = _editor.CaptureRestoreHint(leaf.InstanceId);
         var result = _editor.Remove(leaf.InstanceId);
         if (!result.IsSuccess)
         {
@@ -969,8 +1080,32 @@ public sealed class ShellViewModel : ObservableObject
         _visible.Remove(leaf.InstanceId);
         _editor.SetVisibleInstances(_visible);
 
-        await _host.RemoveAsync(leaf.InstanceId, CancellationToken.None).ConfigureAwait(true);
-        await _instances.DeleteAsync(leaf.InstanceId, CancellationToken.None).ConfigureAwait(true);
+        try
+        {
+            if (_groups.TryGetValue(leaf.InstanceId, out var removedGroup) && _groupStore is not null)
+            {
+                await removedGroup.DeleteGroupAsync(CancellationToken.None).ConfigureAwait(true);
+                foreach (var tab in removedGroup.Group.Tabs) { _groupChildren.Remove(tab.InstanceId); _records.Remove(tab.InstanceId); }
+                _groups.Remove(leaf.InstanceId);
+            }
+            else
+            {
+                await _host.RemoveAsync(leaf.InstanceId, CancellationToken.None).ConfigureAwait(true);
+                await _instances.DeleteAsync(leaf.InstanceId, CancellationToken.None).ConfigureAwait(true);
+            }
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Nie udało się usunąć panelu {PanelId}.", leaf.InstanceId);
+            _visible.Add(leaf.InstanceId);
+            _editor.SetVisibleInstances(_visible);
+            var restore = _editor.Restore(leaf.InstanceId, hint);
+            if (!restore.IsSuccess) _logger.LogError("Nie udało się odtworzyć położenia panelu {PanelId}: {Error}.", leaf.InstanceId, restore.ErrorMessage);
+            RebuildTree(); RefreshHiddenPanels();
+            _toasts.Show("Nie usunięto panelu; jego dane zostały zachowane.", ToastSeverity.Error);
+            return;
+        }
 
         _records.Remove(leaf.InstanceId);
         _minSizes.Remove(leaf.InstanceId);
@@ -1039,7 +1174,7 @@ public sealed class ShellViewModel : ObservableObject
 
         _minSizes.Set(record.InstanceId, _catalog.DescriptorOf(record.PanelTypeId)?.MinSize ?? new MinSize(280, 200));
 
-        var instance = await _host.ActivateAsync(record, CancellationToken.None).ConfigureAwait(true);
+        await ActivatePanelAsync(record, CancellationToken.None).ConfigureAwait(true);
         _visible.Add(record.InstanceId);
         _editor.SetVisibleInstances(_visible);
 
@@ -1049,7 +1184,7 @@ public sealed class ShellViewModel : ObservableObject
         {
             _visible.Remove(record.InstanceId);
             _editor.SetVisibleInstances(_visible);
-            await _host.SuspendAsync(record.InstanceId, CancellationToken.None).ConfigureAwait(true);
+            await SuspendPanelAsync(record.InstanceId, CancellationToken.None).ConfigureAwait(true);
             _toasts.Show($"Nie udało się przywrócić panelu: {result.ErrorMessage}", ToastSeverity.Warning);
             return;
         }
@@ -1130,7 +1265,7 @@ public sealed class ShellViewModel : ObservableObject
         HiddenPanels.Clear();
         foreach (var record in _records.Values)
         {
-            if (record.IsHidden && record.PanelTypeId != Features.Space.SpacePanelDescriptor.Id)
+            if (record.IsHidden && !_groupChildren.Contains(record.InstanceId) && record.PanelTypeId != Features.Space.SpacePanelDescriptor.Id)
             {
                 HiddenPanels.Add(new HiddenPanelEntry(record.InstanceId, record.PanelTypeId, record.DisplayName));
             }

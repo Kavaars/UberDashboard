@@ -1,4 +1,19 @@
+2026-11-04T10:00:34+01:00 | 1.8.0, zmiany robocze: poprawki paneli i pulpitów; 339 testów, bez nowego wydania.
+2026-11-04T09:34:48+01:00 | 1.8.0, kontrolna Release v1.8.0-20261104-final-02: wspólne zakładki; 336 testów, kontrole wtyczki i rendery WPF.
+2026-11-04T09:19:57+01:00 | 1.8.0, źródła: wspólne zakładki paneli i migracja danych; bez wydania.
+2026-11-04T08:38:58+01:00 | 1.7.0, zmiany robocze: operacje magazynu zakładek, funkcja nieukończona.
+2026-11-04T08:36:04+01:00 | 1.7.0, zmiany robocze: aktualizacja grup zakładek, funkcja nieukończona.
+2026-11-04T08:32:53+01:00 | 1.7.0, zmiany robocze: magazyn grup zakładek, funkcja nieukończona.
+2026-11-04T08:28:26+01:00 | 1.7.0, zmiany robocze: przygotowanie migracji notatek, funkcja nieukończona.
+2026-11-04T08:23:36+01:00 | 1.7.0, zmiany robocze: model grup zakładek, funkcja nieukończona.
+2026-11-04T08:12:10+01:00 | 1.7.0, zmiany robocze: kolor tekstu paneli; bez wydania.
+2026-11-04T07:34:00+01:00 | 1.7.0, zmiany robocze: notatnik i pogoda; bez wydania.
+2026-11-03T22:00:45+01:00 | 1.7.0, zmiany robocze: poprawka notatnika, bez wydania.
+
+2026-11-03T21:39:36+01:00 | 1.7.0, zmiany robocze: notatnik, motyw, menu i pasek; bez wydania.
 # Wersje
+
+- 2026-11-03T21:20:00+01:00 | `1.7.0` | `Release/Dev/v1.7.0_20261103-2120` | cieplejszy wygląd, zwarte ustawienia i pasek domyślny dla nowych profili. Build Release bez ostrzeżeń, 298 testów, 96 renderów, PluginChecks i publikacja win-x64 przeszły. Na osobnym profilu sprawdzono start paska, menu, podmenu oraz wybór i autozapis koloru.
 
 - 2026-11-03T08:36:48+01:00 | wersja źródła `1.4.0`, API paneli `1.2.0`, ramka zdjęć `1.1.0` | 287 testów i 37 kontroli integracyjnych wtyczki PASS; rendery WPF PASS; pakiet wtyczki `Release/Plugins/PhotoFrame-1.1.0-20261103-083648-566` | Acrylic wymaga odbioru na pulpicie
 
@@ -26,3 +41,11 @@
 - 2026-11-03T09:39:23+01:00 | źródło 1.4.0, bez nowego wydania | opcja przezroczystego tła; odbiór kompozycji Windows wymagany.
 
 - 2026-11-03T09:54:37+01:00 | źródła 1.4.0 / synchronizacja Git | Release build: 0 błędów i ostrzeżeń; 289 testów, 38 sprawdzeń pluginów i 51 renderów WPF PASS. dotnet format --verify-no-changes: FAIL (odstępy/importy, również starsze pliki). Bez nowej paczki wydania; ręczny odbiór kompozycji Windows pozostaje otwarty.
+
+- 2026-11-03T10:15:00+01:00 | źródła 1.5.0 | Afirmacje i korekta krycia; odbiór przezroczystości DWM w Windows pozostaje wymagany.
+- 2026-11-03T10:24:00+01:00 | weryfikacja 1.5.0 | Kompilacja i 291 testów PASS; 57 renderów WPF PASS, w tym afirmacje. Bez pakietu wydania i bez odbioru DWM na pulpicie.
+
+- 2026-11-03T10:36:00+01:00 | źródła 1.5.1 | Poprawka aktywowania wpisywania afirmacji.
+- 2026-11-03T10:39:00+01:00 | 1.5.1 / Release/Dev/v1.5.1_20261103-1036 | 291 testów, test wejścia i 57 renderów WPF, integracja pluginów oraz publikacja win-x64 PASS; instalacja bez zmian.
+
+2026-11-03T11:00:00+01:00 | Źródła 1.6.0: ustawienia tekstu i historia afirmacji.

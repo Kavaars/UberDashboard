@@ -141,9 +141,9 @@ public sealed class DashboardStore : IDashboardStore
                 _database.EnsureInitialized();
 
                 using var command = _database.Connection.CreateCommand();
-                command.CommandText = "DELETE FROM Dashboard WHERE DashboardId = $id;";
+                command.CommandText = "DELETE FROM Dashboard WHERE DashboardId = $id AND (SELECT COUNT(*) FROM Dashboard) > 1 AND IsActive = 0;";
                 command.Parameters.AddWithValue("$id", dashboardId.ToString("D"));
-                command.ExecuteNonQuery();
+                if (command.ExecuteNonQuery() != 1) throw new InvalidOperationException("Nie można usunąć ostatniego ani aktywnego pulpitu.");
             },
             cancellationToken);
 

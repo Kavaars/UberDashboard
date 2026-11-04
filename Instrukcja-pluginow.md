@@ -1,6 +1,15 @@
 # Pluginy paneli UberDashboard
 
-Dotyczy aplikacji **1.2.0**, kontraktu paneli **1.1.0** i pierwszego pluginu **Ramka na zdjęcia 1.0.0**.
+Dotyczy aplikacji **1.8.0**, kontraktu paneli **1.2.0** i pluginu **Ramka na zdjęcia 1.1.0**.
+
+
+## Zakładki paneli od wersji 1.8.0
+
+Host zapewnia zakładki dla każdego typu panelu, również istniejących zgodnych wtyczek; wtyczka nie musi implementować paska zakładek. Każda zakładka ma osobny identyfikator instancji, stan oraz katalog plików. Wygląd i położenie są wspólne dla całej grupy. Ustawienia specyficzne dla wtyczki dotyczą aktywnej zakładki.
+
+Przycisk „+” dodaje zakładkę tego samego typu. Nazwę zmienia dwuklik lub F2; kolejność można zmienić przeciągnięciem albo Ctrl+Shift+strzałką. Menu pod prawym przyciskiem usuwa wskazaną zakładkę po potwierdzeniu; ostatnia pozostaje chroniona. Po przełączeniu host zapisuje i wstrzymuje poprzednią instancję. Przy usuwaniu host wywołuje istniejący kontrakt cyklu życia dostępnych usuwanych instancji.
+
+Stan starego panelu pozostaje w pierwszej zakładce. Dotychczasowe zakładki notatnika są przenoszone transakcyjnie, a kopia pierwotnego stanu pozostaje w bazie na potrzeby odzyskania. Brak wtyczki nie usuwa grupy ani jej danych; po ponownym zainstalowaniu zgodnej wtyczki panel można odtworzyć. Przed aktualizacją zachowaj kopię profilu; powrót do starszej wersji wymaga odtworzenia zgodnej kopii bazy.
 
 ## Instalowanie i usuwanie
 

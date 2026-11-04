@@ -24,7 +24,6 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly ITrayIconService _trayIconService;
     private readonly IColorPickerService _colorPickerService;
     private bool _loaded;
-    private bool _suppressChanges;
     private bool _saving;
     private int _revision;
     private bool _windowDirty;
@@ -38,13 +37,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
     {
         base.OnPropertyChanged(e);
-        if (!_loaded || _suppressChanges || e.PropertyName == nameof(SaveStatus)) return;
-        if (e.PropertyName == nameof(SelectedTheme))
-        {
-            _suppressChanges = true;
-            WindowBackgroundColor = ""; SurfaceColor = ""; SurfaceAltColor = ""; AccentColor = "";
-            _suppressChanges = false;
-        }
+        if (!_loaded || e.PropertyName == nameof(SaveStatus)) return;
         _integrationDirty |= e.PropertyName is nameof(StartWithWindows) or nameof(EnableTrayIcon) or nameof(SelectedCloseBehavior);
         _windowDirty |= e.PropertyName is nameof(SelectedLaunchMode) or nameof(SelectedMonitor) or nameof(SelectedDockEdge) or nameof(DockThickness) or nameof(WidgetOpacity) or nameof(DesktopWidgetFallbackToNormal);
         _launchModeDirty |= e.PropertyName == nameof(SelectedLaunchMode);
@@ -179,6 +172,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private double densityScale = 1d;
 
+    [ObservableProperty] private double panelSpacing = 10d;
+    [ObservableProperty] private double dividerThickness = 1d;
+
     [ObservableProperty]
     private int weatherRefreshMinutes = 20;
 
@@ -265,6 +261,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         FontSize = applicationSettings.FontSize ?? _themeService.ReadDouble("Token.FontSize.Body", 13d);
         CornerRadius = applicationSettings.CornerRadius ?? _themeService.ReadDouble("Token.CornerRadius.M", 12d);
         DensityScale = applicationSettings.DensityScale ?? 1d;
+        PanelSpacing = applicationSettings.PanelSpacing ?? 10d;
+        DividerThickness = applicationSettings.DividerThickness ?? 1d;
         WeatherRefreshMinutes = applicationSettings.WeatherRefreshMinutes ?? 20;
         WallpaperPath = applicationSettings.WallpaperPath;
         WallpaperBlur = applicationSettings.WallpaperBlur;
@@ -300,6 +298,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             AccentColor = AccentColor, WindowBackgroundColor = WindowBackgroundColor, SurfaceColor = SurfaceColor,
             SurfaceAltColor = SurfaceAltColor, FontFamilyName = SelectedFontFamily, FontSize = FontSize,
             CornerRadius = CornerRadius, DensityScale = DensityScale, WeatherRefreshMinutes = WeatherRefreshMinutes,
+            PanelSpacing = PanelSpacing, DividerThickness = DividerThickness,
             StartWithWindows = StartWithWindows, EnableTrayIcon = EnableTrayIcon, CloseBehavior = SelectedCloseBehavior,
             WallpaperPath = WallpaperPath, WallpaperBlur = WallpaperBlur, BackgroundSurfaceOpacity = BackgroundSurfaceOpacity, WindowOpacity = WindowOpacity, DesktopBlur = DesktopBlur, TransparentDesktopBackground = TransparentDesktopBackground,
         }.Normalize();
@@ -317,6 +316,8 @@ public sealed partial class SettingsViewModel : ObservableObject
             FontSize = FontSize,
             CornerRadius = CornerRadius,
             DensityScale = DensityScale,
+            PanelSpacing = PanelSpacing,
+            DividerThickness = DividerThickness,
             WeatherRefreshMinutes = WeatherRefreshMinutes,
             StartWithWindows = StartWithWindows,
             EnableTrayIcon = EnableTrayIcon,
@@ -371,7 +372,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _startupRegistrationService.Apply(false, Environment.ProcessPath ?? string.Empty);
         _trayIconService.ApplySettings(ApplicationSettings.Default);
         await _windowModeSettingsService.SetAsync(WindowModeSettings.Default, CancellationToken.None).ConfigureAwait(true);
-        var result = await _windowModeCoordinator.SwitchAsync(WindowMode.Normal, CancellationToken.None).ConfigureAwait(true);
+        var result = await _windowModeCoordinator.SwitchAsync(WindowModeSettings.Default.LaunchMode, CancellationToken.None).ConfigureAwait(true);
         SyncShellWindowMode(result.ActiveMode);
         await LoadAsync(CancellationToken.None).ConfigureAwait(true);
         _toasts.Show("Przywrócono domyślne ustawienia aplikacji.", ToastSeverity.Success);

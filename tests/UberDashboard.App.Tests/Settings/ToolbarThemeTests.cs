@@ -8,7 +8,7 @@ namespace UberDashboard.App.Tests.Settings;
 public sealed class ToolbarThemeTests
 {
     [Fact]
-    public async Task Explicit_theme_selection_resets_palette_like_settings_and_preserves_other_preferences()
+    public async Task Explicit_theme_selection_preserves_custom_palette_and_other_preferences()
     {
         var store = new FakeAppSettingsStore();
         var clock = new FakeClock();
@@ -21,10 +21,10 @@ public sealed class ToolbarThemeTests
         using var theme = new ThemeService(store, settings, clock, NullLogger<ThemeService>.Instance);
         await theme.ApplyAsync(ThemeKind.Dark, CancellationToken.None);
         var saved = await settings.LoadAsync();
-        Assert.Null(saved.SurfaceColor);
-        Assert.Null(saved.SurfaceAltColor);
-        Assert.Null(saved.WindowBackgroundColor);
-        Assert.Null(saved.AccentColor);
+        Assert.Equal("#FFFFFFFF", saved.SurfaceColor);
+        Assert.Equal("#FFEFF1F4", saved.SurfaceAltColor);
+        Assert.Equal("#FFF6F7F9", saved.WindowBackgroundColor);
+        Assert.Equal("#FF123456", saved.AccentColor);
         Assert.Equal(19, saved.FontSize);
         Assert.Equal(ThemeKind.Dark, theme.Current);
     }

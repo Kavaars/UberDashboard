@@ -34,9 +34,37 @@ public sealed class LiveSettingsTests
         Assert.Equal(ThemeKind.Dark, theme.Current);
         await vm.FlushAsync();
         Assert.Null((await settings.LoadAsync()).SurfaceColor);
-        vm.SelectedLaunchMode = WindowMode.DockedBar;
+        vm.SelectedLaunchMode = WindowMode.Normal;
         await vm.FlushAsync();
         Assert.Equal(1, coordinator.Calls);
+    }
+
+    [Fact]
+    public async Task Theme_and_spacing_edits_preserve_all_existing_preferences_after_reload()
+    {
+        var store = new FakeAppSettingsStore(); var clock = new FakeClock();
+        var settings = new ApplicationSettingsService(store, clock);
+        var original = ApplicationSettings.Default with
+        {
+            AccentColor = "#123456", SurfaceColor = "#203040", SurfaceAltColor = "#304050",
+            WindowBackgroundColor = "#102030", FontFamilyName = "Verdana", FontSize = 19,
+            CornerRadius = 22, DensityScale = 1.2, WallpaperPath = "wallpaper.png", WallpaperBlur = 12,
+            TransparentDesktopBackground = true, BackgroundSurfaceOpacity = .4, WindowOpacity = .8,
+            DesktopBlur = true, EnableTrayIcon = true, CloseBehavior = CloseBehavior.MinimizeToTray,
+            WeatherRefreshMinutes = 55,
+        };
+        await settings.SaveAsync(original);
+        using var theme = new ThemeService(store, settings, clock, NullLogger<ThemeService>.Instance);
+        var integration = new Integration(); var coordinator = new Coordinator();
+        var vm = new SettingsViewModel(settings, new FakeWindowModeSettingsService(), coordinator,
+            new FakeMonitorProvider { Monitors = [] }, theme, new ToastService(NullLogger<ToastService>.Instance), integration, integration, new Picker());
+        await vm.LoadAsync();
+        vm.PanelSpacing = 24; vm.DividerThickness = 0; vm.SelectedTheme = ThemeKind.Dark;
+        await vm.FlushAsync();
+        Assert.Equal(original with { PanelSpacing = 24, DividerThickness = 0 }, await settings.LoadAsync());
+        await vm.LoadAsync();
+        Assert.Equal(24, vm.PanelSpacing); Assert.Equal(0, vm.DividerThickness);
+        Assert.Equal(0, coordinator.Calls); Assert.Equal(0, integration.Calls);
     }
 
     [Fact]

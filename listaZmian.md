@@ -1,4 +1,19 @@
+2026-11-04T10:00:34+01:00 | Afirmacje, jednoliniowe nagłówki, komunikaty oraz bezpieczne usuwanie zakładek i pulpitów.
+2026-11-04T09:34:48+01:00 | Zakończono integrację i weryfikację wspólnych zakładek, migracji oraz wtyczek.
+2026-11-04T09:19:57+01:00 | Wspólne zakładki paneli, migracja notatnika i obsługa cyklu życia wtyczek.
+2026-11-04T08:38:58+01:00 | Dodano transakcyjne operacje dodawania i usuwania zakładek; integracja z hostem pozostaje otwarta.
+2026-11-04T08:36:04+01:00 | Dodano transakcyjną zmianę nazw, kolejności i wyboru zakładek; integracja pozostaje otwarta.
+2026-11-04T08:32:53+01:00 | Dodano transakcyjny magazyn grup i schemat 2; integracja zakładek pozostaje nieukończona.
+2026-11-04T08:28:26+01:00 | Przygotowanie migracji zakładek notatnika; integracja i zapis grup nadal nieukończone.
+2026-11-04T08:23:36+01:00 | Rozpoczęto wspólny model grup zakładek; integracja pozostaje otwarta.
+2026-11-04T08:12:10+01:00 | Kolor tekstu paneli według motywu z indywidualnym nadpisaniem.
+2026-11-04T07:34:00+01:00 | Zakładki notatnika i spójne tło pogody; problem koloru nadal otwarty.
+2026-11-03T22:00:45+01:00 | Poprawiono kolor edytowanego tekstu i wygląd zakładek notatnika.
+
+2026-11-03T21:39:36+01:00 | Zakładki notatnika, czytelność menu i afirmacji oraz zmiana pozycjonowania paska; testy automatyczne zakończone.
 # Lista zmian
+
+- 2026-11-03T21:20:00+01:00 - odświeżono pasek, menu i ustawienia. Dodano niezależną regulację odstępu paneli i grubości linii podziału.
 
 - 2026-11-03T08:36:48+01:00 - dodano systemowy Acrylic, układy poziome paneli i kontrakt rozmiaru wtyczek; zaktualizowano ramkę zdjęć
 
@@ -26,3 +41,9 @@
 - 2026-11-03T09:39:23+01:00 | Dodano odwracalne przezroczyste tło pulpitu z osobnym kryciem powierzchni i pełnym kryciem tekstu.
 
 - 2026-11-03T09:54:37+01:00 | Synchronizacja lokalnych źródeł 1.4.0 z GitHub: układ, wygląd paneli, pluginy i poprawki okna; potwierdzono build, testy i integrację.
+
+- 2026-11-03T10:15:00+01:00 | v1.5.0 | Panel afirmacji z zapisem i resetowaniem; osobna regulacja widoczności treści.
+
+- 2026-11-03T10:36:00+01:00 | v1.5.1 | Aktywowanie wpisywania przez kliknięcie afirmacji oraz czytelne pole ćwiczenia.
+
+2026-11-03T11:00:00+01:00 | Dodano formatowanie i statystyki panelu afirmacji.

@@ -21,6 +21,13 @@ namespace UberDashboard.App;
 /// </summary>
 public partial class MainWindow : Window
 {
+    private async void DeleteDashboard_Click(object sender, RoutedEventArgs e)
+    {
+        e.Handled = true;
+        if (sender is System.Windows.Controls.Button { Tag: UberDashboard.Application.Abstractions.DashboardSummary dashboard })
+            await _viewModel.DeleteDashboardAsync(dashboard);
+    }
+
     private readonly UberDashboard.App.Plugins.PluginManager _plugins;
     private readonly AppBarController _appBar;
     private readonly ShellViewModel _viewModel;
@@ -80,7 +87,8 @@ public partial class MainWindow : Window
     {
         if (!Dispatcher.CheckAccess()) { await Dispatcher.InvokeAsync(() => OnThemeChanged(sender, e)); return; }
         var settings = _theme.CurrentSettings.Normalize();
-        Opacity = settings.WindowOpacity;
+        Opacity = 1d;
+        ApplicationContent.Opacity = settings.WindowOpacity;
         var backdropRequest = (settings.TransparentDesktopBackground, settings.DesktopBlur);
         if (_backdropRequest != backdropRequest && PresentationSource.FromVisual(this) is HwndSource source)
         {
@@ -208,6 +216,7 @@ public partial class MainWindow : Window
             e.Cancel = true;
             if (_shutdownPending) return;
             _shutdownPending = true;
+            IsEnabled = false;
             if (await app.PrepareShutdownAsync().ConfigureAwait(true))
             {
                 _forceExit = true;
@@ -216,7 +225,8 @@ public partial class MainWindow : Window
             else
             {
                 _shutdownPending = false;
-                System.Windows.MessageBox.Show(this, "Nie potwierdzono zapisu danych. Okno pozostaje otwarte. Spróbuj zamknąć je ponownie po usunięciu błędu zapisu.", "Nie udało się zapisać danych", MessageBoxButton.OK, MessageBoxImage.Error);
+                IsEnabled = true;
+                UberDashboard.App.Controls.ThemedMessageBox.Show(this, "Nie potwierdzono zapisu danych. Okno pozostaje otwarte. Spróbuj zamknąć je ponownie po usunięciu błędu zapisu.", "Nie udało się zapisać danych", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

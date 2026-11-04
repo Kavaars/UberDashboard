@@ -5,11 +5,11 @@ namespace UberDashboard.Application.Tests.Platform;
 public sealed class WindowModeSettingsContractTests
 {
     [Fact]
-    public void Defaults_use_normal_mode_and_safe_values()
+    public void Defaults_use_docked_bar_and_safe_values()
     {
         var settings = WindowModeSettings.Default;
 
-        Assert.Equal(WindowMode.Normal, settings.LaunchMode);
+        Assert.Equal(WindowMode.DockedBar, settings.LaunchMode);
         Assert.Equal(AppBarEdge.Bottom, settings.DockEdge);
         Assert.InRange(settings.DockThickness, 200, 1200);
         Assert.InRange(settings.WidgetOpacity, 0.2d, 1.0d);

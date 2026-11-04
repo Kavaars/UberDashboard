@@ -9,6 +9,19 @@ public sealed class AppBarControllerTests
     private static readonly IntPtr WindowHandle = new(0x1234);
 
     [Fact]
+    public void Resize_keeps_registration_and_requested_monitor_and_edge()
+    {
+        var api = new FakeAppBarNativeApi();
+        var controller = new AppBarController(api);
+        var monitor = new PixelRect(-1920, 0, 0, 1080);
+        Assert.True(controller.Register(WindowHandle, AppBarEdge.Bottom, 280, monitor).IsSuccess);
+        var result = controller.UpdateConfiguration(AppBarEdge.Bottom, 400, monitor);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(new PixelRect(-1920, 680, 0, 1080), result.Rect);
+        Assert.Equal(["register", "query", "set", "query", "set"], api.Calls);
+    }
+
+    [Fact]
     public void Register_runs_dock_cycle_in_order()
     {
         var api = new FakeAppBarNativeApi();

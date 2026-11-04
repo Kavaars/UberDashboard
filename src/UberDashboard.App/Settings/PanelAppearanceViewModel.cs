@@ -15,11 +15,14 @@ public sealed record PanelAppearanceSettings
     public string? BackgroundColor { get; init; }
     public string? FontFamily { get; init; }
     public bool CustomizeText { get; init; }
+    public bool OverrideTextColor { get; init; }
+    public string? TextColor { get; init; }
     public double FontSize { get; init; } = 13;
     public string? WallpaperPath { get; init; }
     public double WallpaperOpacity { get; init; } = .3;
     public PanelAppearanceSettings Normalize() => this with
     {
+        TextColor = new ApplicationSettings { SurfaceColor = TextColor }.Normalize().SurfaceColor,
         BackgroundColor = new ApplicationSettings { SurfaceColor = BackgroundColor }.Normalize().SurfaceColor,
         FontFamily = string.IsNullOrWhiteSpace(FontFamily) ? null : FontFamily.Trim(),
         FontSize = double.IsFinite(FontSize) ? Math.Clamp(FontSize, 11, 24) : 13,
@@ -56,13 +59,15 @@ public sealed partial class PanelAppearanceViewModel : ObservableObject
     [ObservableProperty] private string? backgroundColor;
     [ObservableProperty] private string? fontFamily;
     [ObservableProperty] private bool customizeText;
+    [ObservableProperty] private bool overrideTextColor;
+    [ObservableProperty] private string? textColor;
     [ObservableProperty] private double fontSize = 13;
     [ObservableProperty] private string? wallpaperPath;
     [ObservableProperty] private double wallpaperOpacity = .3;
     [ObservableProperty] private ImageSource? wallpaper;
     [ObservableProperty] private string status = "";
     [ObservableProperty] private bool isReady;
-    public PanelAppearanceSettings Snapshot => new PanelAppearanceSettings { CustomizeText = CustomizeText, BackgroundColor = BackgroundColor, FontFamily = FontFamily, FontSize = FontSize, WallpaperPath = WallpaperPath, WallpaperOpacity = WallpaperOpacity }.Normalize();
+    public PanelAppearanceSettings Snapshot => new PanelAppearanceSettings { OverrideTextColor = OverrideTextColor, TextColor = TextColor, CustomizeText = CustomizeText, BackgroundColor = BackgroundColor, FontFamily = FontFamily, FontSize = FontSize, WallpaperPath = WallpaperPath, WallpaperOpacity = WallpaperOpacity }.Normalize();
     public async Task LoadAsync()
     {
         try
@@ -77,7 +82,7 @@ public sealed partial class PanelAppearanceViewModel : ObservableObject
     {
         var value = settings.Normalize();
         var loading = _loading; _loading = true;
-        CustomizeText = value.CustomizeText;
+        CustomizeText = value.CustomizeText; OverrideTextColor = value.OverrideTextColor; TextColor = value.TextColor;
         BackgroundColor = value.BackgroundColor; FontFamily = value.FontFamily; FontSize = value.FontSize;
         WallpaperPath = value.WallpaperPath; WallpaperOpacity = value.WallpaperOpacity;
         _loading = loading;
@@ -86,7 +91,7 @@ public sealed partial class PanelAppearanceViewModel : ObservableObject
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
     {
         base.OnPropertyChanged(e);
-        if (e.PropertyName is nameof(CustomizeText) or nameof(BackgroundColor) or nameof(FontFamily) or nameof(FontSize) or nameof(WallpaperPath) or nameof(WallpaperOpacity))
+        if (e.PropertyName is nameof(CustomizeText) or nameof(OverrideTextColor) or nameof(TextColor) or nameof(BackgroundColor) or nameof(FontFamily) or nameof(FontSize) or nameof(WallpaperPath) or nameof(WallpaperOpacity))
         {
             base.OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(Snapshot)));
             if (e.PropertyName == nameof(WallpaperPath)) _ = LoadWallpaperAsync();

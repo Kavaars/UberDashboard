@@ -1,4 +1,52 @@
 # Rejestr problemów
+
+## 2026-11-04T08:12:10+01:00 | źródła 1.7.0 / 876a2d7 + zmiany robocze | kolor tekstu paneli
+
+- Moduły: wygląd paneli, notatnik i afirmacje; Windows/WPF, .NET 10. Wersja uruchomionej aplikacji i konkretny dokument użytkownika nieznane.
+- Zgłoszenie: tekst ma być biały w ciemnym motywie i czarny w jasnym, z indywidualnym nadpisaniem koloru w opcjach panelu. Powiązane wcześniejsze wpisy opisują ciemny tekst notatnika.
+- Zmiana: oddzielne zasoby kolorów paneli, trwała opcja nadpisania i wybór koloru, notatnik stosuje kolor panelu do tekstu, afirmacje korzystają z tego samego zasobu. Dotychczasowe kolory fragmentów notatki nie są wyświetlane i przy dalszej edycji mogą zostać usunięte z zapisu; pozostałe formatowanie pozostaje.
+- Weryfikacja: 303 testy automatyczne i kompilacja przeszły; rendery WPF jasnego i ciemnego motywu przeszły przed ostatnią zmianą tekstu ostrzeżenia. Nie zweryfikowano oryginalnej notatki użytkownika w uruchomionej aplikacji.
+
+
+## 2026-11-04T07:34:00+01:00 | źródła 1.7.0 / 876a2d7 + zmiany robocze | zakładki, kolor notatek i tło pogody
+
+- Moduły: Notes, BindableRichTextBox, Theming/PanelTemplates. Windows/WPF, .NET 10; wersja uruchomionej aplikacji i dane notatki użytkownika nieznane.
+- Zgłoszenie: niewygodne zakładki, ciemny tekst w ciemnym motywie oraz odmienne tło niskiego i wysokiego panelu pogody; odtworzenie: porównać motywy i zmienić wysokość panelu.
+- Powiązanie: wpisy z 2026-11-03 dotyczą wcześniejszych, niewystarczających zmian koloru. Przyczyna konkretnej notatki ze zrzutu pozostaje niepotwierdzona. W kodzie większy widok pogody miał dodatkowe tło, a kompaktowy go nie miał.
+- Zmiany: pasek z przyciskiem dodawania, edycją nazwy, usuwaniem i przenoszeniem; wspólna powierzchnia pogody. Poprawka koloru pozostaje otwarta: format nie pozwala pewnie odróżnić świadomie ustawionej szarości od koloru motywu, a rzeczywisty dokument nie był dostępny.
+- Weryfikacja: kompilacja bez ostrzeżeń, 302 testy i 96 renderów WPF. Nie wykonano odbioru interakcji myszy i klawiatury w działającej aplikacji ani porównania tapety; rzeczywista notatka ze zrzutu nie była dostępna.
+
+
+## 2026-11-03T22:00:45+01:00 | źródła 1.7.0 / 876a2d7 + zmiany robocze | kolor notatnika i zakładki
+
+- Moduł: App/Controls/BindableRichTextBox i Theming/PanelTemplates. Windows, WPF/.NET 10; dokładna konfiguracja użytkownika i wersja uruchomionego pliku nieznane.
+- Zgłoszenie: po wcześniejszej poprawce tekst notatnika nadal jest ciemny na ciemnym tle; zrzut pokazuje także nazwę klasy w obszarze zakładek. Oczekiwany czytelny tekst zgodny z motywem i poprawny wygląd zakładek. Odtwarzanie: ciemny motyw i widoczna zawartość notatnika; dokładne pochodzenie tekstu nieznane.
+- Powiązanie: poprzedni wpis 21:39 opisuje niepełną poprawkę, która normalizowała kolory tylko przy wczytywaniu. Test ujawnił ponadto możliwość zastąpienia dokumentu w trakcie jego zmiany; przyczyny konkretnego zrzutu nie można potwierdzić bez danych użytkownika.
+- Poprawka: normalizacja neutralnych kolorów także podczas edycji, ochrona przed rekurencyjną podmianą dokumentu oraz szablon nagłówków i pustej zawartości zakładek. Istniejące inne kolory i pogrubienie pozostają zachowane.
+- Regresja: przed poprawką test zakończył proces WPF błędem przy zmianie dokumentu; po poprawce test przechodzi, podobnie jak komplet 301 testów. Kompilacja w ramach testów zakończona powodzeniem; odbiór rzeczywistego okna i notatki ze zrzutu pozostaje otwarty.
+
+
+## 2026-11-03T21:39:36+01:00 | źródła 1.7.0 / 876a2d7 + zmiany robocze | notatnik, menu, afirmacje i pasek
+
+- Moduły: Notes, Theming, Affirmations, AppBar. Windows 11, WPF/.NET 10; dokładna konfiguracja monitorów i DPI nieznana.
+- Zgłoszenie: brak zakładek, przezroczyste menu, brak polskich znaków, nieczytelny tekst notatnika w ciemnym motywie i przeskakiwanie paska przy zmianie grubości. Oczekiwane: wiele notatek, czytelne menu i tekst oraz stabilna dolna krawędź. Odtwarzanie: zmienić motyw lub poruszyć suwakiem grubości w trybie paska; pozostałe szczegóły nieznane.
+- Powiązany wpis 09:34 opisuje wcześniejszą poprawkę paska. Aktualny kod przy każdej zmianie wyrejestrowywał pasek i przywracał poprzedni prostokąt okna, co mogło zmienić monitor automatyczny. Uszkodzone znaki występowały w bieżącym roboczym szablonie afirmacji.
+- Zmiany: zakładki z zapisem zgodnym ze starszą notatką; zasób tła menu; poprawa znaków i dziedziczenia kolorów; zmiana konfiguracji zarejestrowanego paska bez przywracania okna. Potrzebna weryfikacja rzeczywistego pulpitu i dwóch monitorów; przyczyna skakania nie została potwierdzona na sprzęcie.
+- Kontrole: kompilacja rozwiązania bez ostrzeżeń i błędów; 300 testów przeszło po uruchomieniu poza środowiskiem ograniczającym testhost. Dodano testy zapisu zakładek i aktualizacji AppBar.
+
+
+## 2026-11-03T11:14:15+01:00 | źródła v1.6.0 / 876a2d7 + zmiany robocze | Surowy wygląd, dzielniki i rozbudowane ustawienia
+
+- Moduły: Theming/PanelTemplates, Settings, MainWindow. Środowisko: Windows, WPF/.NET 10; dokładna wersja używana przez użytkownika, DPI i wymiary paska nieznane.
+- Zgłoszenie: twardy, toporny interfejs, zbyt grube podziały paneli, rozlazłe menu i ustawienia. Oczekiwane: miękki, minimalistyczny pasek oraz zwarte formularze przy zachowaniu wszystkich ustawień, obu motywów i rozbudowanej personalizacji.
+- Odtwarzanie znanego fragmentu: otworzyć personalizację — cztery pełne edytory kolorów wyświetlane są kolejno. Konkretne menu ocenione przez użytkownika i pozostałe kroki nieznane.
+- Korelacja: dzielniki 6 DIP i rozbudowana personalizacja występują już w 876a2d7; roboczy diff SettingsWindow zmienia jedynie opis suwaka treści, więc sam nie wyjaśnia rozmiaru formularza. Powiązane wcześniejsze wpisy z 2026-11-03 dotyczą motywów, ColorWheel i opcji paneli.
+- Potwierdzone w kodzie/renderach: pełne wypełnienie dzielników 6 DIP; stale rozwinięte edytory ColorWheel znacząco wydłużają formularz. Ocena estetyczna pozostaje preferencją użytkownika.
+- Audyt i projekt: docs/UI_KIERUNEK_2026-11-03.md.
+- Weryfikacja bazy: build VisualChecks PASS, 0 ostrzeżeń; 57 renderów i kontrole fontów/wejścia PASS po ponowieniu z dostępem do rejestru. Nie jest to potwierdzenie naprawy wyglądu ani odbiór AppBar.
+- Wdrożenie 2026-11-03T21:20:00+01:00, v1.7.0: linia 1 DIP i uchwyt 6 DIP, suwaki odstępu i linii, krótszy pasek, menu i sześć kategorii ustawień. Pełny edytor koloru otwiera się z próbki. Zmiana motywu zachowuje paletę.
+- Regresja: zachowanie ustawień po ponownym odczycie, normalizacja nowych suwaków, ustawienia bez pola odstępu i linii, domyślny tryb paska, podgląd fontu i wygląd pluginu. Przeszły build Release, 298 testów, 96 renderów oraz PluginChecks. Natywnie sprawdzono start na dolnej krawędzi, menu, podmenu i autozapis akcentu na osobnym profilu. Odbiór wszystkich krawędzi, konfiguracji monitorów i skalowania pozostaje otwarty.
+
 ## 2026-11-03T09:34:03+01:00 | v1.4.0, stan roboczy 4910420 | pogoda, menu, tło, pasek
 
 - Moduły: Theming, Settings, Shell, okno główne. Środowisko: Windows, WPF, .NET SDK 10.0.403; rozmiary i konfiguracja użytkownika nieznane.
@@ -270,3 +318,31 @@ Diagnoza potwierdzona w kodzie dla 1: SettingsViewModel czyści paletę przy zmi
 - Powiązanie: poprzedni wpis z 2026-11-03 i niezacommitowane zmiany tapety; ostatnie commity dotyczą dokumentacji Git.
 - Zmiana: kompozycja DWM i przezroczyste tło obszaru okna; osobny przełącznik i krycie samych powierzchni. W razie błędu przewidziano powrót do zwykłego tła; wcześniej suwak zmieniał krycie całego okna.
 - Dodano testy zgodności zapisu ustawień i autozapisu. Faktyczna kompozycja DWM, czytelność i działanie w pasku wymagają sprawdzenia na pulpicie Windows.
+
+## 2026-11-03T10:15:00+01:00 | v1.4.0 / 876a2d7 | Widoczność treści przy przezroczystym tle
+
+- Moduły: MainWindow, Settings, DWM; Windows/WPF. Wersja systemu i ustawienia użytkownika: nieznane.
+- Zgłoszenie: po pokazaniu pulpitu treści mają pozostać widoczne; ich widoczność ma być regulowana osobno.
+- Oczekiwane: przełącznik wpływa na tło, widoczność treści domyślnie 100%. Rzeczywiste zachowanie zgłoszone przez użytkownika: szczegółowa konfiguracja i kroki nieznane.
+- Powiązanie: implementacja opcji w 876a2d7, wpis z 09:39; odbiór DWM nie był potwierdzony. W kodzie suwak WindowOpacity wpływał na całe okno, w tym tapetę.
+- Zmiana: krycie okna stałe, suwak stosowany do drzewa treści. Ograniczenie: drzewo treści zawiera również powierzchnie paneli, więc zmniejszenie tego suwaka wpływa też na nie; niezależność od tła nie jest pełna. Kompozycja DWM wymaga odbioru w Windows.
+- Weryfikacja: 291 testów i 57 renderów WPF PASS; test DWM i pełna niezależność suwaka treści od powierzchni pozostają otwarte.
+
+## 2026-11-03T10:27:45+01:00 | źródła v1.5.0 / 876a2d7 + zmiany robocze | Afirmacje — wpisywanie
+
+- Moduł: App/Features/Affirmations, Controls/AffirmationInput. Środowisko: Windows/WPF; dokładna wersja uruchomionej aplikacji i sposób ustawienia fokusu nieznane.
+- Zgłoszenie: po dodaniu afirmacji pierwsza jest widoczna, ale wpisywane znaki nie zmieniają jej wyglądu.
+- Oczekiwane: prawidłowo wpisywane znaki stają się widoczne; błędne są ignorowane.
+- Odtwarzanie: dodać afirmację w opcjach, wrócić do panelu i pisać wyświetlony tekst. Konkretny tekst i miejsce kliknięcia przed pisaniem nieznane.
+- Powiązanie: panel jest nowy w niezacommitowanych źródłach v1.5.0. Poprzednie testy sprawdzały model bezpośrednio i render, bez rzeczywistych naciśnięć klawiatury. Przyczyna do ustalenia.
+- Ustalenie: tekst afirmacji nie ustawiał fokusu; pole wejściowe było puste i bez widocznego opisu. Pisanie działało wyłącznie po aktywowaniu tego pola. Nie można potwierdzić, gdzie kliknął użytkownik.
+- Poprawka: kliknięcie treści ustawia fokus wejścia, dodano widoczną wskazówkę. Próba klawiaturą w osobnym profilu potwierdziła wpisanie pierwszej afirmacji i przejście do następnej.
+- Regresja: VisualChecks sprawdza przypięcie celu fokusu, obsługę kliknięcia oraz zdarzenie wpisania prawidłowego i nieprawidłowego znaku; osobno wpisano pierwszą afirmację klawiszami w uruchomionym widoku testowym. Nie testowano danych użytkownika.
+- Weryfikacja końcowa: 291 testów Release PASS, 57 renderów i test wejścia WPF PASS, integracja pluginów PASS, publikacja win-x64 PASS; uruchomiona instalacja użytkownika nie została zastąpiona.
+
+## 2026-11-04T09:50:10+01:00 | źródła 1.8.0 / 876a2d7 + zmiany robocze | afirmacje, zakładki, dialogi i pulpity
+- Zgłoszenie: osobny wygląd niewpisanego tekstu afirmacji; usuwanie pustych notatek bez potwierdzenia; komunikaty zgodne z motywem; nazwa panelu i zakładki w jednym wierszu; usuwanie pulpitów z selektora.
+- Oczekiwane: niezależne ustawienia, ochrona zawartości i ostatniego pulpitu, spójne komunikaty oraz zachowanie zapisanych danych. Środowisko: Windows, WPF; szczegółowe kroki i komunikaty błędów nie podano.
+- Ustalenia: niewpisany tekst korzystał ze wspólnego koloru; oba paski zakładek zawsze żądały potwierdzenia; komunikaty używały systemowego MessageBox, a pasek zakładek był pod nagłówkiem. Selektor nie oferował usuwania pulpitu.
+- Zmiany: niezależny kolor i krycie afirmacji, sprawdzanie treści notatek, wspólny komunikat WPF, zakładki w nagłówku i usuwanie pulpitów z ochroną ostatniego.
+- Kontrole: 339 testów przeszło po końcowej zmianie; kontrola wizualna motywów i rozmiarów przeszła przed końcową korektą przeciągania dialogu oraz walidacji danych notatki. Interakcje komunikatów i usuwania pulpitu w działającym oknie wymagają odbioru.

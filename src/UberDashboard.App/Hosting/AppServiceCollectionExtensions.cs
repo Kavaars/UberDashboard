@@ -46,6 +46,7 @@ public static class AppServiceCollectionExtensions
         services.AddSingleton<IPanelRemovalConfirmation, PanelRemovalConfirmation>();
         services.AddSingleton<PanelStateScheduler>();
         services.AddSingleton<PanelHostManager>();
+        services.AddSingleton<PanelGroupInitializer>();
         services.AddSingleton<Func<PanelInstanceId, IPanelStateSink>>(
             _ => instanceId => throw new InvalidOperationException(
                 "Fabryka ujścia stanu panelu jest rozwiązywana wyłącznie przez kontener dla konkretnej instancji."));
@@ -68,6 +69,10 @@ public static class AppServiceCollectionExtensions
 
     private static void RegisterBuiltInPanels(IServiceCollection services)
     {
+        services.AddSingleton<BuiltInPanelRegistration>(provider => new BuiltInPanelRegistration(
+            "affirmations",
+            new Features.Affirmations.AffirmationPanelDescriptor(new Features.Affirmations.AffirmationPanelFactory(provider.GetRequiredService<PanelStateScheduler>()))));
+
         services.AddSingleton<BuiltInPanelRegistration>(provider => new BuiltInPanelRegistration(
             NotesPanelDescriptor.TypeId,
             new NotesPanelDescriptor(new NotesPanelFactory(provider.GetRequiredService<PanelStateScheduler>()))));

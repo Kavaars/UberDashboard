@@ -5,6 +5,24 @@ namespace UberDashboard.App.Tests.Settings;
 public sealed class ApplicationSettingsTests
 {
     [Fact]
+    public void Legacy_json_uses_new_visual_defaults_without_losing_existing_values()
+    {
+        var legacy = System.Text.Json.JsonSerializer.Deserialize<ApplicationSettings>("{\"FontSize\":18,\"DensityScale\":1.25,\"SurfaceColor\":\"#123456\"}")!.Normalize();
+        Assert.Null(legacy.PanelSpacing); Assert.Null(legacy.DividerThickness);
+        Assert.Equal(18, legacy.FontSize); Assert.Equal(1.25, legacy.DensityScale);
+        Assert.Equal("#123456", legacy.SurfaceColor);
+    }
+
+    [Theory]
+    [InlineData(-1, -1, 6, 0)]
+    [InlineData(100, 100, 32, 3)]
+    [InlineData(double.NaN, double.PositiveInfinity, 10, 1)]
+    public void New_spacing_ranges_are_safe(double spacing, double line, double expectedSpacing, double expectedLine)
+    {
+        var settings = new ApplicationSettings { PanelSpacing = spacing, DividerThickness = line }.Normalize();
+        Assert.Equal(expectedSpacing, settings.PanelSpacing); Assert.Equal(expectedLine, settings.DividerThickness);
+    }
+    [Fact]
     public void Background_settings_are_clamped_and_old_defaults_remain_opaque()
     {
         var defaults = ApplicationSettings.Default.Normalize();

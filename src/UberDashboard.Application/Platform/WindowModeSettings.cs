@@ -7,7 +7,7 @@ public sealed record WindowModeSettings
     public static WindowModeSettings Default { get; } = new();
 
     /// <summary>Tryb uruchomienia aplikacji.</summary>
-    public WindowMode LaunchMode { get; init; } = WindowMode.Normal;
+    public WindowMode LaunchMode { get; init; } = WindowMode.DockedBar;
 
     /// <summary>Preferowany identyfikator monitora dla trybu paska.</summary>
     public string? MonitorId { get; init; }

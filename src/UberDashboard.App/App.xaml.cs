@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using UberDashboard.App.Hosting;
-using WpfMessageBox = System.Windows.MessageBox;
+using WpfMessageBox = UberDashboard.App.Controls.ThemedMessageBox;
 
 namespace UberDashboard.App;
 
@@ -67,7 +67,10 @@ public partial class App : System.Windows.Application
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             await _host.Services.GetRequiredService<UberDashboard.App.Plugins.PluginSettingsViewModel>().StopAsync().WaitAsync(timeout.Token).ConfigureAwait(true);
             if (MainWindow?.DataContext is UberDashboard.App.Shell.ShellViewModel shell)
+            {
                 await shell.FlushAppearancesAsync().WaitAsync(timeout.Token).ConfigureAwait(true);
+                await shell.FlushTabGroupsAsync(timeout.Token).ConfigureAwait(true);
+            }
             foreach (var settingsWindow in Windows.OfType<UberDashboard.App.Settings.SettingsWindow>().ToArray())
                 await settingsWindow.FlushAsync().WaitAsync(timeout.Token).ConfigureAwait(true);
             await _host.Services.GetRequiredService<UberDashboard.App.Panels.PanelStateScheduler>().FlushAllAsync(timeout.Token).ConfigureAwait(true);

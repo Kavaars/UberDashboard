@@ -11,6 +11,8 @@
         Height="820"
         MinWidth="860"
         MinHeight="560"
+        FontFamily="{DynamicResource Token.FontFamily}"
+        FontSize="{DynamicResource Token.FontSize.Body}"
         Background="{DynamicResource Brush.Window.Background}"
         Foreground="{DynamicResource Brush.Text}">
   <Grid>
@@ -24,177 +26,19 @@
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
-    <!-- Pasek górny: wybór pulpitu, tryb edycji, dodawanie i zarządzanie panelami. -->
-    <Border Grid.Row="0" Style="{StaticResource ToolbarBorder}" Padding="6">
-<Grid>
-      <ScrollViewer MaxHeight="132" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <ScrollViewer.Style>
-          <Style TargetType="ScrollViewer"><Style.Triggers><DataTrigger Binding="{Binding IsDockedBar}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style>
-        </ScrollViewer.Style>
-        <WrapPanel>
-
-        <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
-          <Border Width="38"
-                  Height="38"
-                  Margin="0,0,12,0"
-                  Background="{DynamicResource Brush.Accent}"
-                  BorderBrush="{DynamicResource Brush.Accent}"
-                  BorderThickness="1"
-                  CornerRadius="{DynamicResource Token.CornerRadius.M}">
-            <TextBlock HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       FontFamily="Segoe MDL2 Assets"
-                       FontSize="18"
-                       Foreground="{DynamicResource Brush.Accent.Text}"
-                       Text="&#xE80F;" />
-          </Border>
-
-          <StackPanel Width="160">
-            <TextBlock FontSize="18"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource Brush.Text}"
-                       Text="UberDashboard"
-                       ToolTip="Nazwa aplikacji. Pasek górny grupuje sterowanie pulpitem, trybem okna i ustawieniami." />
-            <TextBlock Foreground="{DynamicResource Brush.Text.Muted}"
-                       Text="{Binding StatusMessage}"
-                       TextTrimming="CharacterEllipsis" />
-          </StackPanel>
-
-          <ComboBox Width="160"
-                    Margin="4,0,8,4"
-                    VerticalAlignment="Center"
-                    ItemsSource="{Binding Dashboards}"
-                    SelectedItem="{Binding SelectedDashboard}"
-                    Style="{StaticResource ThemedComboBox}"
-                    ToolTip="Wybiera aktywny pulpit. Zmiana wyboru wczytuje jego układ i panele; poprzedni pulpit zostaje zapisany.">
-            <ComboBox.ItemTemplate>
-              <DataTemplate>
-                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-              </DataTemplate>
-            </ComboBox.ItemTemplate>
-          </ComboBox>
-        </WrapPanel>
-
-        <Border Grid.Column="1"
-                HorizontalAlignment="Center"
-                Background="{DynamicResource Brush.Surface.Alt}"
-                BorderBrush="{DynamicResource Brush.Border}"
-                BorderThickness="1"
-                CornerRadius="{DynamicResource Token.CornerRadius.L}"
-                Padding="4">
-          <WrapPanel>
-            <Button Command="{Binding SwitchWindowModeCommand}"
-                    CommandParameter="{x:Static platform:WindowMode.Normal}"
-                    Content="Okno"
-                    Style="{StaticResource ModeSegmentButton}"
-                    ToolTip="Przywraca zwykłe okno aplikacji z klasycznym zachowaniem Windows. To tryb bazowy i awaryjny." />
-            <Button Command="{Binding SwitchWindowModeCommand}"
-                    CommandParameter="{x:Static platform:WindowMode.DesktopWidget}"
-                    Content="Widget (eksperymentalny)"
-                    Style="{StaticResource ModeSegmentButton}"
-                    ToolTip="Próbuje osadzić aplikację jako warstwę pulpitu. Przy braku stabilnej integracji system automatycznie wraca do zwykłego okna." />
-            <Button Command="{Binding SwitchWindowModeCommand}"
-                    CommandParameter="{x:Static platform:WindowMode.DockedBar}"
-                    Content="Pasek"
-                    Style="{StaticResource ModeSegmentButton}"
-                    ToolTip="Dokuje aplikację do krawędzi monitora i rezerwuje dla niej obszar roboczy, tak aby maksymalizowane okna nie przykrywały paska." />
-          </WrapPanel>
-        </Border>
-
-        <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
-          <Button Command="{Binding ToggleEditModeCommand}"
-                  Content="Edytuj układ"
-                  Style="{StaticResource EditModeButton}"
-                  ToolTip="Włącza tryb edycji: na kartach paneli pojawiają się akcje zamiany, ukrycia i usunięcia instancji. Po wyłączeniu trybu układ pozostaje bez zmian." />
-
-          <Border Background="{DynamicResource Brush.Surface.Alt}"
-                  BorderBrush="{DynamicResource Brush.Border}"
-                  BorderThickness="1"
-                  CornerRadius="{DynamicResource Token.CornerRadius.M}"
-                  Margin="0,0,8,0">
-            <Menu Style="{StaticResource ToolbarMenu}"
-                  ToolTip="Menu dodawania nowych paneli do bieżącego pulpitu.">
-              <Menu.Resources>
-                <Style BasedOn="{StaticResource ToolbarMenuItem}" TargetType="MenuItem" />
-              </Menu.Resources>
-              <MenuItem Header="Dodaj panel ▾" Padding="12,8">
-                <MenuItem.ItemsSource>
-                  <Binding Path="PanelTypes" />
-                </MenuItem.ItemsSource>
-                <MenuItem.ItemContainerStyle>
-                  <Style BasedOn="{StaticResource ToolbarMenuItem}" TargetType="MenuItem">
-                    <Setter Property="Header" Value="{Binding DisplayName}" />
-                    <Setter Property="Command" Value="{Binding DataContext.AddPanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
-                    <Setter Property="CommandParameter" Value="{Binding TypeId}" />
-                    <Setter Property="ToolTip" Value="Tworzy nową instancję tego typu panelu obok pierwszego panelu i zapisuje układ w bazie." />
-                  </Style>
-                </MenuItem.ItemContainerStyle>
-              </MenuItem>
-            </Menu>
-          </Border>
-
-          <Border Background="{DynamicResource Brush.Surface.Alt}"
-                  BorderBrush="{DynamicResource Brush.Border}"
-                  BorderThickness="1"
-                  CornerRadius="{DynamicResource Token.CornerRadius.M}"
-                  Margin="0,0,8,0"
-                  Visibility="{Binding HasHiddenPanels, Converter={StaticResource BoolToVisibility}}">
-            <Menu Style="{StaticResource ToolbarMenu}"
-                  ToolTip="Lista paneli ukrytych na bieżącym pulpicie; przywrócenie odtwarza ich dane i pozycję.">
-              <Menu.Resources>
-                <Style BasedOn="{StaticResource ToolbarMenuItem}" TargetType="MenuItem" />
-              </Menu.Resources>
-              <MenuItem Header="Ukryte ▾" Padding="12,8">
-                <MenuItem.ItemsSource>
-                  <Binding Path="HiddenPanels" />
-                </MenuItem.ItemsSource>
-                <MenuItem.ItemContainerStyle>
-                  <Style BasedOn="{StaticResource ToolbarMenuItem}" TargetType="MenuItem">
-                    <Setter Property="Header" Value="{Binding DisplayName}" />
-                    <Setter Property="Command" Value="{Binding DataContext.RestorePanelCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
-                    <Setter Property="CommandParameter" Value="{Binding}" />
-                    <Setter Property="ToolTip" Value="Przywraca panel na pulpicie z zachowanym stanem; jeśli zapisana pozycja jest nieosiągalna, panel trafia w miejsce zastępcze." />
-                  </Style>
-                </MenuItem.ItemContainerStyle>
-              </MenuItem>
-            </Menu>
-          </Border>
-
-          <Button Command="{Binding NewDashboardCommand}"
-                  Content="Nowy pulpit"
-                  Style="{StaticResource ToolbarButton}"
-                  ToolTip="Tworzy pusty pulpit i przełącza się na niego; poprzedni pulpit zostaje zapisany." />
-
-          <Button Command="{Binding OpenSettingsCommand}"
-                  Content="Opcje"
-                  Style="{StaticResource ToolbarButton}"
-                  ToolTip="Otwiera pełne ustawienia aplikacji z zakładkami personalizacji, wyświetlania i preferencji działania." />
-
-          <Button Command="{Binding ToggleThemeCommand}"
-                  Content="Motyw"
-                  Style="{StaticResource ToolbarButton}"
-                  ToolTip="Przełącza motyw jasny i ciemny; zmiana działa natychmiast i jest zapamiętywana w ustawieniach." />
-
-          <Button Command="{Binding RetrySaveLayoutCommand}" Content="Zapisz układ" Style="{StaticResource ToolbarButton}" ToolTip="Ponawia zapis bieżącego układu po błędzie. Nie wczytuje danych ponownie." />
-          <Button Command="{Binding ReloadCommand}"
-                  Content="Odśwież"
-                  Style="{StaticResource ToolbarButton}"
-                  ToolTip="Ponownie wczytuje układ i panele bieżącego pulpitu z bazy, odrzucając niezapisane zmiany w widoku." />
-        </WrapPanel>
-      </WrapPanel></ScrollViewer>
-      <controls:PanelLayoutMenuButton Content="Pulpit · Menu" HorizontalAlignment="Left"
-          AutomationProperties.Name="Menu paska pulpitu"
-          ToolTip="Otwiera sterowanie paskiem: dodawanie paneli, edycję, ustawienia i powrót do zwykłego okna.">
-        <controls:PanelLayoutMenuButton.Style>
-          <Style TargetType="{x:Type controls:PanelLayoutMenuButton}" BasedOn="{StaticResource ToolbarButton}">
-            <Setter Property="Visibility" Value="Collapsed" />
-            <Setter Property="Margin" Value="0" />
-            <Style.Triggers><DataTrigger Binding="{Binding IsDockedBar}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers>
-          </Style>
-        </controls:PanelLayoutMenuButton.Style>
-        <controls:PanelLayoutMenuButton.ContextMenu>
+    <!-- Wspólne, zwarte sterowanie; rzadkie działania są w menu. -->
+    <Border Grid.Row="0" Style="{StaticResource ToolbarBorder}" Padding="{DynamicResource Token.Padding.ControlSmall}">
+      <DockPanel LastChildFill="True">
+        <controls:PanelLayoutMenuButton DockPanel.Dock="Right" Content="Menu" Margin="6,0,0,0"
+            Style="{StaticResource ToolbarButton}" AutomationProperties.Name="Menu pulpitu"
+            ToolTip="Otwiera dodawanie paneli, edycję układu, ustawienia, motyw i tryb pracy.">
+          <controls:PanelLayoutMenuButton.ContextMenu>
           <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-            <MenuItem Header="Zwykłe okno" Command="{Binding SwitchWindowModeCommand}" CommandParameter="{x:Static platform:WindowMode.Normal}" />
+            <MenuItem Header="Tryb okna">
+              <MenuItem Header="Pasek" Command="{Binding SwitchWindowModeCommand}" CommandParameter="{x:Static platform:WindowMode.DockedBar}" />
+              <MenuItem Header="Zwykłe okno" Command="{Binding SwitchWindowModeCommand}" CommandParameter="{x:Static platform:WindowMode.Normal}" />
+              <MenuItem Header="Widget (eksperymentalny)" Command="{Binding SwitchWindowModeCommand}" CommandParameter="{x:Static platform:WindowMode.DesktopWidget}" ToolTip="Próbuje osadzić aplikację na pulpicie; przy błędzie wraca do okna." />
+            </MenuItem>
             <MenuItem Header="Edytuj układ" IsCheckable="True" IsChecked="{Binding IsEditMode}" />
             <MenuItem Header="Dodaj panel" ItemsSource="{Binding PanelTypes}">
               <MenuItem.ItemContainerStyle>
@@ -215,15 +59,24 @@
               </MenuItem.ItemContainerStyle>
             </MenuItem>
             <Separator />
-            <MenuItem Header="Opcje i ustawienia" Command="{Binding OpenSettingsCommand}" />
+            <MenuItem Header="Ustawienia" Command="{Binding OpenSettingsCommand}" />
             <MenuItem Header="Zmień motyw" Command="{Binding ToggleThemeCommand}" />
             <MenuItem Header="Nowy pulpit" Command="{Binding NewDashboardCommand}" />
             <MenuItem Header="Zapisz układ" Command="{Binding RetrySaveLayoutCommand}" />
             <MenuItem Header="Wczytaj ponownie" Command="{Binding ReloadCommand}" />
           </ContextMenu>
-        </controls:PanelLayoutMenuButton.ContextMenu>
-      </controls:PanelLayoutMenuButton>
-      </Grid>
+          </controls:PanelLayoutMenuButton.ContextMenu>
+        </controls:PanelLayoutMenuButton>
+        <TextBlock DockPanel.Dock="Left" Text="UberDashboard" VerticalAlignment="Center" Margin="6,0,16,0" FontWeight="SemiBold">
+          <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding IsDockedBar}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+        </TextBlock>
+        <ComboBox MaxWidth="240" HorizontalAlignment="Left" MinWidth="90"
+                  ItemsSource="{Binding Dashboards}" SelectedItem="{Binding SelectedDashboard}"
+                  Style="{StaticResource ThemedComboBox}" AutomationProperties.Name="Aktywny pulpit"
+                  ToolTip="Przełącza pulpit i wczytuje jego zapisany układ oraz panele.">
+          <ComboBox.ItemTemplate><DataTemplate><DockPanel><Button DockPanel.Dock="Right" Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" Padding="5,2" Tag="{Binding}" Click="DeleteDashboard_Click" AutomationProperties.Name="Usuń pulpit" ToolTip="Usuwa ten pulpit wraz z jego panelami i układem."><Button.Style><Style TargetType="Button" BasedOn="{StaticResource PanelActionGlyphButton}"><Style.Triggers><DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding DataContext.Dashboards.Count, RelativeSource={RelativeSource AncestorType=ComboBox}}" Value="1"><Setter Property="IsEnabled" Value="False"/></DataTrigger></Style.Triggers></Style></Button.Style></Button><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,8,0"/></DockPanel></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
+      </DockPanel>
     </Border>
 
     <!-- Obszar roboczy: rekursywnie renderowane drzewo paneli bieżącego pulpitu. -->

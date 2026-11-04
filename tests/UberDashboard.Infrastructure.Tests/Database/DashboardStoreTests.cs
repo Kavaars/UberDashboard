@@ -83,6 +83,7 @@ public sealed class DashboardStoreTests
     public async Task Delete_removes_dashboard_with_layout_and_instances()
     {
         await using var fixture = new DatabaseFixture();
+        await fixture.Dashboards.CreateAsync("Pozostaje", fixture.Clock.UtcNow);
         var dashboard = await fixture.Dashboards.CreateAsync("Do usunięcia", fixture.Clock.UtcNow);
         var instanceId = PanelInstanceId.New();
 
@@ -108,6 +109,18 @@ public sealed class DashboardStoreTests
         Assert.Null(await fixture.Dashboards.GetAsync(dashboard.DashboardId));
         Assert.Equal(0L, Count(fixture, "SELECT COUNT(*) FROM DashboardLayout WHERE DashboardId = $id;", dashboard.DashboardId));
         Assert.Equal(0L, Count(fixture, "SELECT COUNT(*) FROM PanelInstance WHERE DashboardId = $id;", dashboard.DashboardId));
+    }
+
+    [Fact]
+    public async Task Delete_rejects_last_and_active_dashboard()
+    {
+        await using var fixture = new DatabaseFixture();
+        var first = await fixture.Dashboards.CreateAsync("Pierwszy", fixture.Clock.UtcNow);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Dashboards.DeleteAsync(first.DashboardId));
+        var second = await fixture.Dashboards.CreateAsync("Drugi", fixture.Clock.UtcNow);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Dashboards.DeleteAsync(first.DashboardId));
+        await fixture.Dashboards.DeleteAsync(second.DashboardId);
+        Assert.Single(await fixture.Dashboards.ListAsync());
     }
 
     [Fact]
