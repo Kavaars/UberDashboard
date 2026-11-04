@@ -210,7 +210,7 @@ internal static class Program
             var settingsRoot = (FrameworkElement)settings.Content;
             await RenderAsync(settingsRoot, Path.Combine(output, "settings.png"), 980, 720);
             var tabControl = Descendants(settingsRoot).OfType<System.Windows.Controls.TabControl>().Single();
-            tabControl.SelectedIndex = 3;
+            tabControl.SelectedItem = tabControl.Items.OfType<System.Windows.Controls.TabItem>().Single(tab => tab.Name == "PluginsTab");
             await RenderAsync(settingsRoot, Path.Combine(output, "plugins-settings.png"), 980, 720);
             Check(Descendants(settingsRoot).OfType<System.Windows.Controls.Button>().Any(b => b.Content?.ToString() == "Usuń"), "Installed plugin removal action renders in settings");
             settings.Close();

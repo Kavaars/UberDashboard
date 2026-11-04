@@ -32,6 +32,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IDashboardStore, DashboardStore>();
         services.AddSingleton<ILayoutStore, LayoutStore>();
         services.AddSingleton<IPanelInstanceStore, PanelInstanceStore>();
+        services.AddSingleton<IPanelTabGroupStore, PanelTabGroupStore>();
         services.AddSingleton<IAppSettingsStore, AppSettingsStore>();
         services.AddSingleton<IWindowModeSettingsService, WindowModeSettingsService>();
         services.AddSingleton<IWeatherCacheStore, WeatherCacheStore>();

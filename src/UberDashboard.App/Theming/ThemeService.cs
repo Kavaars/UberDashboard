@@ -96,7 +96,7 @@ public sealed class ThemeService : IDisposable
             .ConfigureAwait(false);
 
         var settings = await _applicationSettings.LoadAsync(cancellationToken).ConfigureAwait(false);
-        var migrated = settings with { PaletteVersion = 1, AccentColor = null, WindowBackgroundColor = null, SurfaceColor = null, SurfaceAltColor = null };
+        var migrated = settings with { PaletteVersion = 1 };
         CurrentSettings = migrated.Normalize();
         if (migrated != settings) await _applicationSettings.SaveAsync(migrated, cancellationToken).ConfigureAwait(false);
         ApplyPersonalizationToResources(migrated);
@@ -245,6 +245,8 @@ public sealed class ThemeService : IDisposable
 
         var normalized = settings.Normalize();
         SetBrushOverride(application, "Brush.Accent", normalized.AccentColor);
+        SetOrRemoveResource(application, "Token.Margin.Panel", normalized.PanelSpacing is { } spacing ? new Thickness((spacing - 6d) / 2d) : null);
+        SetOrRemoveResource(application, "Token.Splitter.Line", normalized.DividerThickness);
         SetBrushOverride(application, "Brush.Accent.Text", ChooseTextColor(normalized.AccentColor));
         SetBrushOverride(application, "Brush.Window.Background", normalized.WindowBackgroundColor);
         SetBrushOverride(application, "Brush.Surface", normalized.SurfaceColor);
@@ -272,7 +274,7 @@ public sealed class ThemeService : IDisposable
         {
             application.Resources["Token.CornerRadius.S"] = new CornerRadius(Math.Max(2d, cornerRadius - 4d));
             application.Resources["Token.CornerRadius.M"] = new CornerRadius(cornerRadius);
-            application.Resources["Token.CornerRadius.L"] = new CornerRadius(cornerRadius + 6d);
+            application.Resources["Token.CornerRadius.L"] = new CornerRadius(cornerRadius);
         }
         else
         {
@@ -283,10 +285,10 @@ public sealed class ThemeService : IDisposable
 
         if (normalized.DensityScale is { } density)
         {
-            application.Resources["Token.Padding.Control"] = Scale(new Thickness(12d, 7d, 12d, 7d), density);
-            application.Resources["Token.Padding.ControlSmall"] = Scale(new Thickness(8d, 4d, 8d, 4d), density);
-            application.Resources["Token.Padding.Toolbar"] = Scale(new Thickness(18d, 14d, 18d, 14d), density);
-            application.Resources["Token.Padding.Panel"] = Scale(new Thickness(14d), density);
+            application.Resources["Token.Padding.Control"] = Scale(new Thickness(10d, 5d, 10d, 5d), density);
+            application.Resources["Token.Padding.ControlSmall"] = Scale(new Thickness(7d, 3d, 7d, 3d), density);
+            application.Resources["Token.Padding.Toolbar"] = Scale(new Thickness(12d, 8d, 12d, 8d), density);
+            application.Resources["Token.Padding.Panel"] = Scale(new Thickness(12d), density);
         }
         else
         {

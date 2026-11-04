@@ -8,12 +8,14 @@
   <sys:Double x:Key="Token.FontSize.Caption">12</sys:Double>
 
   <CornerRadius x:Key="Token.CornerRadius.S">8</CornerRadius>
-  <CornerRadius x:Key="Token.CornerRadius.M">12</CornerRadius>
+  <CornerRadius x:Key="Token.CornerRadius.M">18</CornerRadius>
   <CornerRadius x:Key="Token.CornerRadius.L">18</CornerRadius>
 
-  <Thickness x:Key="Token.Padding.Control">12,7,12,7</Thickness>
-  <Thickness x:Key="Token.Padding.ControlSmall">8,4,8,4</Thickness>
-  <Thickness x:Key="Token.Padding.Toolbar">18,14,18,14</Thickness>
-  <Thickness x:Key="Token.Padding.Panel">14</Thickness>
+  <Thickness x:Key="Token.Padding.Control">10,5,10,5</Thickness>
+  <Thickness x:Key="Token.Padding.ControlSmall">7,3,7,3</Thickness>
+  <Thickness x:Key="Token.Padding.Toolbar">12,8,12,8</Thickness>
+  <Thickness x:Key="Token.Padding.Panel">12</Thickness>
 
+  <Thickness x:Key="Token.Margin.Panel">2</Thickness>
+  <sys:Double x:Key="Token.Splitter.Line">1</sys:Double>
 </ResourceDictionary>

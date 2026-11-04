@@ -4,6 +4,33 @@
   <controls:SettingsValueLabelConverter x:Key="SettingsValueLabel" />
   <controls:PanelHeaderWidthConverter x:Key="PanelHeaderWidth" />
   <controls:CompactPanelConverter x:Key="CompactPanel" />
+  <Style TargetType="controls:PersistedGridSplitter">
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="controls:PersistedGridSplitter">
+          <Border x:Name="HitSurface" Background="Transparent" BorderBrush="Transparent">
+            <Border x:Name="Line" Background="{DynamicResource Brush.Splitter}" Height="{DynamicResource Token.Splitter.Line}" VerticalAlignment="Center" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="ResizeDirection" Value="Columns">
+              <Setter TargetName="Line" Property="Height" Value="Auto" />
+              <Setter TargetName="Line" Property="Width" Value="{DynamicResource Token.Splitter.Line}" />
+              <Setter TargetName="Line" Property="VerticalAlignment" Value="Stretch" />
+              <Setter TargetName="Line" Property="HorizontalAlignment" Value="Center" />
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="HitSurface" Property="Background" Value="{DynamicResource Brush.Surface.Alt}" />
+              <Setter TargetName="Line" Property="Background" Value="{DynamicResource Brush.Accent}" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="HitSurface" Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+              <Setter TargetName="HitSurface" Property="BorderThickness" Value="1" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
   <Style TargetType="controls:PanelEdgeThumb">
     <Setter Property="Template">
       <Setter.Value>
@@ -73,7 +100,7 @@
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{DynamicResource Token.CornerRadius.L}" />
     <Setter Property="Padding" Value="{DynamicResource Token.Padding.Toolbar}" />
-    <Setter Property="Margin" Value="8,8,8,4" />
+    <Setter Property="Margin" Value="0,0,0,4" />
   </Style>
 
   <Style x:Key="ToolbarButton" TargetType="Button">
@@ -81,7 +108,7 @@
     <Setter Property="FontSize" Value="{DynamicResource Token.FontSize.Body}" />
     <Setter Property="Background" Value="{DynamicResource Brush.Surface.Alt}" />
     <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Padding" Value="{DynamicResource Token.Padding.Control}" />
     <Setter Property="Margin" Value="0,0,8,0" />
@@ -120,7 +147,7 @@
     <Setter Property="FontSize" Value="{DynamicResource Token.FontSize.Body}" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
-    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Padding" Value="{DynamicResource Token.Padding.ControlSmall}" />
     <Setter Property="Margin" Value="4,0,0,0" />
@@ -170,7 +197,7 @@
   </Style>
 
   <Style x:Key="PanelPopupCard" TargetType="Border">
-    <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Popup}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{DynamicResource Token.CornerRadius.M}" />
@@ -368,7 +395,7 @@
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="Padding" Value="{DynamicResource Token.Padding.ControlSmall}" />
-    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="MinHeight" Value="30" />
     <Setter Property="ItemContainerStyle" Value="{StaticResource ThemedComboBoxItem}" />
     <Setter Property="Template">
       <Setter.Value>
@@ -450,14 +477,55 @@
     <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
     <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
-    <Setter Property="Padding" Value="{DynamicResource Token.Padding.Control}" />
+    <Setter Property="Padding" Value="10,5" />
     <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="MenuItem">
+          <Border x:Name="Item" Background="Transparent" CornerRadius="{DynamicResource Token.CornerRadius.S}" Padding="{TemplateBinding Padding}">
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="20" /><ColumnDefinition Width="*" /><ColumnDefinition Width="18" /></Grid.ColumnDefinitions>
+              <Grid>
+                <ContentPresenter Content="{TemplateBinding Icon}" VerticalAlignment="Center" />
+                <TextBlock x:Name="Check" Text="✓" Visibility="Collapsed" VerticalAlignment="Center" />
+              </Grid>
+              <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center" Margin="2,0,12,0" />
+              <TextBlock x:Name="Arrow" Grid.Column="2" Text="›" Visibility="Collapsed" VerticalAlignment="Center" />
+              <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsSubmenuOpen}" Placement="Right" AllowsTransparency="True" Focusable="False">
+                <Border Background="{DynamicResource Brush.Popup}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="{DynamicResource Token.CornerRadius.M}" Padding="4">
+                  <ScrollViewer MaxHeight="480" VerticalScrollBarVisibility="Auto" CanContentScroll="True"><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" /></ScrollViewer>
+                </Border>
+              </Popup>
+            </Grid>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Item" Property="Background" Value="{DynamicResource Brush.Surface.Alt}" /></Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Item" Property="Background" Value="{DynamicResource Brush.Surface.Alt}" /></Trigger>
+            <Trigger Property="IsChecked" Value="True"><Setter TargetName="Check" Property="Visibility" Value="Visible" /></Trigger>
+            <Trigger Property="HasItems" Value="True"><Setter TargetName="Arrow" Property="Visibility" Value="Visible" /></Trigger>
+            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5" /></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
   </Style>
 
   <Style TargetType="ContextMenu">
-    <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Popup}" />
     <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+    <Setter Property="FontFamily" Value="{DynamicResource Token.FontFamily}" />
+    <Setter Property="FontSize" Value="{DynamicResource Token.FontSize.Body}" />
+    <Setter Property="HasDropShadow" Value="False" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ContextMenu">
+          <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource Token.CornerRadius.M}" Padding="5">
+            <ScrollViewer MaxHeight="520" VerticalScrollBarVisibility="Auto" CanContentScroll="True"><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" /></ScrollViewer>
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
     <Style.Resources>
       <Style TargetType="MenuItem" BasedOn="{StaticResource ToolbarMenuItem}" />
     </Style.Resources>
@@ -483,7 +551,7 @@
     <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
     <Setter Property="BorderThickness" Value="1" />
-    <Setter Property="Margin" Value="4" />
+    <Setter Property="Margin" Value="{DynamicResource Token.Margin.Panel}" />
     <Setter Property="CornerRadius" Value="{DynamicResource Token.CornerRadius.L}" />
   </Style>
 

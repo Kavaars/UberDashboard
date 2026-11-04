@@ -1,3 +1,54 @@
+2026-11-04T10:00:34+01:00 | wersja źródeł 1.8.0
+- Niezależny kolor i widoczność niewpisanej części afirmacji.
+- Puste notatki można usuwać bez potwierdzenia; komunikaty korzystają z motywu aplikacji.
+- Zakładki znajdują się obok nazwy panelu, a selektor umożliwia usuwanie pulpitów.
+
+2026-11-04T09:19:57+01:00 | wersja źródeł 1.8.0
+- Wszystkie panele treści, także wtyczki, obsługują niezależne zakładki.
+- Dodawanie, nazywanie, kolejność i usuwanie zakładek; wspólny wygląd panelu.
+- Istniejące notatki są przenoszone z zachowaniem kopii stanu sprzed migracji.
+
+2026-11-04T08:38:58+01:00 | prace rozwojowe 1.7.0
+- Dodano operacje magazynu zakładek; wspólne zakładki nie są jeszcze dostępne.
+
+2026-11-04T08:36:04+01:00 | prace rozwojowe 1.7.0
+- Rozszerzono magazyn grup zakładek; funkcja nie jest jeszcze dostępna.
+
+2026-11-04T08:32:53+01:00 | prace rozwojowe 1.7.0
+- Przygotowano zapis grup zakładek; funkcja nie jest jeszcze dostępna.
+
+2026-11-04T08:28:26+01:00 | prace rozwojowe 1.7.0
+- Przygotowano migrację danych notatnika; wspólne zakładki nie są jeszcze dostępne.
+
+2026-11-04T08:23:36+01:00 | prace rozwojowe 1.7.0
+- Rozpoczęto przygotowanie wspólnej obsługi zakładek paneli; funkcja nie jest jeszcze dostępna.
+
+2026-11-04T08:12:10+01:00 | zmiany robocze 1.7.0
+- Kolor tekstu panelu zależy od motywu lub indywidualnego ustawienia.
+
+2026-11-04T07:34:00+01:00 | zmiany robocze 1.7.0
+- Ułatwiono zarządzanie zakładkami notatnika i ujednolicono tło pogody.
+
+2026-11-03T22:00:45+01:00 | zmiany robocze 1.7.0
+- Poprawiono czytelność tekstu i zakładek notatnika w ciemnym motywie.
+
+2026-11-03T21:39:36+01:00 | zmiany robocze 1.7.0
+- Dodano zakładki notatnika i poprawiono napisy afirmacji.
+- Poprawiono tło menu, kolor tekstu notatnika i zmianę grubości paska.
+
+2026-11-03T21:20:00+01:00 | wersja 1.7.0
+- Cieplejsze motywy jasny i ciemny, zaokrąglenia 18 px oraz subtelniejsze podziały paneli.
+- Zwarte menu pulpitu i ustawienia w sześciu kategoriach. Próbki kolorów otwierają pełny edytor po kliknięciu.
+- Osobna regulacja odstępu paneli i linii podziału. Zmiana motywu zachowuje własne kolory.
+- Nowe profile uruchamiają się w trybie paska. Istniejące profile korzystają z zapisanego trybu.
+
+2026-11-03T10:36:00+01:00 | wersja źródła 1.5.1
+- Kliknięcie tekstu afirmacji aktywuje wpisywanie; pole zawiera teraz wskazówkę „Pisz tutaj”.
+
+2026-11-03T10:15:00+01:00 | wersja źródła 1.5.0
+- Dodano panel afirmacji z ćwiczeniem przepisywania, zapisem postępu oraz ręcznym i automatycznym resetem.
+- Suwak widoczności treści nie zmienia już krycia tapety aplikacji.
+
 2026-11-03T08:36:48+01:00 | wersja źródła 1.4.0
 - Dodano opcję systemowego rozmycia tła za oknem Windows 11 oraz poziome układy notatek, zadań i ramki zdjęć.
 - Wtyczki mogą dostosowywać własny układ do rozmiaru panelu przez nowy opcjonalny kontrakt.
@@ -80,3 +131,5 @@
 2026-11-03T09:54:37+01:00 — synchronizacja źródeł 1.4.0
 - Zebrano w repozytorium zmiany układu i wyglądu paneli, obsługę pluginów PhotoFrame oraz poprawki pogody i trybów okna.
 - Synchronizacja źródeł nie stanowi nowego wydania instalatora.
+
+2026-11-03T11:00:00+01:00 | Panel afirmacji: czcionka, rozmiar, interlinia, kolory i statystyki serii.

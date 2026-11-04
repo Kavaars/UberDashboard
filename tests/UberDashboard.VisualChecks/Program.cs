@@ -78,9 +78,15 @@ internal static class Program
                     await shell.AddPanelCommand.ExecuteAsync("notes");
                     await shell.AddPanelCommand.ExecuteAsync("todo");
                     await shell.AddPanelCommand.ExecuteAsync("weather");
+                    await shell.AddPanelCommand.ExecuteAsync("affirmations");
                 }
                 foreach (var leaf in Leaves(shell.Root))
                 {
+                    if (leaf.ViewModel is UberDashboard.App.Features.Affirmations.AffirmationPanelViewModel affirmation)
+                    {
+                        affirmation.Texts = "Jestem spokojny.\nKażdy dzień daje nowe możliwości.";
+                        affirmation.Accept("Jestem ");
+                    }
                     if (leaf.ViewModel is UberDashboard.App.Features.Todo.TodoPanelViewModel todo)
                     {
                         todo.NewItemText = "Przykładowe zadanie z dłuższym opisem, który powinien się zawijać";
@@ -125,6 +131,7 @@ internal static class Program
                     _exitCode = 0;
                     return;
                 }
+                var affirmationInputChecked = false;
                 foreach (var kind in new[] { ThemeKind.Light, ThemeKind.Dark, ThemeKind.System })
                 {
                     Console.WriteLine($"Applying theme {kind}");
@@ -142,6 +149,29 @@ internal static class Program
                             root.Arrange(new Rect(size));
                             root.UpdateLayout();
                             await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+                            if (!affirmationInputChecked)
+                            {
+                                var input = Descendants(root).OfType<UberDashboard.App.Controls.AffirmationInput>().Single();
+                                var prompt = Descendants(root).OfType<StackPanel>().Single(p => UberDashboard.App.Controls.AffirmationInput.GetFocusTarget(p) == input);
+                                var click = new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0, System.Windows.Input.MouseButton.Left)
+                                { RoutedEvent = UIElement.PreviewMouseLeftButtonDownEvent };
+                                prompt.RaiseEvent(click);
+                                if (!click.Handled) throw new InvalidOperationException("Affirmation prompt did not handle click for focus");
+                                var model = (UberDashboard.App.Features.Affirmations.AffirmationPanelViewModel)input.DataContext;
+                                void Type(string text)
+                                {
+                                    var composition = new System.Windows.Input.TextComposition(System.Windows.Input.InputManager.Current, input, text);
+                                    var args = new System.Windows.Input.TextCompositionEventArgs(System.Windows.Input.InputManager.Current.PrimaryKeyboardDevice, composition)
+                                    { RoutedEvent = System.Windows.Input.TextCompositionManager.PreviewTextInputEvent };
+                                    input.RaiseEvent(args);
+                                }
+                                Type("x");
+                                if (model.Typed != "Jestem ") throw new InvalidOperationException("Invalid character changed affirmation progress");
+                                Type("s");
+                                if (model.Typed != "Jestem s") throw new InvalidOperationException("Keyboard input did not update affirmation progress");
+                                affirmationInputChecked = true;
+                                Console.WriteLine("AFFIRMATION PROMPT AND TEXT INPUT PASS");
+                            }
                             foreach (var noteEditor in Descendants(root).OfType<UberDashboard.App.Controls.BindableRichTextBox>())
                             {
                                 var run = noteEditor.Document.Blocks.OfType<System.Windows.Documents.Paragraph>().SelectMany(p => p.Inlines.OfType<System.Windows.Documents.Run>()).FirstOrDefault();
@@ -167,29 +197,60 @@ internal static class Program
                 foreach (var kind in new[] { ThemeKind.Light, ThemeKind.Dark, ThemeKind.System })
                 {
                     await theme.ApplyAsync(kind, CancellationToken.None);
-                    for (var tab = 0; tab < 3; tab++)
+                    foreach (var settingsSize in new[] { new Size(860, 650), new Size(740, 520) })
+                    for (var tab = 0; tab < 6; tab++)
                     {
                         Descendants(settingsRoot).OfType<TabControl>().FirstOrDefault()?.SetCurrentValue(TabControl.SelectedIndexProperty, tab);
-                        settingsRoot.Measure(new Size(980, 720));
-                        settingsRoot.Arrange(new Rect(0, 0, 980, 720));
+                        settingsRoot.Measure(settingsSize);
+                        settingsRoot.Arrange(new Rect(settingsSize));
                         settingsRoot.UpdateLayout();
                         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
                         // The first measure creates the template and its tab control.
                         var tabs = Descendants(settingsRoot).OfType<TabControl>().Single();
                         tabs.SelectedIndex = tab;
                         settingsRoot.UpdateLayout();
-                        var bitmap = new RenderTargetBitmap(980, 720, 96, 96, PixelFormats.Pbgra32);
-                        DrawBackground(bitmap, app, new Size(980, 720));
+                        var pickers = Descendants(settingsRoot).OfType<UberDashboard.App.Controls.CompactColorPicker>().ToArray();
+                        if (pickers.Any(p => p.IsEditorCreated)) throw new InvalidOperationException("Color editor was eagerly created");
+                        var bitmap = new RenderTargetBitmap((int)settingsSize.Width, (int)settingsSize.Height, 96, 96, PixelFormats.Pbgra32);
+                        DrawBackground(bitmap, app, settingsSize);
                         bitmap.Render(settingsRoot);
                         var encoder = new PngBitmapEncoder();
                         encoder.Frames.Add(BitmapFrame.Create(bitmap));
                         ValidateGlyphs(settingsRoot);
-                        using var stream = File.Create(Path.Combine(output, $"{kind}-settings-{tab}.png"));
+                        using var stream = File.Create(Path.Combine(output, $"{kind}-settings-{tab}-{settingsSize.Width}x{settingsSize.Height}.png"));
                         encoder.Save(stream);
-                        Console.WriteLine($"RENDER PASS {kind}-settings-{tab}.png");
+                        Console.WriteLine($"RENDER PASS {kind}-settings-{tab}-{settingsSize.Width}x{settingsSize.Height}.png");
                     }
                 }
                 var liveSettings = (UberDashboard.App.Settings.SettingsViewModel)settingsWindow.DataContext;
+                foreach (var kind in new[] { ThemeKind.Light, ThemeKind.Dark })
+                {
+                    liveSettings.SelectedTheme = kind;
+                    liveSettings.FontSize = 24;
+                    liveSettings.DensityScale = 1.35;
+                    liveSettings.PanelSpacing = 32;
+                    liveSettings.DividerThickness = 0;
+                    await liveSettings.FlushAsync();
+                    if (theme.ReadDouble("Token.Splitter.Line", -1) != 0
+                        || app.FindResource("Token.Margin.Panel") is not Thickness { Left: 13 })
+                        throw new InvalidOperationException("Live spacing resources did not follow settings");
+                    foreach (var tab in new[] { 0, 1, 2, 3, 4, 5 })
+                    {
+                        Descendants(settingsRoot).OfType<TabControl>().Single().SelectedIndex = tab;
+                        var size = new Size(740, 520);
+                        settingsRoot.Measure(size); settingsRoot.Arrange(new Rect(size)); settingsRoot.UpdateLayout();
+                        await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+                        var bitmap = new RenderTargetBitmap(740, 520, 96, 96, PixelFormats.Pbgra32);
+                        DrawBackground(bitmap, app, size); bitmap.Render(settingsRoot); ValidateGlyphs(settingsRoot);
+                        var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                        var filename = $"{kind}-settings-large-font-{tab}.png";
+                        using var stream = File.Create(Path.Combine(output, filename)); encoder.Save(stream);
+                        Console.WriteLine($"RENDER PASS {filename}");
+                    }
+                }
+                liveSettings.DensityScale = 1;
+                liveSettings.PanelSpacing = 10;
+                liveSettings.DividerThickness = 1;
                 liveSettings.SelectedFontFamily = "Consolas";
                 liveSettings.FontSize = 18;
                 if (theme.ReadFontFamilyName() != "Consolas" || theme.ReadDouble("Token.FontSize.Body", 0) != 18)

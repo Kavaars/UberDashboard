@@ -70,18 +70,11 @@ public sealed class BindableRichTextBox : WpfRichTextBox
     }
 
     // XamlPackage materializes inherited foregrounds on paragraphs and runs.
-    // Restore inheritance for neutral theme colors; preserve intentional colored text.
+    // Panel text has one color; leave font, images and other formatting intact.
     internal static void ClearSerializedThemeColors(DependencyObject node)
     {
-        if (node is TextElement text && text.ReadLocalValue(TextElement.ForegroundProperty) is System.Windows.Media.SolidColorBrush brush)
-        {
-            var color = brush.Color;
-            if ((color.R == 0 && color.G == 0 && color.B == 0)
-                || (color.R == 255 && color.G == 255 && color.B == 255)
-                || (color.R == 15 && color.G == 23 && color.B == 42)
-                || (color.R == 242 && color.G == 243 && color.B == 245))
-                text.ClearValue(TextElement.ForegroundProperty);
-        }
+        if (node is TextElement text && text.ReadLocalValue(TextElement.ForegroundProperty) != DependencyProperty.UnsetValue)
+            text.ClearValue(TextElement.ForegroundProperty);
         foreach (var child in LogicalTreeHelper.GetChildren(node).OfType<DependencyObject>()) ClearSerializedThemeColors(child);
     }
 
@@ -94,9 +87,18 @@ public sealed class BindableRichTextBox : WpfRichTextBox
             return;
         }
 
-        var content = NotesRichContentSerializer.Serialize(Document);
-        SetCurrentValue(DocumentPayloadProperty, content.Payload);
-        SetCurrentValue(PlainTextProperty, content.PlainText);
+        _isInternalUpdate = true;
+        try
+        {
+            ClearSerializedThemeColors(Document);
+            var content = NotesRichContentSerializer.Serialize(Document);
+            SetCurrentValue(DocumentPayloadProperty, content.Payload);
+            SetCurrentValue(PlainTextProperty, content.PlainText);
+        }
+        finally
+        {
+            _isInternalUpdate = false;
+        }
     }
 
     private static void OnDocumentPayloadChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

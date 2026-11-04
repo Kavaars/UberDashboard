@@ -159,6 +159,9 @@ public sealed class PanelHostManager : IAsyncDisposable
         }
     }
 
+    /// <summary>Oczekuje na utrwalenie stanu aktywnej instancji.</summary>
+    public Task FlushAsync(PanelInstanceId instanceId, CancellationToken cancellationToken) => _scheduler.FlushAsync(instanceId, cancellationToken);
+
     /// <summary>
     /// Utrwala stan, wygasza token zamknięcia i zwalnia instancję, zachowując jej
     /// rekord w magazynie. Używane przy ukryciu panelu.
@@ -202,6 +205,79 @@ public sealed class PanelHostManager : IAsyncDisposable
         }
         finally { hosted.LifecycleGate.Release(); }
     }
+    /// <summary>Utrwala bieżący stan przed zatwierdzeniem usunięcia i wywołuje cykl życia tylko po udanym zapisie.</summary>
+    public async Task RemoveWithCommitAsync(PanelInstanceId instanceId, Func<CancellationToken, Task> commit, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(commit);
+        if (!_hosted.TryGetValue(instanceId, out var hosted)) { await commit(cancellationToken).ConfigureAwait(true); return; }
+        await hosted.LifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(true);
+        try
+        {
+            if (!_hosted.TryGetValue(instanceId, out var current) || !ReferenceEquals(current, hosted))
+            {
+                await commit(cancellationToken).ConfigureAwait(true);
+                return;
+            }
+            _scheduler.Untrack(instanceId);
+            try
+            {
+                await PersistAsync(hosted, cancellationToken).ConfigureAwait(true);
+                await commit(cancellationToken).ConfigureAwait(true);
+            }
+            catch
+            {
+                _scheduler.Track(new PanelStateSink(hosted, PersistAsync));
+                _scheduler.RequestSave(instanceId);
+                throw;
+            }
+            _hosted.Remove(instanceId);
+            if (hosted.Instance is IPanelStateNotifications changes) changes.StateChanged -= hosted.StateChangedHandler;
+            try { await hosted.Instance.PrepareForRemovalAsync(CancellationToken.None).ConfigureAwait(true); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Panel {InstanceId} zgłosił błąd podczas przygotowania do usunięcia.", instanceId); }
+            hosted.CloseToken.Cancel();
+            await SafeDisposeAsync(hosted.Instance).ConfigureAwait(true);
+            hosted.CloseToken.Dispose();
+        }
+        finally { hosted.LifecycleGate.Release(); }
+    }
+
+    /// <summary>Zatwierdza usunięcie wielu instancji jedną operacją, zachowując je przy błędzie zapisu.</summary>
+    public async Task RemoveManyWithCommitAsync(IEnumerable<PanelInstanceId> ids, Func<CancellationToken, Task> commit, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(ids); ArgumentNullException.ThrowIfNull(commit);
+        var panels = ids.Distinct().OrderBy(id => id.Value).Select(id => _hosted.GetValueOrDefault(id)).Where(x => x is not null).Cast<HostedPanel>().ToArray();
+        var locked = new List<HostedPanel>();
+        try
+        {
+            foreach (var panel in panels) { await panel.LifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(true); locked.Add(panel); }
+            foreach (var panel in panels)
+                if (!_hosted.TryGetValue(panel.Record.InstanceId, out var current) || !ReferenceEquals(panel, current))
+                    throw new InvalidOperationException("Stan panelu zmienił się; ponów usuwanie.");
+            foreach (var panel in panels) _scheduler.Untrack(panel.Record.InstanceId);
+            try
+            {
+                foreach (var panel in panels) await PersistAsync(panel, cancellationToken).ConfigureAwait(true);
+                await commit(cancellationToken).ConfigureAwait(true);
+            }
+            catch
+            {
+                foreach (var panel in panels) { _scheduler.Track(new PanelStateSink(panel, PersistAsync)); _scheduler.RequestSave(panel.Record.InstanceId); }
+                throw;
+            }
+            foreach (var panel in panels)
+            {
+                _hosted.Remove(panel.Record.InstanceId);
+                if (panel.Instance is IPanelStateNotifications changes) changes.StateChanged -= panel.StateChangedHandler;
+                try { await panel.Instance.PrepareForRemovalAsync(CancellationToken.None).ConfigureAwait(true); }
+                catch (Exception ex) { _logger.LogWarning(ex, "Panel {InstanceId} zgłosił błąd podczas przygotowania do usunięcia.", panel.Record.InstanceId); }
+                panel.CloseToken.Cancel();
+                await SafeDisposeAsync(panel.Instance).ConfigureAwait(true);
+                panel.CloseToken.Dispose();
+            }
+        }
+        finally { foreach (var panel in locked.AsEnumerable().Reverse()) panel.LifecycleGate.Release(); }
+    }
+
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {

@@ -16,9 +16,9 @@ public sealed class PanelLeafViewModel : LayoutNodeViewModel, IDisposable
 {
     private const string UnsavedChangesPropertyName = "HasUnsavedChanges";
 
-    private readonly INotifyPropertyChanged? _viewModelNotifications;
-    private readonly PropertyInfo? _unsavedChangesProperty;
-    private readonly IPanelFormattingPresenter? _formattingPresenter;
+    private INotifyPropertyChanged? _viewModelNotifications;
+    private PropertyInfo? _unsavedChangesProperty;
+    private IPanelFormattingPresenter? _formattingPresenter;
     private bool _isEditMode;
     public UberDashboard.App.Settings.PanelAppearanceViewModel? Appearance { get; set; }
     private string? _dropHint;
@@ -49,16 +49,9 @@ public sealed class PanelLeafViewModel : LayoutNodeViewModel, IDisposable
         DisplayName = displayName;
         IconKey = iconKey;
         IconGlyph = ResolveIconGlyph(iconKey);
-        ViewModel = viewModel;
-        _formattingPresenter = viewModel as IPanelFormattingPresenter;
+        _viewModel = viewModel;
+        AttachViewModel(viewModel);
 
-        if (viewModel is INotifyPropertyChanged notifications)
-        {
-            _viewModelNotifications = notifications;
-            _unsavedChangesProperty = viewModel.GetType().GetProperty(UnsavedChangesPropertyName);
-            _viewModelNotifications.PropertyChanged += OnViewModelPropertyChanged;
-            RefreshUnsavedChanges();
-        }
     }
 
     /// <summary>Identyfikator instancji panelu.</summary>
@@ -77,7 +70,39 @@ public sealed class PanelLeafViewModel : LayoutNodeViewModel, IDisposable
     public string IconGlyph { get; }
 
     /// <summary>Model widoku dostarczony przez panel.</summary>
-    public object ViewModel { get; }
+    private object _viewModel;
+    public object ViewModel => _viewModel;
+    public PanelGroupSession? TabSession { get; private set; }
+    public void SetTabSession(PanelGroupSession session)
+    {
+        if (TabSession is not null) { TabSession.Changed -= OnTabSessionChanged; TabSession.PropertyChanged -= OnSessionPropertyChanged; }
+        TabSession = session;
+        TabSession.Changed += OnTabSessionChanged;
+        TabSession.PropertyChanged += OnSessionPropertyChanged;
+        OnPropertyChanged(nameof(TabSession));
+        OnTabSessionChanged(session, EventArgs.Empty);
+    }
+    private void OnSessionPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(PanelGroupSession.IsBusy) && TabSession?.IsBusy == true) IsOptionsOpen = false;
+    }
+    private void OnTabSessionChanged(object? sender, EventArgs e)
+    {
+        if (TabSession is null || ReferenceEquals(_viewModel, TabSession.ActiveViewModel)) return;
+        if (_viewModelNotifications is not null) _viewModelNotifications.PropertyChanged -= OnViewModelPropertyChanged;
+        _viewModel = TabSession.ActiveViewModel;
+        AttachViewModel(_viewModel);
+        OnPropertyChanged(nameof(ViewModel)); OnPropertyChanged(nameof(PanelContent));
+        OnPropertyChanged(nameof(HasFormatting)); OnPropertyChanged(nameof(IsFormattingVisible)); OnPropertyChanged(nameof(ToggleFormattingCommand));
+    }
+    private void AttachViewModel(object viewModel)
+    {
+        _formattingPresenter = viewModel as IPanelFormattingPresenter;
+        _viewModelNotifications = viewModel as INotifyPropertyChanged;
+        _unsavedChangesProperty = viewModel.GetType().GetProperty(UnsavedChangesPropertyName);
+        if (_viewModelNotifications is not null) _viewModelNotifications.PropertyChanged += OnViewModelPropertyChanged;
+        RefreshUnsavedChanges();
+    }
     public object PanelContent => ViewModel is UberDashboard.Contracts.Panels.IPanelContent custom ? custom.Content : ViewModel;
 
     /// <summary><see langword="true"/>, gdy panel udostępnia pływające okno opcji.</summary>
@@ -125,6 +150,7 @@ public sealed class PanelLeafViewModel : LayoutNodeViewModel, IDisposable
         }
 
         _disposed = true;
+        if (TabSession is not null) { TabSession.Changed -= OnTabSessionChanged; TabSession.PropertyChanged -= OnSessionPropertyChanged; }
 
         if (_viewModelNotifications is not null)
         {

@@ -5,6 +5,19 @@ namespace UberDashboard.App.Tests.Settings;
 
 public sealed class AppearanceRegressionTests
 {
+    [Fact]
+    public void Panel_text_override_round_trips_and_old_settings_default_to_theme()
+    {
+        var old = System.Text.Json.JsonSerializer.Deserialize<PanelAppearanceSettings>("{}");
+        Assert.NotNull(old);
+        Assert.False(old.OverrideTextColor);
+        var settings = new PanelAppearanceSettings { OverrideTextColor = true, TextColor = "#FF2384A1" }.Normalize();
+        var restored = System.Text.Json.JsonSerializer.Deserialize<PanelAppearanceSettings>(System.Text.Json.JsonSerializer.Serialize(settings));
+        Assert.NotNull(restored);
+        Assert.True(restored.OverrideTextColor);
+        Assert.Equal("#FF2384A1", restored.TextColor);
+    }
+
     [Theory]
     [InlineData("#FFFFFFFF", "#FF0F172A")]
     [InlineData("#FF202124", "#FFF2F3F5")]

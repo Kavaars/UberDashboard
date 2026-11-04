@@ -10,6 +10,19 @@ namespace UberDashboard.App.Tests.Settings;
 public sealed class PanelControlsTests
 {
     [Fact]
+    public void Compact_color_picker_keeps_the_selected_value_without_creating_the_editor()
+    {
+        RunSta(() =>
+        {
+            var picker = new CompactColorPicker { SelectedColor = "#80123456" };
+            Assert.False(picker.IsEditorCreated);
+            Assert.Equal("#80123456", picker.SelectedColor);
+            picker.SelectedColor = null;
+            Assert.Null(picker.SelectedColor);
+            Assert.False(picker.IsEditorCreated);
+        });
+    }
+    [Fact]
     public void Adaptive_grid_restores_rows_after_resizing_back_to_vertical()
     {
         RunSta(() =>
@@ -40,7 +53,7 @@ public sealed class PanelControlsTests
         Assert.Equal(expected, ColorWheel.FromHsv(hue, saturation, value).ToString());
 
     [Fact]
-    public void Saved_neutral_text_inherits_theme_without_losing_formatting_or_colored_text()
+    public void Saved_text_inherits_panel_color_without_losing_formatting()
     {
         RunSta(() =>
         {
@@ -54,11 +67,32 @@ public sealed class PanelControlsTests
             var runs = restored.Inlines.OfType<Run>().ToArray();
             Assert.Equal(Colors.White, Assert.IsType<SolidColorBrush>(runs[0].Foreground).Color);
             Assert.Equal(FontWeights.Bold, runs[0].FontWeight);
-            Assert.Equal(Colors.Red, Assert.IsType<SolidColorBrush>(runs[1].Foreground).Color);
+            Assert.Equal(Colors.White, Assert.IsType<SolidColorBrush>(runs[1].Foreground).Color);
             editor.Foreground = Brushes.Black;
             Assert.Equal(Colors.Black, Assert.IsType<SolidColorBrush>(runs[0].Foreground).Color);
         });
     }
+    [Fact]
+    public void Newly_inserted_text_follows_panel_color()
+    {
+        RunSta(() =>
+        {
+            var editor = new BindableRichTextBox { Foreground = Brushes.White };
+            var paragraph = new Paragraph();
+            editor.Document.Blocks.Clear();
+            editor.Document.Blocks.Add(paragraph);
+            var neutral = new Run("Wklejony tekst") { Foreground = Brushes.Black, FontWeight = FontWeights.Bold };
+            paragraph.Inlines.Add(neutral);
+            Assert.Equal(Colors.White, Assert.IsType<SolidColorBrush>(neutral.Foreground).Color);
+            Assert.Equal(FontWeights.Bold, neutral.FontWeight);
+            var colored = new Run("kolor") { Foreground = Brushes.Red };
+            paragraph.Inlines.Add(colored);
+            Assert.Equal(Colors.White, Assert.IsType<SolidColorBrush>(colored.Foreground).Color);
+            editor.Foreground = Brushes.Black;
+            Assert.Equal(Colors.Black, Assert.IsType<SolidColorBrush>(neutral.Foreground).Color);
+        });
+    }
+
     private static void RunSta(Action action)
     {
         Exception? error = null;

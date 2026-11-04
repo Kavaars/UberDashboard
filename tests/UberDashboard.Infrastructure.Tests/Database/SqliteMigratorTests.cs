@@ -6,6 +6,34 @@ namespace UberDashboard.Infrastructure.Tests.Database;
 public sealed class SqliteMigratorTests
 {
     [Fact]
+    public async Task Upgrading_version_one_preserves_existing_panel_state()
+    {
+        await using var fixture = new DatabaseFixture();
+        var dashboard = Guid.NewGuid().ToString("D");
+        var panel = Guid.NewGuid().ToString("D");
+        using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={fixture.Database.DatabaseFile};Pooling=False"))
+        {
+            connection.Open();
+            using var transaction = connection.BeginTransaction();
+            using var command = connection.CreateCommand(); command.Transaction = transaction;
+            command.CommandText = "CREATE TABLE SchemaMigration (Version INTEGER NOT NULL PRIMARY KEY, Name TEXT NOT NULL, AppliedAtUtc TEXT NOT NULL);";
+            command.ExecuteNonQuery();
+            foreach (var sql in SqliteSchema.Migrations[0].Statements) { command.CommandText = sql; command.ExecuteNonQuery(); }
+            command.CommandText = "INSERT INTO SchemaMigration VALUES (1, 'initial-schema', '2026-11-01T00:00:00Z');"; command.ExecuteNonQuery();
+            command.CommandText = "INSERT INTO Dashboard VALUES ($dashboard, 'Pulpit', '2026-11-01T00:00:00Z', '2026-11-01T00:00:00Z', 1);";
+            command.Parameters.AddWithValue("$dashboard", dashboard); command.ExecuteNonQuery();
+            command.CommandText = "INSERT INTO PanelInstance (InstanceId, DashboardId, PluginId, PanelTypeId, DisplayName, StateJson, CreatedAtUtc, UpdatedAtUtc) VALUES ($id, $dashboard, 'builtin', 'notes', 'Notatnik', $state, '2026-11-01T00:00:00Z', '2026-11-01T00:00:00Z');";
+            command.Parameters.AddWithValue("$id", panel); command.Parameters.AddWithValue("$state", "{\"Text\":\"oryginał\"}"); command.ExecuteNonQuery();
+            transaction.Commit();
+        }
+        fixture.Database.EnsureInitialized();
+        var record = await fixture.Panels.GetAsync(new UberDashboard.Core.Layout.PanelInstanceId(Guid.Parse(panel)));
+        Assert.Equal("{\"Text\":\"oryginał\"}", record!.StateJson);
+        Assert.Equal(SqliteSchema.CurrentVersion, ReadMaxSchemaVersion(fixture.Database));
+        Assert.Equal(0L, Count(fixture.Database, "SELECT COUNT(*) FROM PanelTabGroup;"));
+    }
+
+    [Fact]
     public async Task Initialize_records_supported_schema_version()
     {
         await using var fixture = new DatabaseFixture();
@@ -14,7 +42,7 @@ public sealed class SqliteMigratorTests
 
         Assert.True(fixture.Database.IsInitialized);
         Assert.Equal(SqliteSchema.CurrentVersion, ReadMaxSchemaVersion(fixture.Database));
-        Assert.Equal(1L, Count(fixture.Database, "SELECT COUNT(*) FROM SchemaMigration;"));
+        Assert.Equal((long)SqliteSchema.CurrentVersion, Count(fixture.Database, "SELECT COUNT(*) FROM SchemaMigration;"));
     }
 
     [Fact]
@@ -49,7 +77,7 @@ public sealed class SqliteMigratorTests
             reopened.EnsureInitialized();
 
             Assert.Equal(SqliteSchema.CurrentVersion, ReadMaxSchemaVersion(reopened));
-            Assert.Equal(1L, Count(reopened, "SELECT COUNT(*) FROM SchemaMigration;"));
+            Assert.Equal((long)SqliteSchema.CurrentVersion, Count(reopened, "SELECT COUNT(*) FROM SchemaMigration;"));
         }
         finally
         {

@@ -1,3 +1,4 @@
+using Brush = System.Windows.Media.Brush;
 using Color = System.Windows.Media.Color;
 using ColorConverter = System.Windows.Media.ColorConverter;
 using FontFamily = System.Windows.Media.FontFamily;
@@ -15,7 +16,8 @@ public sealed class PanelAppearanceBorder : Border
 {
     private static readonly DependencyProperty ThemeRevisionProperty = DependencyProperty.Register("ThemeRevision", typeof(object), typeof(PanelAppearanceBorder), new PropertyMetadata(null, (d, _) => ((PanelAppearanceBorder)d).Refresh()));
     private static readonly DependencyProperty SurfaceOpacityProperty = DependencyProperty.Register("SurfaceOpacity", typeof(double), typeof(PanelAppearanceBorder), new PropertyMetadata(1d, (d, _) => ((PanelAppearanceBorder)d).Refresh()));
-    public PanelAppearanceBorder() { SetResourceReference(ThemeRevisionProperty, "Token.ThemeRevision"); SetResourceReference(SurfaceOpacityProperty, "Token.BackgroundSurfaceOpacity"); }
+    private static readonly DependencyProperty PanelTextProperty = DependencyProperty.Register("PanelText", typeof(Brush), typeof(PanelAppearanceBorder), new PropertyMetadata(null, (d, _) => ((PanelAppearanceBorder)d).Refresh()));
+    public PanelAppearanceBorder() { SetResourceReference(PanelTextProperty, "Brush.Panel.DefaultText"); SetResourceReference(ThemeRevisionProperty, "Token.ThemeRevision"); SetResourceReference(SurfaceOpacityProperty, "Token.BackgroundSurfaceOpacity"); }
     public static readonly DependencyProperty AppearanceProperty = DependencyProperty.Register(nameof(Appearance), typeof(PanelAppearanceViewModel), typeof(PanelAppearanceBorder), new PropertyMetadata(null, Changed));
     public PanelAppearanceViewModel? Appearance { get => (PanelAppearanceViewModel?)GetValue(AppearanceProperty); set => SetValue(AppearanceProperty, value); }
     private static void Changed(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -40,9 +42,11 @@ public sealed class PanelAppearanceBorder : Border
             brush.Opacity = (double)GetValue(SurfaceOpacityProperty);
             if (!string.IsNullOrWhiteSpace(settings.WallpaperPath)) brush.Opacity *= 1 - settings.WallpaperOpacity * .65;
             Resources["Brush.Surface"] = brush; Resources["Brush.Surface.Alt"] = brush;
-            var text = new SolidColorBrush((Color)ColorConverter.ConvertFromString(ThemeService.ContrastingText(color)));
-            Resources["Brush.Text"] = text; Resources["Brush.Text.Muted"] = text;
         }
+        var text = settings.OverrideTextColor && settings.TextColor is { } custom
+            ? new SolidColorBrush((Color)ColorConverter.ConvertFromString(custom))
+            : GetValue(PanelTextProperty) as Brush;
+        if (text is not null) { Resources["Brush.Text"] = text; Resources["Brush.Text.Muted"] = text; }
         if (!settings.CustomizeText) return;
         if (settings.FontFamily is { } font) Resources["Token.FontFamily"] = new FontFamily(font);
         Resources["Token.FontSize.Body"] = settings.FontSize;

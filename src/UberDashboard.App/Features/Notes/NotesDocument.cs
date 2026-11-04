@@ -9,6 +9,9 @@ public sealed record NotesDocument
     /// <summary>Wersja schematu dokumentu notatki.</summary>
     public const int SchemaVersion = 2;
 
+    public List<NotesDocument>? Tabs { get; init; }
+    public int SelectedTabIndex { get; init; }
+
     /// <summary>Tytuł notatki.</summary>
     public string Title { get; init; } = string.Empty;
 

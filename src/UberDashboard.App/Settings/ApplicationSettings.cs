@@ -38,6 +38,12 @@ public sealed record ApplicationSettings
     /// <summary>Skala gęstości interfejsu. 1 oznacza domyślny spacing.</summary>
     public double? DensityScale { get; init; }
 
+    /// <summary>Łączna przerwa między panelami z uchwytem 6 DIP.</summary>
+    public double? PanelSpacing { get; init; }
+
+    /// <summary>Widoczna grubość linii, niezależna od obszaru chwytania.</summary>
+    public double? DividerThickness { get; init; }
+
     /// <summary>Domyślny interwał odświeżania danych pogodowych w minutach.</summary>
     public int? WeatherRefreshMinutes { get; init; }
 
@@ -69,6 +75,8 @@ public sealed record ApplicationSettings
             FontSize = FontSize is null ? null : (double.IsFinite(FontSize.Value) ? Math.Clamp(FontSize.Value, 11d, 24d) : 13d),
             CornerRadius = CornerRadius is null ? null : (double.IsFinite(CornerRadius.Value) ? Math.Clamp(CornerRadius.Value, 4d, 28d) : 12d),
             DensityScale = DensityScale is null ? null : (double.IsFinite(DensityScale.Value) ? Math.Clamp(DensityScale.Value, 0.85d, 1.35d) : 1d),
+            PanelSpacing = PanelSpacing is null ? null : (double.IsFinite(PanelSpacing.Value) ? Math.Clamp(PanelSpacing.Value, 6d, 32d) : 10d),
+            DividerThickness = DividerThickness is null ? null : (double.IsFinite(DividerThickness.Value) ? Math.Clamp(DividerThickness.Value, 0d, 3d) : 1d),
             WeatherRefreshMinutes = WeatherRefreshMinutes is null ? null : Math.Clamp(WeatherRefreshMinutes.Value, 5, 180),
             WallpaperPath = NormalizeText(WallpaperPath),
             WallpaperBlur = double.IsFinite(WallpaperBlur) ? Math.Clamp(WallpaperBlur, 0, 30) : 0,
