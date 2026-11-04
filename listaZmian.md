@@ -1,3 +1,5 @@
+2026-11-04T21:41:46+01:00 | Ukryto przycisk zadokowanego okna na pasku zadań Windows i zapewniono ikonę w zasobniku.
+
 2026-11-04T11:31:34+01:00 | Naprawiono kwadraty zamiast ikon przycisków na paskach tytułu.
 
 2026-11-04T11:17:17+01:00 | Ujednolicono ramki, paski i dialogi. Microsoft To Do przeniesiono do Integracji, z wyborem importu i odświeżania list.

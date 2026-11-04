@@ -70,6 +70,7 @@ internal static class Program
                 services.AddSingleton<UberDashboard.Application.Weather.IWeatherService, SampleWeatherService>();
                 await using var provider = services.BuildServiceProvider();
                 var window = provider.GetRequiredService<UberDashboard.App.MainWindow>();
+                DockedBarChecks.Run(provider);
                 window.ApplyTemplate();
                 if (window.Template.FindName("Caption", window) is not Border caption ||
                     System.Windows.Shell.WindowChrome.GetWindowChrome(window) is null)

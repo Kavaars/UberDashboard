@@ -9,6 +9,9 @@ public sealed class TrayIconService : ITrayIconService
 {
     private NotifyIcon? _notifyIcon;
     private ContextMenuStrip? _menu;
+    private bool _required;
+
+    private bool ShouldShowIcon => _required || CurrentSettings.EnableTrayIcon;
 
     public ApplicationSettings CurrentSettings { get; private set; } = ApplicationSettings.Default.Normalize();
 
@@ -41,7 +44,7 @@ public sealed class TrayIconService : ITrayIconService
         _notifyIcon = new NotifyIcon
         {
             Text = "UberDashboard",
-            Visible = CurrentSettings.EnableTrayIcon,
+            Visible = ShouldShowIcon,
             ContextMenuStrip = contextMenu,
             Icon = ResolveIcon(),
         };
@@ -57,9 +60,20 @@ public sealed class TrayIconService : ITrayIconService
         ArgumentNullException.ThrowIfNull(settings);
 
         CurrentSettings = settings.Normalize();
+        UpdateVisibility();
+    }
+
+    public void SetRequired(bool required)
+    {
+        _required = required;
+        UpdateVisibility();
+    }
+
+    private void UpdateVisibility()
+    {
         if (_notifyIcon is not null)
         {
-            _notifyIcon.Visible = CurrentSettings.EnableTrayIcon;
+            _notifyIcon.Visible = ShouldShowIcon;
         }
     }
 

@@ -1,3 +1,6 @@
+Zmiany robocze 1.8.0 (2026-11-04T21:41:46+01:00)
+- Zadokowany pasek nie zajmuje miejsca na pasku zadań Windows. Ikona aplikacji jest dostępna w zasobniku.
+
 Zmiany robocze 1.8.0 (2026-11-04T11:31:34+01:00)
 - Przyciski na paskach tytułu znów pokazują ikony minimalizacji, maksymalizacji, przywracania i zamknięcia.
 

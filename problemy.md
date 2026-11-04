@@ -1,5 +1,13 @@
 # Rejestr problemów
 
+## 2026-11-04T21:41:46+01:00 | źródła 1.8.0 / c7ee972 | przycisk zadokowanego okna na pasku zadań
+
+- Moduły: okno główne, tryb paska, zasobnik. Środowisko: Windows 11, WPF/.NET 10. Numer kompilacji użytkownika nieznany.
+- Odtworzenie: przełączyć aplikację w tryb paska. Przycisk aplikacji pozostaje na pasku zadań Windows. Oczekiwane: widoczny zadokowany pasek i ikona w zasobniku.
+- Przyczyna w źródłach: dokowanie nie zmieniało ShowInTaskbar, a przywracanie z zasobnika ustawiało tę właściwość zawsze na true.
+- Poprawka: dokowanie zapamiętuje i ukrywa przycisk, wyjście z trybu przywraca jego stan, a tryb paska wymusza widoczną ikonę w zasobniku.
+- Regresja: kontrola WPF potwierdziła błąd przed poprawką, a po niej ukrywanie przycisku przy dokowaniu i przywracanie jego widoczności po oddokowaniu.
+
 ## 2026-11-04T11:31:34+01:00 | źródła 1.8.0 / 23135b8 | kwadraty na pasku tytułu
 
 - Moduł i środowisko: wspólny szablon paska tytułu, Windows 11, WPF/.NET 10. Numer kompilacji uruchomionej przez użytkownika nieznany.

@@ -75,12 +75,13 @@ public partial class MainWindow : Window
         InitializeComponent();
         _theme.ThemeChanged += OnThemeChanged;
         DataContext = _viewModel;
+        _viewModel.PropertyChanged += OnShellPropertyChanged;
         UberDashboard.App.Plugins.PluginFileDrop.Attach(this, pluginSettings);
         _plugins.RefreshPanelsAsync = _viewModel.RefreshPluginPanelsAsync;
         SourceInitialized += OnSourceInitialized;
         Loaded += OnLoaded;
         Closing += OnClosing;
-        Closed += (_, _) => { _theme.ThemeChanged -= OnThemeChanged; _wallpaperRevision++; _appBar.Remove(); };
+        Closed += (_, _) => { _viewModel.PropertyChanged -= OnShellPropertyChanged; _theme.ThemeChanged -= OnThemeChanged; _wallpaperRevision++; _appBar.Remove(); };
     }
 
     private async void OnThemeChanged(object? sender, EventArgs e)
@@ -231,10 +232,16 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnShellPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ShellViewModel.IsDockedBar))
+            _trayIconService.SetRequired(_viewModel.IsDockedBar);
+    }
+
     private void RestoreFromTray()
     {
+        ShowInTaskbar = !_viewModel.IsDockedBar;
         Show();
-        ShowInTaskbar = true;
         WindowState = WindowState.Normal;
         Activate();
     }
