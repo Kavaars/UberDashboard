@@ -32,7 +32,7 @@ public sealed class DockedBarWindowHost(AppBarController appBar, IMonitorProvide
         if (_snapshot is null)
         {
             _snapshot = new Snapshot(window.WindowStyle, window.ResizeMode, window.MinWidth, window.MinHeight,
-                window.Left, window.Top, window.Width, window.Height, window.WindowState);
+                window.Left, window.Top, window.Width, window.Height, window.WindowState, window.ShowInTaskbar);
             _source.AddHook(WindowProc);
             window.MinWidth = 0;
             window.MinHeight = 0;
@@ -40,6 +40,7 @@ public sealed class DockedBarWindowHost(AppBarController appBar, IMonitorProvide
             window.SetValue(System.Windows.Shell.WindowChrome.WindowChromeProperty, null);
             window.WindowStyle = WindowStyle.None;
             window.ResizeMode = ResizeMode.NoResize;
+            window.ShowInTaskbar = false;
         }
         _applying = true;
         try { return ShellWindowInterop.ApplyBounds(handle, bounds); }
@@ -61,6 +62,7 @@ public sealed class DockedBarWindowHost(AppBarController appBar, IMonitorProvide
         window.Width = snapshot.Width;
         window.Height = snapshot.Height;
         window.WindowState = snapshot.State;
+        window.ShowInTaskbar = snapshot.ShowInTaskbar;
         _snapshot = null;
         _source = null;
         _window = null;
@@ -112,5 +114,5 @@ public sealed class DockedBarWindowHost(AppBarController appBar, IMonitorProvide
     }
 
     private sealed record Snapshot(WindowStyle Style, ResizeMode Resize, double MinWidth, double MinHeight,
-        double Left, double Top, double Width, double Height, WindowState State);
+        double Left, double Top, double Width, double Height, WindowState State, bool ShowInTaskbar);
 }

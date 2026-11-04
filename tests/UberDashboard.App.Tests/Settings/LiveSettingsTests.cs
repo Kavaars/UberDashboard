@@ -146,6 +146,7 @@ public sealed class LiveSettingsTests
         public ApplicationSettings CurrentSettings => ApplicationSettings.Default;
         public void Initialize(Action restore, Action exit) { }
         public void ApplySettings(ApplicationSettings settings) => Calls++;
+        public void SetRequired(bool required) { }
         public void Dispose() { }
     }
     private sealed class Picker : IColorPickerService

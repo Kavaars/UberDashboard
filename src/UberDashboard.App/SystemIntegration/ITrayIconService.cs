@@ -13,4 +13,7 @@ public interface ITrayIconService : IDisposable
 
     /// <summary>Stosuje ustawienia widoczności i zachowania zasobnika.</summary>
     void ApplySettings(ApplicationSettings settings);
+
+    /// <summary>Wymusza widoczność ikony, gdy pasek jest zadokowany.</summary>
+    void SetRequired(bool required);
 }
