@@ -1,5 +1,12 @@
 # Rejestr problemów
 
+## 2026-11-04T11:31:34+01:00 | źródła 1.8.0 / 23135b8 | kwadraty na pasku tytułu
+
+- Moduł i środowisko: wspólny szablon paska tytułu, Windows 11, WPF/.NET 10. Numer kompilacji uruchomionej przez użytkownika nieznany.
+- Odtworzenie: otworzyć główne okno lub Ustawienia po zmianie motywu ramek. Oczekiwane są ikony minimalizacji, maksymalizacji lub przywracania oraz zamknięcia. Na zrzutach przyciski pokazują kwadraty.
+- Przyczyna: tekst przycisków w szablonie dodanym w 23135b8 był renderowany w Segoe UI mimo ustawienia fontu ikon na przycisku. Walidacja nagłówka przed poprawką zwróciła `Missing icon glyph in Segoe UI`.
+- Poprawka: ikony wektorowe w szablonie nagłówka korzystają z koloru tekstu przycisku. Kontrola WPF sprawdza ikony i renderuje nagłówek w stanie normalnym i zmaksymalizowanym dla motywów jasnego, ciemnego i systemowego. Sześć renderów nagłówka sprawdzono wizualnie.
+
 ## 2026-11-04T11:17:17+01:00 | 1.8.0 / 9e0866e + zmiany robocze | wygląd kontrolek i Microsoft To Do
 
 - Moduły: motyw WPF, okna i dialogi, zasobnik Windows, zakładki ToDo. Środowisko: Windows, WPF/.NET 10. Wersja uruchomionej aplikacji użytkownika i rejestracja Microsoft Entra nieznane.

@@ -1,3 +1,5 @@
+2026-11-04T11:31:34+01:00 | 1.8.0, kompilacja kontrolna v1.8.0-caption-20261104-113059-502: ikony pasków tytułu, 350 testów, kontrole WPF i wtyczek.
+
 2026-11-04T11:17:17+01:00 | 1.8.0, kompilacja kontrolna v1.8.0-20261104-111642-383: motyw okien i dialogów oraz kreator Microsoft To Do z odświeżaniem do odczytu.
 
 2026-11-04T10:42:47+01:00 | 1.8.0, prace rozwojowe: schemat SQLite 3 i integracja Microsoft To Do do odczytu.

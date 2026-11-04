@@ -1,3 +1,5 @@
+2026-11-04T11:31:34+01:00 | Naprawiono kwadraty zamiast ikon przycisków na paskach tytułu.
+
 2026-11-04T11:17:17+01:00 | Ujednolicono ramki, paski i dialogi. Microsoft To Do przeniesiono do Integracji, z wyborem importu i odświeżania list.
 
 2026-11-04T10:42:47+01:00 | Zadania ToDo przenoszone do SQLite. Dodano podgląd i import listy Microsoft To Do.
