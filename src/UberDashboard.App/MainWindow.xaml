@@ -6,6 +6,7 @@
         xmlns:platform="clr-namespace:UberDashboard.Application.Platform;assembly=UberDashboard.Application"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
+        Style="{DynamicResource ThemedWindow}"
         Title="UberDashboard"
         Width="1280"
         Height="820"

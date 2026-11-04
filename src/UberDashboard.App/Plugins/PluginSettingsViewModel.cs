@@ -31,7 +31,7 @@ public sealed class PluginSettingsViewModel : ObservableObject
     public IRelayCommand CancelCommand { get; }
     private async Task ChooseAsync()
     {
-        var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "Plugin UberDashboard (*.udplugin)|*.udplugin", Title = "Zainstaluj plugin", Multiselect = false };
+        var dialog = new UberDashboard.App.Controls.ThemedFileDialog { Filter = "Plugin UberDashboard (*.udplugin)|*.udplugin", Title = "Zainstaluj plugin", Multiselect = false };
         if (dialog.ShowDialog() == true) await InstallFileAsync(dialog.FileName);
     }
     public Task InstallFileAsync(string file) => StartAsync("Sprawdzanie i instalowanie pluginu…", async token =>

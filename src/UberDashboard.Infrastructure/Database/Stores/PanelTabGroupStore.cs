@@ -21,7 +21,8 @@ public sealed class PanelTabGroupStore(IWorkQueue queue, SqliteDatabase database
             using (var existing = database.Connection.CreateCommand())
             {
                 existing.Transaction = tx;
-                existing.CommandText = "SELECT DashboardId, PluginId, PanelTypeId, StateJson FROM PanelInstance WHERE InstanceId = $id;";
+                existing.CommandText = "SELECT DashboardId, PluginId, PanelTypeId, " + TodoStorageSchema.ProjectedState +
+                    " FROM PanelInstance WHERE InstanceId = $id;";
                 existing.Parameters.AddWithValue("$id", group.GroupId.ToString());
                 using var reader = existing.ExecuteReader();
                 if (!reader.Read()) throw new InvalidOperationException("Nie znaleziono panelu źródłowego.");
@@ -120,30 +121,48 @@ public sealed class PanelTabGroupStore(IWorkQueue queue, SqliteDatabase database
     {
         ArgumentNullException.ThrowIfNull(added);
         ValidateMembershipChange(expected, updated, added.InstanceId, adding: true);
+        return InsertTabsAsync(expected, updated, [added], cancellationToken);
+    }
+
+    public Task AddBatchAsync(PanelTabGroup expected, PanelTabGroup updated, IReadOnlyList<PanelInstanceRecord> added, CancellationToken cancellationToken = default)
+    {
+        var records = added.ToArray();
+        if (records.Length == 0 || expected.GroupId != updated.GroupId || expected.ActiveId != updated.ActiveId ||
+            !expected.Tabs.SequenceEqual(updated.Tabs.Take(expected.Tabs.Length)) ||
+            !records.Select(record => record.InstanceId)
+                .SequenceEqual(updated.Tabs.Skip(expected.Tabs.Length).Select(tab => tab.InstanceId)))
+            throw new InvalidOperationException("Nieprawidłowa partia zakładek.");
+        return InsertTabsAsync(expected, updated, records, cancellationToken);
+    }
+
+    private Task InsertTabsAsync(PanelTabGroup expected, PanelTabGroup updated, PanelInstanceRecord[] records,
+        CancellationToken cancellationToken)
+    {
         return queue.EnqueueAsync(_ =>
         {
             database.EnsureInitialized();
             using var tx = database.Connection.BeginTransaction();
             CheckExpected(expected, tx);
-            using (var command = database.Connection.CreateCommand())
+            foreach (var record in records)
             {
+                using var command = database.Connection.CreateCommand();
                 command.Transaction = tx;
                 command.CommandText = """
                     INSERT INTO PanelInstance (InstanceId, DashboardId, PluginId, PanelTypeId, DisplayName, IsHidden, ConfigJson, StateJson, RestoreHintJson, DataSchemaVersion, CreatedAtUtc, UpdatedAtUtc)
                     SELECT $id, DashboardId, PluginId, PanelTypeId, $name, 1, $config, $state, NULL, $version, $created, $updated
                     FROM PanelInstance WHERE InstanceId = $group AND DashboardId = $dashboard AND PluginId = $plugin AND PanelTypeId = $type;
                     """;
-                command.Parameters.AddWithValue("$id", added.InstanceId.ToString());
-                command.Parameters.AddWithValue("$name", added.DisplayName);
-                command.Parameters.AddWithValue("$config", (object?)added.ConfigJson ?? DBNull.Value);
-                command.Parameters.AddWithValue("$state", (object?)added.StateJson ?? DBNull.Value);
-                command.Parameters.AddWithValue("$version", added.DataSchemaVersion);
-                command.Parameters.AddWithValue("$created", SqliteText.ToIso(added.CreatedAtUtc));
-                command.Parameters.AddWithValue("$updated", SqliteText.ToIso(added.UpdatedAtUtc));
+                command.Parameters.AddWithValue("$id", record.InstanceId.ToString());
+                command.Parameters.AddWithValue("$name", record.DisplayName);
+                command.Parameters.AddWithValue("$config", (object?)record.ConfigJson ?? DBNull.Value);
+                command.Parameters.AddWithValue("$state", (object?)record.StateJson ?? DBNull.Value);
+                command.Parameters.AddWithValue("$version", record.DataSchemaVersion);
+                command.Parameters.AddWithValue("$created", SqliteText.ToIso(record.CreatedAtUtc));
+                command.Parameters.AddWithValue("$updated", SqliteText.ToIso(record.UpdatedAtUtc));
                 command.Parameters.AddWithValue("$group", expected.GroupId.ToString());
-                command.Parameters.AddWithValue("$dashboard", added.DashboardId.ToString("D"));
-                command.Parameters.AddWithValue("$plugin", added.PluginId);
-                command.Parameters.AddWithValue("$type", added.PanelTypeId);
+                command.Parameters.AddWithValue("$dashboard", record.DashboardId.ToString("D"));
+                command.Parameters.AddWithValue("$plugin", record.PluginId);
+                command.Parameters.AddWithValue("$type", record.PanelTypeId);
                 if (command.ExecuteNonQuery() != 1) throw new InvalidOperationException("Nieprawidłowy rodzaj lub pulpit zakładki.");
             }
             WriteGroup(updated, tx);

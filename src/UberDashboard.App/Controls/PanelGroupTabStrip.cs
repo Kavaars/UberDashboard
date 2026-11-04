@@ -27,7 +27,7 @@ public sealed class PanelGroupTabStrip : ScrollViewer
     private readonly StackPanel _items = new() { Orientation = Orientation.Horizontal };
     private Point _start;
     private ImmutableArray<PanelTab> _rendered = [];
-    internal Func<PanelTab, bool> ConfirmDeletion { get; set; } = tab => MessageBox.Show($"Usunąć zakładkę „{tab.Name}” wraz z jej danymi?", "Usuwanie zakładki", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
+    internal Func<PanelTab, bool> ConfirmDeletion { get; set; } = tab => ThemedMessageBox.Show($"Usunąć zakładkę „{tab.Name}” wraz z jej danymi?", "Usuwanie zakładki", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
     public PanelGroupTabStrip()
     {
         HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden;
@@ -104,7 +104,14 @@ public sealed class PanelGroupTabStrip : ScrollViewer
             var menu = new ContextMenu();
             var remove = new MenuItem { Header = "Usuń zakładkę", IsEnabled = session.Group.Tabs.Length > 1 };
             remove.Click += async (_, _) => { await Run(async () => { if (!await session.NeedsDeletionConfirmationAsync(tab.InstanceId) || ConfirmDeletion(tab)) await session.RemoveAsync(tab.InstanceId); }); };
-            menu.Items.Add(remove); button.ContextMenu = menu;
+            menu.Items.Add(remove);
+            if (session.SupportsFileImport)
+            {
+                var import = new MenuItem { Header = "Importuj pliki do nowych zakładek…" };
+                import.Click += async (_, _) => await Run(() => PanelFileImport.RunAsync(session, Window.GetWindow(this)));
+                menu.Items.Add(import);
+            }
+            button.ContextMenu = menu;
             _items.Children.Add(button);
         }
         var add = new Button { Content = "+", Padding = new Thickness(6, 2, 6, 2), ToolTip = "Dodaje niezależną zakładkę tego panelu." };

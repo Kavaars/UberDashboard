@@ -1,3 +1,4 @@
+using UberDashboard.Application.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using UberDashboard.Application.Panels;
 using UberDashboard.Application.Weather;
@@ -45,6 +46,10 @@ public static class AppServiceCollectionExtensions
 
         services.AddSingleton<IPanelRemovalConfirmation, PanelRemovalConfirmation>();
         services.AddSingleton<PanelStateScheduler>();
+        services.AddSingleton<Features.Todo.MicrosoftTodoSession>();
+        services.AddSingleton<Features.Todo.MicrosoftTodoSettings>();
+        services.AddSingleton<Features.Todo.MicrosoftTodoRefresh>();
+        services.AddSingleton<MicrosoftTodoWizard>();
         services.AddSingleton<PanelHostManager>();
         services.AddSingleton<PanelGroupInitializer>();
         services.AddSingleton<Func<PanelInstanceId, IPanelStateSink>>(
@@ -77,9 +82,14 @@ public static class AppServiceCollectionExtensions
             NotesPanelDescriptor.TypeId,
             new NotesPanelDescriptor(new NotesPanelFactory(provider.GetRequiredService<PanelStateScheduler>()))));
 
-        services.AddSingleton<BuiltInPanelRegistration>(provider => new BuiltInPanelRegistration(
-            TodoPanelDescriptor.TypeId,
-            new TodoPanelDescriptor(new TodoPanelFactory(provider.GetRequiredService<PanelStateScheduler>()))));
+        services.AddSingleton<BuiltInPanelRegistration>(provider =>
+        {
+            var scheduler = provider.GetRequiredService<PanelStateScheduler>();
+            var factory = provider.GetService<IPanelInstanceStore>() is { } instances
+                ? new TodoPanelFactory(scheduler, instances, provider.GetRequiredService<MicrosoftTodoSettings>())
+                : new TodoPanelFactory(scheduler);
+            return new BuiltInPanelRegistration(TodoPanelDescriptor.TypeId, new TodoPanelDescriptor(factory));
+        });
 
         services.AddSingleton<BuiltInPanelRegistration>(provider => new BuiltInPanelRegistration(
             WeatherPanelDescriptor.TypeId,

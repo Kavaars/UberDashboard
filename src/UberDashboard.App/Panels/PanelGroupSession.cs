@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using UberDashboard.Application.Abstractions;
 using UberDashboard.App.Shell;
@@ -32,6 +34,51 @@ public sealed class PanelGroupSession : ObservableObject
     }
 
     public void ReportError(Exception error) => _toasts.Show($"Nie wykonano operacji zakładki: {error.Message}", ToastSeverity.Error);
+    public string ImportDisplayName => _root.DisplayName;
+    internal bool ImportsTasks => _root.PanelTypeId == Features.Todo.TodoPanelDescriptor.TypeId;
+    internal bool SupportsFileImport => ImportsTasks || _root.PanelTypeId == Features.Notes.NotesPanelDescriptor.TypeId;
+
+    /// <summary>Adds prepared documents together and leaves the current editor active.</summary>
+    internal async Task ImportTabsAsync(IReadOnlyList<ImportedPanelTab> tabs, CancellationToken token)
+    {
+        await _gate.WaitAsync(token).ConfigureAwait(true);
+        IsBusy = true;
+        try
+        {
+            EnsureOpen();
+            if (!SupportsFileImport)
+                throw new InvalidOperationException("Ten panel nie obsługuje importu.");
+
+            var next = Group;
+            var records = new List<PanelInstanceRecord>(tabs.Count);
+            var now = _clock.UtcNow;
+            foreach (var tab in tabs)
+            {
+                var linkJson = tab.Link is null ? null : JsonSerializer.Serialize(tab.Link);
+                var id = linkJson is null ? PanelInstanceId.New() : LinkedTabId(Group.GroupId, tab.Link!);
+                if (next.Tabs.Any(existing => existing.InstanceId == id)) continue;
+                next = next.Add(id, tab.Name);
+                records.Add(_root with
+                {
+                    InstanceId = id, DisplayName = tab.Name, IsHidden = true, StateJson = tab.StateJson,
+                    DataSchemaVersion = tab.SchemaVersion, ConfigJson = linkJson, RestoreHintJson = null,
+                    CreatedAtUtc = now, UpdatedAtUtc = now,
+                });
+            }
+            if (records.Count == 0) return;
+            await _groups.AddBatchAsync(Group, next, records, token).ConfigureAwait(true);
+            Group = next;
+            Changed?.Invoke(this, EventArgs.Empty);
+            _toasts.Show($"Zaimportowano zakładki: {records.Count}.", ToastSeverity.Success);
+        }
+        finally { IsBusy = false; _gate.Release(); }
+    }
+
+    internal static PanelInstanceId LinkedTabId(PanelInstanceId group, Features.Todo.MicrosoftTodoLink link)
+    {
+        var key = JsonSerializer.SerializeToUtf8Bytes(new { Group = group.Value, Link = link });
+        return new PanelInstanceId(new Guid(SHA256.HashData(key).AsSpan(0, 16)));
+    }
 
     public async Task ActivateAsync(CancellationToken token = default)
     {

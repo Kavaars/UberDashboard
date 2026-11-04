@@ -149,7 +149,7 @@ public sealed class TodoPanelViewModel : ObservableObject, IPanelOptionsPresente
                     continue;
                 }
 
-                AttachItem(new TodoItemViewModel(state.Text, state.IsDone));
+                AttachItem(new TodoItemViewModel(state.Text, state.IsDone, state.Id));
             }
 
             ShowSummary = document.ShowSummary;

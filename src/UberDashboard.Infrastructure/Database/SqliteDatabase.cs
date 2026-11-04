@@ -12,16 +12,18 @@ public sealed class SqliteDatabase : IDisposable
 {
     private readonly string _databaseFile;
     private readonly IClock _clock;
+    private readonly string _backupsDirectory;
     private SqliteConnection? _connection;
 
     /// <summary>Tworzy obiekt bazy dla wskazanego pliku.</summary>
-    public SqliteDatabase(string databaseFile, IClock clock)
+    public SqliteDatabase(string databaseFile, IClock clock, string? backupsDirectory = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(databaseFile);
         ArgumentNullException.ThrowIfNull(clock);
 
         _databaseFile = Path.GetFullPath(databaseFile);
         _clock = clock;
+        _backupsDirectory = backupsDirectory ?? Path.Combine(Path.GetDirectoryName(_databaseFile)!, "Backups");
     }
 
     /// <summary>Pełna ścieżka pliku bazy.</summary>
@@ -63,7 +65,7 @@ public sealed class SqliteDatabase : IDisposable
         try
         {
             ApplyPragmas(connection);
-            SqliteMigrator.Apply(connection, _clock);
+            SqliteMigrator.Apply(connection, _clock, () => BackupBeforeTodoMigration(connection));
         }
         catch
         {
@@ -72,6 +74,18 @@ public sealed class SqliteDatabase : IDisposable
         }
 
         _connection = connection;
+    }
+
+    private void BackupBeforeTodoMigration(SqliteConnection connection)
+    {
+        Directory.CreateDirectory(_backupsDirectory);
+        var file = Path.Combine(_backupsDirectory, $"pre-todo-v3-{Guid.NewGuid():N}.db");
+        using var backup = new SqliteConnection(new SqliteConnectionStringBuilder
+        {
+            DataSource = file, Pooling = false,
+        }.ToString());
+        backup.Open();
+        connection.BackupDatabase(backup);
     }
 
     /// <inheritdoc />

@@ -188,7 +188,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private void ChooseWallpaper()
     {
-        var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "Obrazy|*.png;*.jpg;*.jpeg;*.bmp", Title = "Wybierz tapetę aplikacji" };
+        var dialog = new UberDashboard.App.Controls.ThemedFileDialog { Filter = "Obrazy|*.png;*.jpg;*.jpeg;*.bmp", Title = "Wybierz tapetę aplikacji" };
         if (dialog.ShowDialog() == true) WallpaperPath = dialog.FileName;
     }
 

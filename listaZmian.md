@@ -1,3 +1,11 @@
+2026-11-04T11:17:17+01:00 | Ujednolicono ramki, paski i dialogi. Microsoft To Do przeniesiono do Integracji, z wyborem importu i odświeżania list.
+
+2026-11-04T10:42:47+01:00 | Zadania ToDo przenoszone do SQLite. Dodano podgląd i import listy Microsoft To Do.
+
+2026-11-04T10:34:48+01:00 | Dodano import wielu plików z podglądem do nowych zakładek ToDo i Notatnika.
+
+2026-11-04T10:28:00+01:00 | Przygotowano parsery importu list i ograniczono rozmiar plików importowanych do notatnika.
+
 2026-11-04T10:00:34+01:00 | Afirmacje, jednoliniowe nagłówki, komunikaty oraz bezpieczne usuwanie zakładek i pulpitów.
 2026-11-04T09:34:48+01:00 | Zakończono integrację i weryfikację wspólnych zakładek, migracji oraz wtyczek.
 2026-11-04T09:19:57+01:00 | Wspólne zakładki paneli, migracja notatnika i obsługa cyklu życia wtyczek.

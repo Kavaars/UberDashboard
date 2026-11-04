@@ -1,12 +1,12 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using UberDashboard.App.Panels;
+using UberDashboard.Application.Import;
 using UberDashboard.Contracts.Host;
-using Win32OpenFileDialog = Microsoft.Win32.OpenFileDialog;
-using Win32SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 
 namespace UberDashboard.App.Features.Notes;
 
@@ -284,13 +284,12 @@ public sealed class NotesPanelViewModel : ObservableObject, IPanelOptionsPresent
 
     private async Task ExportAsync()
     {
-        var dialog = new Win32SaveFileDialog
+        var dialog = new UberDashboard.App.Controls.ThemedFileDialog
         {
             Title = "Eksport notatki",
             Filter = "Tekst i Markdown (*.txt;*.md)|*.txt;*.md|Wszystkie pliki (*.*)|*.*",
             DefaultExt = ".txt",
-            AddExtension = true,
-            OverwritePrompt = true,
+            SaveFile = true,
             FileName = BuildExportFileName(),
         };
 
@@ -313,11 +312,10 @@ public sealed class NotesPanelViewModel : ObservableObject, IPanelOptionsPresent
 
     private async Task ImportAsync()
     {
-        var dialog = new Win32OpenFileDialog
+        var dialog = new UberDashboard.App.Controls.ThemedFileDialog
         {
             Title = "Import notatki",
             Filter = "Tekst i Markdown (*.txt;*.md)|*.txt;*.md|Wszystkie pliki (*.*)|*.*",
-            CheckFileExists = true,
             Multiselect = false,
         };
 
@@ -335,7 +333,9 @@ public sealed class NotesPanelViewModel : ObservableObject, IPanelOptionsPresent
         }
         try
         {
-            var payload = await File.ReadAllTextAsync(dialog.FileName).ConfigureAwait(true);
+            var sources = await Task.Run(() =>
+                ImportFileReader.ReadAsync([dialog.FileName], Encoding.UTF8, CancellationToken.None));
+            var payload = sources[0].Text;
             var (title, content) = SplitImportedText(payload, Path.GetFileNameWithoutExtension(dialog.FileName));
 
             _suppressNotifications = true;
@@ -357,7 +357,7 @@ public sealed class NotesPanelViewModel : ObservableObject, IPanelOptionsPresent
 
             _notifier.Publish($"Zaimportowano notatkę z pliku {Path.GetFileName(dialog.FileName)}.", PanelNotificationSeverity.Success);
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or DecoderFallbackException)
         {
             _notifier.Publish($"Nie udało się wczytać notatki: {ex.Message}", PanelNotificationSeverity.Error);
         }
@@ -373,14 +373,15 @@ public sealed class NotesPanelViewModel : ObservableObject, IPanelOptionsPresent
 
     private static (string Title, string Content) SplitImportedText(string payload, string fallbackTitle)
     {
-        var separator = payload.IndexOf($"{Environment.NewLine}{Environment.NewLine}", StringComparison.Ordinal);
+        payload = payload.ReplaceLineEndings("\n");
+        var separator = payload.IndexOf("\n\n", StringComparison.Ordinal);
         if (separator < 0)
         {
             return (fallbackTitle, payload.Trim());
         }
 
         var title = payload[..separator].Trim();
-        var content = payload[(separator + (Environment.NewLine.Length * 2))..].Trim();
+        var content = payload[(separator + 2)..].Trim();
 
         return (string.IsNullOrWhiteSpace(title) ? fallbackTitle : title, content);
     }

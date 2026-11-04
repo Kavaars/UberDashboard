@@ -25,7 +25,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IClock>(SystemClock.Instance);
 
         services.AddSingleton(provider =>
-            new SqliteDatabase(paths.DatabaseFile, provider.GetRequiredService<IClock>()));
+            new SqliteDatabase(paths.DatabaseFile, provider.GetRequiredService<IClock>(), paths.BackupsDirectory));
 
         services.AddSingleton<IWorkQueue>(_ => new DatabaseWorkQueue());
 

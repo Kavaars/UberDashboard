@@ -595,6 +595,32 @@
 
 
 
+  <DataTemplate DataType="{x:Type todo:MicrosoftTodoListViewModel}">
+    <DockPanel Margin="{DynamicResource Token.Padding.Panel}">
+      <TextBlock DockPanel.Dock="Top" Text="{Binding Status}" TextWrapping="Wrap"
+                 Foreground="{DynamicResource Brush.Text.Muted}" Margin="0,0,0,6"/>
+      <ListBox ItemsSource="{Binding Items}" Background="Transparent" BorderThickness="0"
+               ItemContainerStyle="{StaticResource ThemedListBoxItem}" AutomationProperties.Name="Zadania Microsoft To Do"
+               ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <TextBlock Text="{Binding Text}" TextWrapping="Wrap">
+              <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsDone}" Value="True">
+                      <Setter Property="TextDecorations" Value="Strikethrough"/>
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+            </TextBlock>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </DockPanel>
+  </DataTemplate>
+
   <DataTemplate DataType="{x:Type todo:TodoPanelViewModel}">
 
     <controls:AdaptivePanelGrid Margin="{DynamicResource Token.Padding.Panel}">

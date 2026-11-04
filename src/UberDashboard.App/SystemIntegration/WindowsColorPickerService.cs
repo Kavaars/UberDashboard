@@ -15,6 +15,7 @@ public sealed class WindowsColorPickerService : IColorPickerService
         stack.Children.Add(picker);
         var window = new Window { Title = "Wybierz kolor", Content = stack, SizeToContent = SizeToContent.WidthAndHeight, ResizeMode = ResizeMode.NoResize, WindowStartupLocation = WindowStartupLocation.CenterOwner };
         if (System.Windows.Application.Current?.MainWindow is { IsVisible: true } owner) window.Owner = owner;
+        window.SetResourceReference(FrameworkElement.StyleProperty, "ThemedWindow");
         window.SetResourceReference(Window.BackgroundProperty, "Brush.Surface");
         var buttons = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal };
         var accept = new Button { Content = "Wybierz", IsDefault = true };

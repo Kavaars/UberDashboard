@@ -9,6 +9,33 @@ namespace UberDashboard.Infrastructure.Tests.Database;
 public sealed class PanelTabGroupStoreTests
 {
     [Fact]
+    public async Task Batch_import_rolls_back_earlier_tabs_when_a_later_record_fails()
+    {
+        await using var fixture = new DatabaseFixture();
+        var dashboard = await fixture.Dashboards.CreateAsync("Pulpit", fixture.Clock.UtcNow);
+        var first = PanelInstanceId.New();
+        var second = PanelInstanceId.New();
+        var third = PanelInstanceId.New();
+        var original = new PanelInstanceRecord(first, dashboard.DashboardId, "builtin", "todo", "Zadania", false,
+            null, "original", null, 1, fixture.Clock.UtcNow, fixture.Clock.UtcNow);
+        await fixture.Panels.UpsertAsync(original);
+        var store = new PanelTabGroupStore(fixture.Queue, fixture.Database);
+        var initial = PanelTabGroup.Create(first, "A");
+        await store.CreateAsync(initial, [original], original.StateJson);
+        var updated = initial.Add(second, "B").Add(third, "C");
+        var imported = original with { InstanceId = second, StateJson = "imported" };
+        var invalid = original with { InstanceId = third, PanelTypeId = "notes" };
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => store.AddBatchAsync(initial, updated, [imported, invalid]));
+
+        Assert.Null(await fixture.Panels.GetAsync(second));
+        Assert.Single((await store.GetAsync(first))!.Group.Tabs);
+        await store.AddBatchAsync(initial, updated, [imported, invalid with { PanelTypeId = "todo" }]);
+        Assert.Equal("imported", (await fixture.Panels.GetAsync(second))!.StateJson);
+        Assert.Equal(first, (await store.GetAsync(first))!.Group.ActiveId);
+    }
+
+    [Fact]
     public async Task Saves_and_restores_group_and_instances_atomically()
     {
         await using var fixture = new DatabaseFixture();

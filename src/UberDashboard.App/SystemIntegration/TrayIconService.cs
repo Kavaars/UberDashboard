@@ -8,6 +8,7 @@ namespace UberDashboard.App.SystemIntegration;
 public sealed class TrayIconService : ITrayIconService
 {
     private NotifyIcon? _notifyIcon;
+    private ContextMenuStrip? _menu;
 
     public ApplicationSettings CurrentSettings { get; private set; } = ApplicationSettings.Default.Normalize();
 
@@ -21,7 +22,18 @@ public sealed class TrayIconService : ITrayIconService
             return;
         }
 
-        var contextMenu = new ContextMenuStrip();
+        var contextMenu = new ContextMenuStrip { ShowImageMargin = false };
+        contextMenu.Opening += (_, _) =>
+        {
+            var surface = ThemeColor("Brush.Surface", SystemColors.Menu);
+            var text = ThemeColor("Brush.Text", SystemColors.MenuText);
+            var alternate = ThemeColor("Brush.Surface.Alt", SystemColors.MenuHighlight);
+            var border = ThemeColor("Brush.Border", SystemColors.ControlDark);
+            contextMenu.BackColor = surface;
+            contextMenu.ForeColor = text;
+            contextMenu.Renderer = new ToolStripProfessionalRenderer(new TrayColors(surface, alternate, border)) { RoundedEdges = false };
+        };
+        _menu = contextMenu;
         contextMenu.Items.Add("Pokaż UberDashboard", null, (_, _) => restoreMainWindow());
         contextMenu.Items.Add(new ToolStripSeparator());
         contextMenu.Items.Add("Zakończ", null, (_, _) => exitApplication());
@@ -34,8 +46,10 @@ public sealed class TrayIconService : ITrayIconService
             Icon = ResolveIcon(),
         };
 
-        _notifyIcon.DoubleClick += (_, _) => restoreMainWindow();
-        _notifyIcon.Click += (_, _) => restoreMainWindow();
+        _notifyIcon.MouseClick += (_, e) =>
+        {
+            if (e.Button == MouseButtons.Left) restoreMainWindow();
+        };
     }
 
     public void ApplySettings(ApplicationSettings settings)
@@ -59,6 +73,22 @@ public sealed class TrayIconService : ITrayIconService
         _notifyIcon.Visible = false;
         _notifyIcon.Dispose();
         _notifyIcon = null;
+        _menu?.Dispose();
+        _menu = null;
+    }
+
+    private static Color ThemeColor(string key, Color fallback) =>
+        System.Windows.Application.Current?.TryFindResource(key) is System.Windows.Media.SolidColorBrush brush
+            ? Color.FromArgb(brush.Color.R, brush.Color.G, brush.Color.B) : fallback;
+
+    private sealed class TrayColors(Color surface, Color alternate, Color border) : ProfessionalColorTable
+    {
+        public override Color ToolStripDropDownBackground => surface;
+        public override Color MenuItemSelected => alternate;
+        public override Color MenuItemBorder => border;
+        public override Color MenuBorder => border;
+        public override Color SeparatorDark => border;
+        public override Color SeparatorLight => surface;
     }
 
     private static Icon ResolveIcon()

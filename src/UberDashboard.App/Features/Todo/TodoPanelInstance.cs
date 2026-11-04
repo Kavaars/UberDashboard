@@ -17,6 +17,9 @@ public sealed class TodoPanelInstance : IPanelInstance, IPanelPersistenceObserve
     private readonly TodoPanelViewModel _viewModel;
     private readonly PanelStateScheduler _scheduler;
     private bool _disposed;
+    private MicrosoftTodoLink? _link;
+    private MicrosoftTodoSettings? _settings;
+    private MicrosoftTodoListViewModel? _linkedViewModel;
     private long _changeVersion;
     public long ChangeVersion => Interlocked.Read(ref _changeVersion);
 
@@ -36,13 +39,30 @@ public sealed class TodoPanelInstance : IPanelInstance, IPanelPersistenceObserve
     public PanelInstanceId InstanceId => _context.InstanceId;
 
     /// <inheritdoc />
-    public object ViewModel => _viewModel;
+    public object ViewModel => (object?)_linkedViewModel ?? _viewModel;
+
+    internal void AttachLink(MicrosoftTodoLink link, MicrosoftTodoSettings settings)
+    {
+        _link = link;
+        _settings = settings;
+        _linkedViewModel = new();
+    }
+
+    private void OnIntegrationSaved(object? sender, MicrosoftTodoPreferences preferences) =>
+        _linkedViewModel!.Load(_link!, preferences);
 
     /// <inheritdoc />
-    public ValueTask InitializeAsync(CancellationToken cancellationToken)
+    public async ValueTask InitializeAsync(CancellationToken cancellationToken)
     {
-        _viewModel.Changed += OnViewModelChanged;
-        return ValueTask.CompletedTask;
+        if (_settings is not null)
+        {
+            OnIntegrationSaved(this, await _settings.LoadAsync(cancellationToken));
+            _settings.Saved += OnIntegrationSaved;
+        }
+        else
+        {
+            _viewModel.Changed += OnViewModelChanged;
+        }
     }
 
     /// <inheritdoc />
@@ -84,6 +104,7 @@ public sealed class TodoPanelInstance : IPanelInstance, IPanelPersistenceObserve
         {
             _disposed = true;
             _viewModel.Changed -= OnViewModelChanged;
+            if (_settings is not null) _settings.Saved -= OnIntegrationSaved;
         }
 
         return ValueTask.CompletedTask;

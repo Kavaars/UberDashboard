@@ -13,7 +13,7 @@ public sealed class PanelInstanceStore : IPanelInstanceStore
 {
     private const string SelectColumns =
         "InstanceId, DashboardId, PluginId, PanelTypeId, DisplayName, IsHidden, " +
-        "ConfigJson, StateJson, RestoreHintJson, DataSchemaVersion, CreatedAtUtc, UpdatedAtUtc";
+        "ConfigJson, " + TodoStorageSchema.ProjectedState + ", RestoreHintJson, DataSchemaVersion, CreatedAtUtc, UpdatedAtUtc";
 
     private readonly IWorkQueue _queue;
     private readonly SqliteDatabase _database;

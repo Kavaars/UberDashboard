@@ -53,7 +53,7 @@ internal static class Program
         var output = Path.GetFullPath(args.Length > 0 ? args[0] : "Release/VisualChecks");
         Directory.CreateDirectory(output);
         var app = new System.Windows.Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        foreach (var resource in new[] { "Theme.Light", "VisualTokens", "Controls", "PanelTemplates" })
+        foreach (var resource in new[] { "Theme.Light", "VisualTokens", "Controls", "WindowFrame", "PanelTemplates" })
             app.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri($"pack://application:,,,/UberDashboard;component/Theming/{resource}.xaml") });
         SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext());
         Dispatcher.CurrentDispatcher.BeginInvoke(new Action(async () =>
@@ -70,6 +70,30 @@ internal static class Program
                 services.AddSingleton<UberDashboard.Application.Weather.IWeatherService, SampleWeatherService>();
                 await using var provider = services.BuildServiceProvider();
                 var window = provider.GetRequiredService<UberDashboard.App.MainWindow>();
+                window.ApplyTemplate();
+                if (window.Template.FindName("Caption", window) is not Border ||
+                    System.Windows.Shell.WindowChrome.GetWindowChrome(window) is null)
+                    throw new InvalidOperationException("Missing themed window caption");
+
+                var scroll = new ScrollViewer
+                {
+                    Content = new Border { Width = 600, Height = 600 },
+                    HorizontalScrollBarVisibility = ScrollBarVisibility.Visible,
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Visible,
+                };
+                scroll.Measure(new Size(140, 140));
+                scroll.Arrange(new Rect(0, 0, 140, 140));
+                foreach (var name in new[] { "PART_VerticalScrollBar", "PART_HorizontalScrollBar" })
+                {
+                    var bar = (System.Windows.Controls.Primitives.ScrollBar)scroll.Template.FindName(name, scroll);
+                    bar.ApplyTemplate();
+                    if (bar.Template.FindName("PART_Track", bar) is System.Windows.Controls.Primitives.Track appliedTrack) appliedTrack.Thumb.ApplyTemplate();
+                    if (bar.Template.FindName("PART_Track", bar) is not System.Windows.Controls.Primitives.Track track ||
+                        track.Thumb.Template.FindName("Grip", track.Thumb) is not Border ||
+                        track.Orientation != bar.Orientation)
+                        throw new InvalidOperationException($"Missing themed scroll grip: {name}");
+                }
+
                 var shell = (ShellViewModel)window.DataContext;
                 var theme = provider.GetRequiredService<ThemeService>();
                 await shell.InitializeAsync();
@@ -198,7 +222,7 @@ internal static class Program
                 {
                     await theme.ApplyAsync(kind, CancellationToken.None);
                     foreach (var settingsSize in new[] { new Size(860, 650), new Size(740, 520) })
-                    for (var tab = 0; tab < 6; tab++)
+                    for (var tab = 0; tab < 7; tab++)
                     {
                         Descendants(settingsRoot).OfType<TabControl>().FirstOrDefault()?.SetCurrentValue(TabControl.SelectedIndexProperty, tab);
                         settingsRoot.Measure(settingsSize);
@@ -234,7 +258,7 @@ internal static class Program
                     if (theme.ReadDouble("Token.Splitter.Line", -1) != 0
                         || app.FindResource("Token.Margin.Panel") is not Thickness { Left: 13 })
                         throw new InvalidOperationException("Live spacing resources did not follow settings");
-                    foreach (var tab in new[] { 0, 1, 2, 3, 4, 5 })
+                    foreach (var tab in new[] { 0, 1, 2, 3, 4, 5, 6 })
                     {
                         Descendants(settingsRoot).OfType<TabControl>().Single().SelectedIndex = tab;
                         var size = new Size(740, 520);

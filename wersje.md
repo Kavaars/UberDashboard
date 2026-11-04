@@ -1,3 +1,11 @@
+2026-11-04T11:17:17+01:00 | 1.8.0, kompilacja kontrolna v1.8.0-20261104-111642-383: motyw okien i dialogów oraz kreator Microsoft To Do z odświeżaniem do odczytu.
+
+2026-11-04T10:42:47+01:00 | 1.8.0, prace rozwojowe: schemat SQLite 3 i integracja Microsoft To Do do odczytu.
+
+2026-11-04T10:34:48+01:00 | 1.8.0, prace rozwojowe: import TXT/MD/CSV oraz atomowy zapis nowych zakładek; Markdown notatek jako tekst.
+
+2026-11-04T10:28:00+01:00 | 1.8.0, prace rozwojowe: fundament importu plików; kreator i integracja Microsoft w przygotowaniu.
+
 2026-11-04T10:00:34+01:00 | 1.8.0, zmiany robocze: poprawki paneli i pulpitów; 339 testów, bez nowego wydania.
 2026-11-04T09:34:48+01:00 | 1.8.0, kontrolna Release v1.8.0-20261104-final-02: wspólne zakładki; 336 testów, kontrole wtyczki i rendery WPF.
 2026-11-04T09:19:57+01:00 | 1.8.0, źródła: wspólne zakładki paneli i migracja danych; bez wydania.

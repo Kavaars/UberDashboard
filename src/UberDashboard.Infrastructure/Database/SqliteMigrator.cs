@@ -19,7 +19,7 @@ internal static class SqliteMigrator
         """;
 
     /// <summary>Doprowadza bazę do <see cref="SqliteSchema.CurrentVersion"/>.</summary>
-    public static void Apply(SqliteConnection connection, IClock clock)
+    public static void Apply(SqliteConnection connection, IClock clock, Action? backupBeforeTodoMigration = null)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(clock);
@@ -34,6 +34,8 @@ internal static class SqliteMigrator
                 continue;
             }
 
+            if (migration.Version == 3 && applied.Count > 0)
+                backupBeforeTodoMigration?.Invoke();
             ApplyMigration(connection, migration, clock.UtcNow);
         }
     }

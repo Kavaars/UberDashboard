@@ -1,5 +1,13 @@
 # Rejestr problemów
 
+## 2026-11-04T11:17:17+01:00 | 1.8.0 / 9e0866e + zmiany robocze | wygląd kontrolek i Microsoft To Do
+
+- Moduły: motyw WPF, okna i dialogi, zasobnik Windows, zakładki ToDo. Środowisko: Windows, WPF/.NET 10. Wersja uruchomionej aplikacji użytkownika i rejestracja Microsoft Entra nieznane.
+- Zgłoszenie: systemowe paski i okna odstają od motywu, a wybór list Microsoft To Do powinien być dostępny w ustawieniach. Odtworzenie w źródłach: otworzyć ustawienia i wybór pliku, przewinąć zawartość oraz sprawdzić menu zakładki ToDo.
+- Przyczyna: okna i przewijanie korzystały z domyślnych szablonów Windows/WPF. Roboczy import Microsoft To Do był dostępny z menu zakładki i obsługiwał jedną listę.
+- Zmiana: wspólne szablony motywu, dialog wyboru plików i kreator w Integracjach. Zapisane powiązania odświeżają się w kierunku Microsoft To Do → UberDashboard. Edytowalne kopie importuje się osobno.
+- Regresje: testy szablonu nagłówka i obu kierunków przewijania, zapisu ustawień, odświeżenia tej samej karty i zachowania lokalnych zadań po ponownym wczytaniu. Kompilacja Release bez ostrzeżeń, 350 testów, 104 rendery WPF oraz kontrola wtyczek przeszły. Rzeczywiste konto Microsoft i interakcje powłoki Windows przy różnych DPI wymagają odbioru.
+
 ## 2026-11-04T08:12:10+01:00 | źródła 1.7.0 / 876a2d7 + zmiany robocze | kolor tekstu paneli
 
 - Moduły: wygląd paneli, notatnik i afirmacje; Windows/WPF, .NET 10. Wersja uruchomionej aplikacji i konkretny dokument użytkownika nieznane.

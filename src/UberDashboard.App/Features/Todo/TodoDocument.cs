@@ -1,7 +1,7 @@
 namespace UberDashboard.App.Features.Todo;
 
 /// <summary>Pojedyncze zadanie w utrwalonym stanie listy.</summary>
-public sealed record TodoItemState(string Text, bool IsDone);
+public sealed record TodoItemState(string Text, bool IsDone, Guid? Id = null);
 
 /// <summary>
 /// Stan listy zadań utrwalany w magazynie instancji. Dokument jest niezależny od
@@ -10,7 +10,7 @@ public sealed record TodoItemState(string Text, bool IsDone);
 public sealed record TodoDocument
 {
     /// <summary>Wersja schematu dokumentu listy zadań.</summary>
-    public const int SchemaVersion = 2;
+    public const int SchemaVersion = 3;
 
     /// <summary>Zadania w kolejności dodania.</summary>
     public IReadOnlyList<TodoItemState> Items { get; init; } = [];

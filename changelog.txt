@@ -1,3 +1,14 @@
+Zmiany robocze 1.8.0 (2026-11-04T11:17:17+01:00)
+- Paski tytułu, przewijania i postępu, suwaki, wybór plików, potwierdzenia oraz menu zasobnika korzystają z palety aplikacji.
+- Ustawienia → Integracje zawierają kreator Microsoft To Do. Można zmieniać konto, Client ID, panel docelowy i wybór list.
+- Wiele list można importować jako edytowalne kopie lub wyświetlać w kartach odświeżanych automatycznie z Microsoft To Do.
+
+Zmiany robocze 1.8.0 (2026-11-04T10:42:47+01:00): Wbudowane listy ToDo zachowują zadania w SQLite. Po skonfigurowaniu konta można skopiować wybraną listę Microsoft To Do do nowej zakładki.
+
+Zmiany robocze 1.8.0 (2026-11-04T10:34:48+01:00): Menu zakładki pozwala importować pliki do nowych kart. ToDo obsługuje TXT, Markdown i CSV, a Notatnik wczytuje TXT i Markdown jako tekst.
+
+Zmiany robocze 1.8.0 (2026-11-04T10:28:00+01:00): Import notatki rozpoznaje pliki z zakończeniami LF i CRLF oraz zgłasza przekroczenie limitu 10 MiB lub błędne kodowanie.
+
 2026-11-04T10:00:34+01:00 | wersja źródeł 1.8.0
 - Niezależny kolor i widoczność niewpisanej części afirmacji.
 - Puste notatki można usuwać bez potwierdzenia; komunikaty korzystają z motywu aplikacji.

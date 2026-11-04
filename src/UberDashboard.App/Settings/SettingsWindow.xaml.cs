@@ -29,6 +29,14 @@ public partial class SettingsWindow : Window
         };
     }
 
+    internal Func<IReadOnlyList<Panels.PanelGroupSession>> TodoTargets { get; set; } = () => [];
+
+    private void OpenMicrosoftTodo_Click(object sender, RoutedEventArgs e)
+    {
+        if (System.Windows.Application.Current is App app)
+            app.MicrosoftTodo?.Show(this, TodoTargets());
+    }
+
     public Task FlushAsync() => _viewModel.FlushAsync();
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
