@@ -1,4 +1,13 @@
 # Rejestr problemów
+## 2026-11-05T20:56:22+01:00 | 1.9.0 / f0387a1 + zmiany robocze | kontynuacja synchronizacji
+
+- Zgłoszenie: kontynuować pełny plan i oddzielić publiczną instrukcję użytkownika od dokumentacji rozwoju. README opublikowano jako f0387a1; pozostały zakres integracji nadal OTWARTY.
+- Przy przeglądzie f9404d7 potwierdzono błąd Complete: po potwierdzeniu starszej wysyłki podmieniano bazę kolejnego zapisu bez scalenia jego treści. Odtworzenie automatyczne: zmienić lokalny tytuł podczas wysyłki i zwrócić niezależną zmianę opisu serwera; następny zapis próbował cofnąć opis. Drugi test potwierdził brak konfliktu dla sprzecznej nowszej zmiany tego samego pola. Oba testy najpierw FAIL, po poprawce PASS.
+- Poprawka: trzystronne scalanie odpowiedzi z nowszą rewizją, blokada konfliktu i historia odzyskiwania; nowy ID Google przy cofnięciu usunięcia w trakcie wysyłki. Zmieniony opis Microsoft kodowany do HTML zgodnie z dokumentacją endpointu.
+- Rozszerzono zadania o ważność, kategorie, daty, przypomnienie i cykliczność. Dodano wspólny cache kompletnych zakresów kalendarza, izolację tożsamości, ochronę starszej odpowiedzi i przerwanego stronicowania oraz migrację 4/5 → 6 z kopią i zachowaniem kolejki. Zmiana zakresu anuluje i odrzuca starsze pobieranie panelu.
+- Kontrola renderów ujawniła techniczny tekst opcji i systemowe białe pole daty; poprawiono etykiety i lokalny szablon. Automatycznie sprawdzono wybór daty, małe okno, PL/EN i font 24 DIP. Pełny ręczny odbiór rozwijanego kalendarza, DPI/Narratora i kont dostawców niewykonany.
+- Weryfikacja: Release bez błędów/ostrzeżeń; 489 testów PASS; VisualChecks PL/EN i PluginChecks PASS. Pokrycie linii nowych plików logiki zadań 98,1%, cache DB 96,1%; całego SyncCoordinator 84,2%. Nie jest to pokrycie całego App. Szczegóły i ograniczenia w docs/SYNCHRONIZACJA_DWUKIERUNKOWA.md.
+
 ## 2026-11-05T10:35:26+01:00 | 1.9.0 / 78633b6 + zmiany robocze | prywatność i dalsza synchronizacja
 
 - Zgłoszenie: kontynuować dwukierunkową integrację, użyć GitHuba jako strony projektu i sprawdzić rzeczywiste przepływy danych przed publikacją polityki. Właściciel jawnie zlecił zmianę repozytorium na publiczne po sprawdzeniu plików i sekretów.

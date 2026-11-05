@@ -35,6 +35,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IPanelTabGroupStore, PanelTabGroupStore>();
         services.AddSingleton<IAppSettingsStore, AppSettingsStore>();
         services.AddSingleton<UberDashboard.Application.Synchronization.ISyncStore, SyncStore>();
+        services.AddSingleton<UberDashboard.Application.Synchronization.ICalendarViewCache, CalendarViewCache>();
         services.AddSingleton<IWindowModeSettingsService, WindowModeSettingsService>();
         services.AddSingleton<IWeatherCacheStore, WeatherCacheStore>();
 

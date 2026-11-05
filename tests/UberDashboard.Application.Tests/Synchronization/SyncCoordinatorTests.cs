@@ -9,6 +9,67 @@ namespace UberDashboard.Application.Tests.Synchronization;
 public sealed class SyncCoordinatorTests
 {
     [Fact]
+    public async Task Undoing_a_google_deletion_during_send_prepares_a_new_id_before_recreating_the_event()
+    {
+        var (store, provider, coordinator, binding) = Setup(SyncProviderKind.GoogleCalendar);
+        var id = Guid.NewGuid();
+        store.State = store.State with { Entities = [new(id, "remote", Obj("event", false), Obj("event", false))] };
+        provider.Page = new([new("remote", Obj("event", false))], null, "cursor", true);
+        await coordinator.EditAsync(binding.Id, id, null);
+        provider.OnWrite = async () =>
+        {
+            await coordinator.EditAsync(binding.Id, id, Obj("restored", false));
+            provider.Result = new(SyncWriteStatus.Success);
+            provider.OnWrite = () => { provider.Result = new(SyncWriteStatus.UnknownOutcome); return Task.CompletedTask; };
+        };
+        await coordinator.SynchronizeAsync(binding.Id);
+        var operation = Assert.Single(store.State.Queue);
+        Assert.Equal(SyncOperationKind.Create, operation.Kind);
+        Assert.Matches("^[0-9a-f]{32}$", operation.RemoteId!);
+        Assert.NotEqual("remote", operation.RemoteId);
+    }
+
+    [Fact]
+    public async Task Newer_local_edit_is_rebased_on_the_acknowledgement_without_reverting_independent_server_fields()
+    {
+        var (store, provider, coordinator, binding) = Setup();
+        var id = Guid.NewGuid();
+        JsonObject Fields(string title, string description) => new() { ["title"] = title, ["description"] = description };
+        store.State = store.State with { Entities = [new(id, "remote", Fields("base", "old"), Fields("base", "old"))] };
+        provider.Page = new([new("remote", Fields("base", "old"))], null, "cursor", true);
+        await coordinator.EditAsync(binding.Id, id, Fields("first", "old"));
+        provider.OnWrite = async () =>
+        {
+            await coordinator.EditAsync(binding.Id, id, Fields("newer", "old"));
+            provider.Result = new(SyncWriteStatus.Success, new("remote", Fields("first", "remote independent")));
+            provider.OnWrite = () => { provider.Result = new(SyncWriteStatus.UnknownOutcome); return Task.CompletedTask; };
+        };
+        await coordinator.SynchronizeAsync(binding.Id);
+        Assert.Equal("newer", store.State.Items[0].Local!["title"]!.GetValue<string>());
+        Assert.Equal("remote independent", store.State.Items[0].Local!["description"]!.GetValue<string>());
+        Assert.Equal("remote independent", Assert.Single(store.State.Queue).Desired!["description"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Server_and_newer_local_changes_to_the_same_field_become_a_conflict_after_acknowledgement()
+    {
+        var (store, provider, coordinator, binding) = Setup();
+        var id = Guid.NewGuid();
+        await coordinator.EditAsync(binding.Id, id, Obj("first", false));
+        provider.OnWrite = async () =>
+        {
+            provider.OnWrite = null;
+            await coordinator.EditAsync(binding.Id, id, Obj("newer local", false));
+            provider.Result = new(SyncWriteStatus.Success, new("remote", Obj("newer remote", false)));
+        };
+        await coordinator.SynchronizeAsync(binding.Id);
+        Assert.Equal(1, provider.Writes);
+        Assert.Contains("title", store.State.Items[0].Conflicts!);
+        Assert.Equal(SyncOperationState.Conflict, Assert.Single(store.State.Queue).State);
+        Assert.Equal("newer remote", store.State.Items[0].Remote!["title"]!.GetValue<string>());
+    }
+
+    [Fact]
     public async Task Pull_merges_independent_changes_before_sending_and_commits_cursor()
     {
         var (store, provider, coordinator, binding) = Setup();
@@ -211,11 +272,12 @@ public sealed class SyncCoordinatorTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => coordinator.RetryAsync(binding.Id, store.State.Queue[0].Id));
         Assert.Equal(SyncOperationState.UnknownOutcome, store.State.Queue[0].State);
     }
-    private static (MemoryStore, Provider, SyncCoordinator, SyncBinding) Setup()
+    private static (MemoryStore, Provider, SyncCoordinator, SyncBinding) Setup(SyncProviderKind kind = SyncProviderKind.MicrosoftTodo)
     {
-        var binding = new SyncBinding(Guid.NewGuid(), SyncProviderKind.MicrosoftTodo, "client", "account", "lists/a/tasks", "Test", true);
+        var binding = new SyncBinding(Guid.NewGuid(), kind, "client", "account",
+            kind == SyncProviderKind.MicrosoftTodo ? "lists/a/tasks" : "calendars/primary/events", "Test", true);
         var store = new MemoryStore(new(binding));
-        var provider = new Provider();
+        var provider = new Provider { Kind = kind };
         return (store, provider, new SyncCoordinator(store, [provider], new Clock()), binding);
     }
 
@@ -234,7 +296,7 @@ public sealed class SyncCoordinatorTests
     }
     private sealed class Provider : ISyncProvider
     {
-        public SyncProviderKind Kind => SyncProviderKind.MicrosoftTodo;
+        public SyncProviderKind Kind { get; init; } = SyncProviderKind.MicrosoftTodo;
         public IReadOnlyList<string[]> AtomicGroups => [];
         public SyncPage Page { get; set; } = new([], null, null, true);
         public SyncOperation? Written { get; private set; }

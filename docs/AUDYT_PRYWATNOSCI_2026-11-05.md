@@ -33,3 +33,10 @@ To przegląd kodu, konfiguracji zależności i plików repozytorium, nie przechw
 Zgodnie z decyzją właściciela stroną projektu jest adres repozytorium GitHub, a polityką plik `PRIVACY.md`. Google wymaga dla produkcyjnej weryfikacji także własności domen; sam publiczny adres GitHub nie potwierdza spełnienia tego warunku. Nie zmienia to decyzji o publikacji repozytorium i dokumentu; status publicznego OAuth pozostaje odrębnym etapem.
 
 Źródła: [Google User Data Policy](https://developers.google.com/terms/api-services-user-data-policy), [Google OAuth production compliance](https://developers.google.com/identity/protocols/oauth2/production-readiness/policy-compliance), [Open-Meteo privacy](https://open-meteo.com/en/terms), [GitHub privacy](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement).
+
+## Aktualizacja po rozszerzeniu synchronizacji — 2026-11-05
+
+- Dodano lokalny cache kompletnych zakresów kalendarza w SQLite 6. Zawiera tytuły, terminy i identyfikatory wydarzeń/serii; klucz rozdziela konto, klienta OAuth, kalendarz i strefę wyświetlania. Nie zawiera tokenów ani nowego połączenia z serwerem autora.
+- Odłączenie konta blokuje dostęp do jego kopii przez bieżącą sesję, lecz nie kasuje wierszy cache ani backupów. Polityka PL/EN ujawnia ten zakres i sposób usunięcia całego profilu.
+- Testy kontrolowanego HTTP/SQLite obejmują zmianę konta podczas pobierania i zapisu cache, brak konfiguracji, przerwane stronicowanie, starszą odpowiedź oraz izolację tożsamości. Nie jest to przechwycenie ruchu prawdziwego konta.
+- Bieżący snapshot plików wersjonowanych i nowych plików źródłowych ponownie przeskanowano Gitleaks 8.30.1 z pełną redakcją wyników: brak wykrytych sekretów. Snapshot źródeł i raporty pozostały w ignorowanym Release/Audits; profile testowe są w Release/Dev.

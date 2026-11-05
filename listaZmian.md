@@ -1,3 +1,5 @@
+2026-11-05T20:56:22+01:00 | README dla użytkowników; rozszerzone zadania Microsoft, kalendarz offline i ochrona nowszych edycji podczas potwierdzania zapisu.
+
 2026-11-05T10:35:26+01:00 | Upubliczniono repo po audycie, dodano politykę prywatności i podłączono podstawowy edytor synchronizacji MS/Google z ochroną sesji i kolejki.
 
 2026-11-05T09:23:23+01:00 | Fundament synchronizacji: SQLite/outbox, konflikty i transporty MS/Google; integracja z panelami i OAuth zapisu pozostaje niewdrożona.

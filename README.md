@@ -35,6 +35,8 @@ Microsoft To Do skonfigurujesz w **Ustawienia → Integracje**. Listę można za
 
 W bieżącym kodzie przycisk **Synchronizacja dwukierunkowa** otwiera edytor powiązanej listy lub kalendarza. Pierwsze włączenie wymaga osobnej zgody Microsoft lub Google na zapis. Edytor pozwala tworzyć, zmieniać i usuwać podstawowe zadania oraz wydarzenia. Zmiany trafiają najpierw do lokalnej kolejki, która zachowuje je także po restarcie. Synchronizacja działa podczas uruchomienia aplikacji, również w zasobniku.
 
+W zadaniach Microsoft można także zmienić ważność, przypisane kategorie, daty, przypomnienie i sposób powtarzania. Widok Google Calendar zachowuje pobrane zakresy do przeglądania offline i pokazuje datę lokalnej kopii. Zakres, którego wcześniej nie pobrano, pozostaje niedostępny bez sieci. Niewysłane zmiany są dostępne w edytorze; siatka kalendarza pokazuje ostatni pobrany stan usługi.
+
 **Ta funkcja pozostaje w rozwoju.** Pełna obsługa cykliczności, załączników, uczestników i zarządzania listami oraz kalendarzami nie jest jeszcze ukończona. Nie zakończono prób na rzeczywistych kontach ani weryfikacji publicznego OAuth. [Aktualny zakres i ograniczenia](docs/SYNCHRONIZACJA_DWUKIERUNKOWA.md).
 
 **Ustawienia → Integracje → Centrum synchronizacji** pokazuje powiązania, kolejkę i konflikty. Edytor umożliwia ponowienie, wstrzymanie synchronizacji i ponowne połączenie konta. Usuwanie wydarzenia lub zadania w edytorze oznacza zmianę w usłudze; usunięcie samego panelu lub zakładki nie usuwa danych w Microsoft ani Google. Dotychczasowe lokalne importy nie są automatycznie wysyłane do usług.
@@ -49,7 +51,7 @@ Integracje łączą się bezpośrednio z Microsoft, Google lub Open-Meteo i prze
 
 | Wersja / etap | Zmiany dla użytkownika |
 | --- | --- |
-| Prace nad synchronizacją, 5 listopada 2026 | Podstawowe edytory Microsoft To Do i Google Calendar, trwała kolejka zmian, konflikty, osobna zgoda na zapis i centrum synchronizacji. Publiczna polityka prywatności. Pełny zakres integracji nadal w przygotowaniu. |
+| Prace nad synchronizacją, 5 listopada 2026 | Edytory Microsoft To Do i Google Calendar, trwała kolejka zmian, konflikty, zgoda na zapis i centrum synchronizacji. Ważność, kategorie, daty, przypomnienia i powtarzanie zadań; pobrane zakresy kalendarza dostępne offline. Publiczna polityka prywatności. Pełny zakres integracji nadal w przygotowaniu. |
 | 1.9.0 | Panel Skróty: aplikacje, foldery, dokumenty i strony, kilka widoków oraz własne ikony i kolory. |
 | 1.8.1 | Zapamiętywanie trybu, pozycji i rozmiaru okna oraz bezpieczne odtwarzanie po odłączeniu monitora. |
 | Rozwój 1.8.0 | Kalendarz Google, Monitor zasobów, Microsoft To Do, import plików, wspólne zakładki i język angielski. Zadokowany pasek korzysta z zasobnika Windows. |

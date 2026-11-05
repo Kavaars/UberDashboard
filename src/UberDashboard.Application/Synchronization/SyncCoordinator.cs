@@ -260,13 +260,28 @@ public sealed class SyncCoordinator(ISyncStore store, IEnumerable<ISyncProvider>
         }
         var remote = result.Entity;
         var old = state.Items.Single(e => e.LocalId == sent.EntityId);
-        var updated = old with { RemoteId = remote?.Id, Baseline = remote?.Fields,
-            ETag = remote?.ETag, Metadata = remote?.Metadata, Local = old.Revision == sent.Revision ? remote?.Fields : old.Local };
-        var queue = state.Queue.Where(o => o.Id != sent.Id).Select(o => o.EntityId == old.LocalId
-            ? o with { RemoteId = updated.RemoteId, ETag = updated.ETag, Baseline = updated.Baseline,
-                Kind = updated.Baseline is null ? SyncOperationKind.Create : o.Desired is null ? SyncOperationKind.Delete : SyncOperationKind.Update } : o).ToArray();
+        var merge = old.Revision == sent.Revision ? new SyncMergeResult(remote?.Fields, []) :
+            SyncMerge.Merge(sent.Desired, old.Local, remote?.Fields, _providers[state.Binding.Provider].AtomicGroups);
+        var conflicted = merge.Conflicts.Count > 0;
+        var updated = old with { RemoteId = remote?.Id, Baseline = conflicted ? sent.Desired : remote?.Fields,
+            ETag = remote?.ETag, Metadata = remote?.Metadata, Local = merge.Value,
+            Remote = conflicted ? remote?.Fields : null, Conflicts = merge.Conflicts.ToArray() };
+        var queue = state.Queue.Where(o => o.EntityId != old.LocalId).ToList();
+        if (conflicted || !JsonNode.DeepEquals(updated.Local, remote?.Fields))
+        {
+            var waiting = state.Queue.LastOrDefault(o => o.EntityId == old.LocalId && o.Id != sent.Id);
+            var kind = remote?.Fields is null ? SyncOperationKind.Create : updated.Local is null ? SyncOperationKind.Delete : SyncOperationKind.Update;
+            var remoteId = remote?.Id;
+            if (kind == SyncOperationKind.Create && state.Binding.Provider == SyncProviderKind.GoogleCalendar &&
+                state.Binding.ResourcePath.EndsWith("/events", StringComparison.Ordinal)) remoteId = Guid.NewGuid().ToString("N");
+            queue.Add(new(waiting?.Id ?? Guid.NewGuid(), old.LocalId, old.Revision, kind, updated.Local, remoteId, remote?.ETag,
+                conflicted ? SyncOperationState.Conflict : SyncEdits.RequiresApproval(state.Binding, remote?.Fields, updated.Local)
+                    ? SyncOperationState.AwaitingApproval : SyncOperationState.Pending, Baseline: remote?.Fields));
+        }
+        var history = state.History.Append(new(old.LocalId, clock.UtcNow, sent.Desired, result.ErrorCode ?? "write-acknowledged"));
+        if (!JsonNode.DeepEquals(old.Local, updated.Local)) history = history.Append(new(old.LocalId, clock.UtcNow, old.Local, "write-rebase"));
         return state with { Entities = state.Items.Select(e => e.LocalId == old.LocalId ? updated : e).ToArray(), Operations = queue,
-            Recovery = state.History.Append(new(old.LocalId, clock.UtcNow, sent.Desired, result.ErrorCode ?? "write-acknowledged")).ToArray() };
+            Recovery = history.ToArray() };
     }
 
     private async Task<SyncState> RequiredAsync(Guid id, CancellationToken token) =>

@@ -15,7 +15,8 @@ using UberDashboard.Contracts.Host;
 
 namespace UberDashboard.App.Features.Calendar;
 
-internal sealed class GoogleCalendarClient(IPanelStorage storage, HttpClient? http = null)
+internal sealed partial class GoogleCalendarClient(IPanelStorage storage, HttpClient? http = null,
+    UberDashboard.Application.Synchronization.ICalendarViewCache? viewCache = null)
 {
     internal const string DefaultClientId = "566017659051-5tnkvv0jjiih7kj7p51378nik127pqd9.apps.googleusercontent.com";
     private const string SessionFile = "google-calendar.session";
@@ -111,26 +112,27 @@ internal sealed class GoogleCalendarClient(IPanelStorage storage, HttpClient? ht
 
     public async Task<IReadOnlyList<CalendarEntry>?> ReadAsync(string calendarId, CalendarPeriod period, CancellationToken token)
     {
-        var data = await ReadSessionDataAsync(storage, token).ConfigureAwait(false);
-        if (data is null)
-            return null;
-
-        var session = NewtonsoftJsonSerializer.Instance.Deserialize<Session>(System.Text.Encoding.UTF8.GetString(
-            ProtectedData.Unprotect(data, null, DataProtectionScope.CurrentUser)));
+        var session = await LoadSessionAsync(token).ConfigureAwait(false);
+        if (session is null) return null;
         if (session?.Token is null)
             throw new InvalidDataException();
+        return await ReadEventsAsync(session, calendarId, period, token).ConfigureAwait(false);
+    }
 
+    private async Task<IReadOnlyList<CalendarEntry>> ReadEventsAsync(Session session, string calendarId, CalendarPeriod period, CancellationToken token)
+    {
         using var flow = new GoogleAuthorizationCodeFlow(Initializer(session, new TokenStore(session, storage)));
         var credential = new UserCredential(flow, User, session.Token);
         var items = new List<CalendarEntry>();
         string? page = null;
+        var pages = new HashSet<string>(StringComparer.Ordinal);
 
         // Padded for calendars in other time zones. The view filters the returned local dates.
         var start = FormatBoundary(period.Start.AddDays(-2));
         var end = FormatBoundary(period.End.AddDays(2));
         var uri = $"https://www.googleapis.com/calendar/v3/calendars/{Uri.EscapeDataString(calendarId)}/events" +
             $"?singleEvents=true&orderBy=startTime&maxResults=250&timeMin={start}&timeMax={end}" +
-            "&fields=nextPageToken,items(summary,start,end)";
+            "&fields=nextPageToken,items(id,summary,start,end,recurringEventId,originalStartTime)";
         do
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, page is null ? uri : $"{uri}&pageToken={Uri.EscapeDataString(page)}");
@@ -143,9 +145,12 @@ internal sealed class GoogleCalendarClient(IPanelStorage storage, HttpClient? ht
             foreach (var item in result.Items ?? [])
             {
                 if (ToEntry(item.Summary, item.Start?.Date, item.End?.Date, item.Start?.DateTime, item.End?.DateTime) is { } entry)
-                    items.Add(entry);
+                    items.Add(entry with { RemoteId = item.Id, RecurringEventId = item.RecurringEventId,
+                        OriginalStart = item.OriginalStartTime?.Date?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                            ?? item.OriginalStartTime?.DateTime?.ToString("O", CultureInfo.InvariantCulture) });
             }
             page = result.NextPageToken;
+            if (!string.IsNullOrEmpty(page) && (!pages.Add(page) || pages.Count > 10000)) throw new InvalidDataException("Invalid calendar pagination.");
         } while (!string.IsNullOrEmpty(page));
 
         return items;
@@ -179,7 +184,8 @@ internal sealed class GoogleCalendarClient(IPanelStorage storage, HttpClient? ht
     };
 
     private sealed record EventPage(string? NextPageToken, GoogleEvent[]? Items);
-    private sealed record GoogleEvent(string? Summary, EventTime? Start, EventTime? End);
+    private sealed record GoogleEvent(string? Summary, EventTime? Start, EventTime? End, string? Id = null,
+        string? RecurringEventId = null, EventTime? OriginalStartTime = null);
     private sealed record EventTime(DateOnly? Date, DateTimeOffset? DateTime);
     private sealed record Session(string ClientId, string ClientSecret, TokenResponse? Token, string? AccountId = null,
         string[]? GrantedScopes = null, string[]? RequestedScopes = null);
