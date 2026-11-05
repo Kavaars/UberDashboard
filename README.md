@@ -1,5 +1,7 @@
 # UberDashboard
 
+Strona projektu: [GitHub — Kavaars/UberDashboard](https://github.com/Kavaars/UberDashboard). [Polityka prywatności / Privacy Policy](PRIVACY.md).
+
 Lokalna aplikacja desktopowa dla Windows 11 do budowy własnych pulpitów z paneli. Projekt jest rozwijany w .NET 10, WPF i architekturze modularnego monolitu z wyraźnym podziałem na warstwy domeny, aplikacji, infrastruktury, integracji Windows i hosta UI.
 
 ## Zasady tworzenia paneli
@@ -208,7 +210,7 @@ dotnet test UberDashboard.slnx -v q
 
 ## Repozytorium git
 
-- repo zdalne: `https://github.com/Kavaars/UberDashboard` (prywatne)
+- repo zdalne: `https://github.com/Kavaars/UberDashboard`
 - gałąź główna: `main`, śledzi `origin/main`
 - remote `origin`: `https://github.com/Kavaars/UberDashboard.git`
 

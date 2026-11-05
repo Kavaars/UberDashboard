@@ -42,3 +42,15 @@ desktop.ini
 
 ## Lokalne narzędzia i konfiguracja CLI (nie należą do repo)
 .tools/
+
+## Poświadczenia i lokalna konfiguracja integracji
+.env
+.env.*
+client_secret*.json
+credentials*.json
+*.pfx
+*.p12
+*.pem
+*.key
+*.cache
+*.session
