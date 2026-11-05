@@ -275,6 +275,12 @@
                          Text="{loc:Text ConnectAnAccountChooseListsToImport}"/>
               <Button HorizontalAlignment="Left" Content="{loc:Text OpenMicrosoftToDoSetup}" Style="{StaticResource ToolbarButton}" Click="OpenMicrosoftTodo_Click"
                       ToolTip="{loc:Text OpensAccountConfigurationAndMicrosoftToDo}"/>
+              <TextBlock Margin="0,16,0,8" Text="{loc:Text PrivacyConnectionsNotice}" TextWrapping="Wrap"/>
+              <Button HorizontalAlignment="Left" Content="{loc:Text SyncCenterTitle}" AutomationProperties.Name="{loc:Text SyncCenterTitle}" Style="{StaticResource ToolbarButton}" Click="OpenSyncCenter_Click" ToolTip="{loc:Text SyncResourcesHelp}"/>
+              <WrapPanel>
+                <Button Content="{loc:Text ProjectWebsite}" AutomationProperties.Name="{loc:Text ProjectWebsite}" Style="{StaticResource ToolbarButton}" Click="OpenProjectWebsite_Click" ToolTip="{loc:Text OpenProjectWebsiteHelp}"/>
+                <Button Content="{loc:Text PrivacyPolicy}" AutomationProperties.Name="{loc:Text PrivacyPolicy}" Style="{StaticResource ToolbarButton}" Click="OpenPrivacyPolicy_Click" ToolTip="{loc:Text OpenPrivacyPolicyHelp}"/>
+              </WrapPanel>
             </StackPanel>
           </Border>
         </ScrollViewer>

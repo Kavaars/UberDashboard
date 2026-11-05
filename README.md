@@ -2,6 +2,8 @@
 
 Strona projektu: [GitHub — Kavaars/UberDashboard](https://github.com/Kavaars/UberDashboard). [Polityka prywatności / Privacy Policy](PRIVACY.md).
 
+Rozwijana synchronizacja Microsoft To Do i Google Calendar: [stan wdrożenia i ograniczenia](docs/SYNCHRONIZACJA_DWUKIERUNKOWA.md). W wersji roboczej przycisk **Synchronizacja dwukierunkowa** w powiązanej karcie To Do lub kalendarzu otwiera edytor z trwałą kolejką. Pierwsze włączenie wymaga zgody dostawcy na zapis. **Ustawienia → Integracje → Centrum synchronizacji** pokazuje istniejące powiązania. Nie oznacza to jeszcze odbioru pełnego zakresu API ani publicznego OAuth.
+
 Lokalna aplikacja desktopowa dla Windows 11 do budowy własnych pulpitów z paneli. Projekt jest rozwijany w .NET 10, WPF i architekturze modularnego monolitu z wyraźnym podziałem na warstwy domeny, aplikacji, infrastruktury, integracji Windows i hosta UI.
 
 ## Zasady tworzenia paneli

@@ -10,6 +10,8 @@ Data: 2026-11-05. Repozytorium: https://github.com/Kavaars/UberDashboard. Punkt 
 - Cache Microsoft jest chroniony przez MSAL Extensions na Windows; sesja Google przez DPAPI CurrentUser. SQLite, logi, zwykłe pliki i backupy nie mają szyfrowania całego pliku przez aplikację.
 - Serilog zapisuje lokalne logi, z rotacją i limitem 14 plików. Szczegóły wyjątków mogą zawierać ścieżki. Nie znaleziono zdalnego sinka logów. Zwykłe backupy domyślnie zachowują 10 kopii; backupy przed migracją mają osobne nazwy i nie należą do tej retencji.
 - Odłączenie konta nie usuwa wszystkich lokalnych migawek i backupów ani danych w usłudze. Deinstalacja zachowuje profil. Polityka opisuje oddzielnie te działania.
+- Uzupełnienie: potwierdzono, że wcześniejsza konfiguracja dopuszczała informacyjne logi HttpClientFactory; nowy override ogranicza je do ostrzeżeń i błędów. Nie potwierdzono zapisu pełnych współrzędnych w logach — .NET od wersji 9 domyślnie maskuje query URI. To dodatkowe ograniczenie diagnostyki, nie dowód wcześniej wykrytego wycieku. [Dokumentacja .NET](https://learn.microsoft.com/en-us/dotnet/core/compatibility/networking/9.0/query-redaction-logs).
+- Sprawdzono także instalator: instaluje do katalogu programu w profilu, bez reguły usuwającej `%LOCALAPPDATA%\UberDashboard` podczas deinstalacji. Wersja robocza dodaje OpenID Connect `sub` Google do tożsamości powiązań; identyfikator i cel opisano w polityce.
 - Monitor sprzętu i PhotoFrame używają lokalnych źródeł; użytkownik może wybrać zasoby sieciowe. Pluginy nie są izolowane i nie można gwarantować zachowania dowolnych pluginów osób trzecich.
 
 ## Kontrola repozytorium
@@ -19,6 +21,7 @@ Data: 2026-11-05. Repozytorium: https://github.com/Kavaars/UberDashboard. Punkt 
 - Osobny skan migawki bieżących śledzonych i nieignorowanych nowych plików: około 1,82 MB, kod 0, brak wykrytych sekretów. Migawka i zredagowane raporty są lokalnie pod ignorowanym `Release/Audits/privacy-20261105`.
 - Przejrzano nazwy historycznych obiektów pod kątem poświadczeń, baz, logów, backupów, paczek kluczy i konfiguracji lokalnej. Nie znaleziono takich plików w historii. Metadane autora korzystają z domeny `users.noreply.github.com`.
 - Zdalny GitHub w chwili kontroli: jedna gałąź `main`, brak wydań i załączników wydań, brak przebiegów Actions oraz brak zgłoszeń/PR w odpowiedzi API. Nie było dodatkowych danych tych typów do upublicznienia.
+- Po publikacji polityki ponowiono skan całej historii (11 commitów, kod 0, brak wykrytych sekretów), zmieniono widoczność na publiczną i potwierdzono odczyt polityki bez logowania. Przed kolejnym push skany są ponawiane; lokalne raporty nie są dodawane do Git.
 - Rozszerzono `.gitignore` o pliki OAuth, `.env`, klucze, cache i sesje. Identyfikatory aplikacji OAuth są konfiguracją publicznego klienta; plik JSON Google oraz poświadczenia sesji nie są dodawane do repozytorium.
 
 Skaner nie stanowi matematycznej gwarancji braku wszystkich sekretów. Wynik dotyczy sprawdzonego zakresu i momentu; przed kolejnymi publikacjami skan należy ponowić. Raport nie zawiera sekretów ani treści danych użytkownika.

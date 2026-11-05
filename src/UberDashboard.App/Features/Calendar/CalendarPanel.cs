@@ -9,7 +9,9 @@ using UberDashboard.Core.Layout;
 
 namespace UberDashboard.App.Features.Calendar;
 
-internal sealed class CalendarPanelDescriptor(PanelStateScheduler scheduler) : IPanelDescriptor, IPanelFactory
+internal sealed class CalendarPanelDescriptor(PanelStateScheduler scheduler,
+    UberDashboard.App.Features.Integrations.IntegrationSyncService? sync = null,
+    UberDashboard.App.Features.Integrations.IntegrationAccounts? accounts = null) : IPanelDescriptor, IPanelFactory
 {
     public const string Id = "calendar";
     public string TypeId => Id;
@@ -20,7 +22,7 @@ internal sealed class CalendarPanelDescriptor(PanelStateScheduler scheduler) : I
     public IPanelFactory Factory => this;
 
     public ValueTask<IPanelInstance> CreateAsync(PanelContext context, CancellationToken cancellationToken) =>
-        ValueTask.FromResult<IPanelInstance>(new CalendarPanel(context, scheduler));
+        ValueTask.FromResult<IPanelInstance>(new CalendarPanel(context, scheduler, sync, accounts));
 }
 
 public sealed partial class CalendarPanel : ObservableObject, IPanelInstance, IPanelOptionsPresenter
@@ -29,6 +31,8 @@ public sealed partial class CalendarPanel : ObservableObject, IPanelInstance, IP
     private readonly PanelContext _context;
     private readonly PanelStateScheduler _scheduler;
     private readonly GoogleCalendarClient _client;
+    private readonly UberDashboard.App.Features.Integrations.IntegrationSyncService? _sync;
+    private readonly UberDashboard.App.Features.Integrations.IntegrationAccounts? _accounts;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(250) };
     private IReadOnlyList<CalendarEntry> _entries = [];
     private DateOnly _anchor = Today;
@@ -69,11 +73,14 @@ public sealed partial class CalendarPanel : ObservableObject, IPanelInstance, IP
     private static DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
     private CalendarPeriod Period => CalendarPeriod.Create(Mode, _anchor, Days);
 
-    internal CalendarPanel(PanelContext context, PanelStateScheduler scheduler)
+    internal CalendarPanel(PanelContext context, PanelStateScheduler scheduler,
+        UberDashboard.App.Features.Integrations.IntegrationSyncService? sync = null,
+        UberDashboard.App.Features.Integrations.IntegrationAccounts? accounts = null)
     {
         _context = context;
         _scheduler = scheduler;
         _client = new(context.Storage);
+        _sync = sync; _accounts = accounts;
         _timer.Tick += OnTick;
     }
 
@@ -230,6 +237,48 @@ public sealed partial class CalendarPanel : ObservableObject, IPanelInstance, IP
     });
 
     [RelayCommand] private void Cancel() => _operation?.Cancel();
+
+    [RelayCommand]
+    private Task OpenSyncEditorAsync() => RunAsync(UiText.Get("SyncWorking"), async token =>
+    {
+        if (_sync is null || _accounts is null || System.Windows.Application.Current.MainWindow is not { } owner) return;
+        var connection = await _client.GetConnectionAsync(token);
+        var path = "calendars/" + Uri.EscapeDataString(string.IsNullOrWhiteSpace(CalendarId) ? "primary" : CalendarId.Trim()) + "/events";
+        var existing = connection is null ? null : (await _sync.Store.ListAsync(token)).FirstOrDefault(b =>
+            b.Provider == UberDashboard.Core.Synchronization.SyncProviderKind.GoogleCalendar && b.ClientId == connection.ClientId &&
+            b.AccountId == connection.AccountId && b.ResourcePath == path);
+        Guid bindingId;
+        if (existing is null)
+        {
+            if (UberDashboard.App.Controls.ThemedMessageBox.Show(owner, UiText.Get("SyncReadWriteConsentNotice"), UiText.Get("SyncEditorTitle"),
+                System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question) != System.Windows.MessageBoxResult.Yes) return;
+            var dialog = new UberDashboard.App.Controls.ThemedFileDialog
+            {
+                Title = UiText.Get("ChooseTheGoogleDesktopAppClientConfiguration"), Filter = UiText.Get("GoogleClientConfigurationJsonJson"),
+            };
+            if (dialog.ShowDialog() != true) return;
+            await Task.Run(() => _client.ConnectAsync(dialog.FileName, token, allowWrite: true), token);
+            connection = await _client.GetConnectionAsync(token) ?? throw new InvalidOperationException();
+            await _accounts.RegisterGoogleAsync(InstanceId, connection, token);
+            bindingId = await _sync.EnableAsync(UberDashboard.Core.Synchronization.SyncProviderKind.GoogleCalendar,
+                connection.ClientId, connection.AccountId, path, CalendarId, token);
+        }
+        else bindingId = existing.Id;
+        var expectedAccount = connection!.AccountId;
+        UberDashboard.App.Features.Integrations.SyncEditorWindow.Open(owner, _sync, bindingId, _context.CloseToken, async () =>
+        {
+            var dialog = new UberDashboard.App.Controls.ThemedFileDialog
+            {
+                Title = UiText.Get("ChooseTheGoogleDesktopAppClientConfiguration"), Filter = UiText.Get("GoogleClientConfigurationJsonJson"),
+            };
+            if (dialog.ShowDialog() != true) return false;
+            await _client.ConnectAsync(dialog.FileName, _context.CloseToken, allowWrite: true, expectedAccountId: expectedAccount);
+            var renewed = await _client.GetConnectionAsync(_context.CloseToken) ?? throw new InvalidOperationException();
+            await _accounts.RegisterGoogleAsync(InstanceId, renewed, _context.CloseToken);
+            return true;
+        });
+        Status = UiText.Get("SyncEnabled");
+    });
 
     private async Task RunAsync(string progress, Func<CancellationToken, Task> work)
     {

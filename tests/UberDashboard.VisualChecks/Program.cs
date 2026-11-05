@@ -336,6 +336,7 @@ internal static class Program
                 var shortcuts = (UberDashboard.App.Features.Shortcuts.ShortcutsPanel)
                     Leaves(shell.Root).Single(leaf => leaf.PanelTypeId == "shortcuts").ViewModel;
                 await ShortcutsChecks.RunAsync(shortcuts, theme, output);
+                await SyncEditorChecks.RunAsync(window, theme, output);
 
                 var calendar = (UberDashboard.App.Features.Calendar.CalendarPanel)
                     Leaves(shell.Root).Single(leaf => leaf.PanelTypeId == "calendar").ViewModel;

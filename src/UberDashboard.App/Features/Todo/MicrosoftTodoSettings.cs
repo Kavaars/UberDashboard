@@ -34,9 +34,11 @@ internal sealed record MicrosoftTodoPreferences(Guid ClientId, string? AccountId
     }
 }
 
-internal sealed class MicrosoftTodoSettings(IAppSettingsStore store, IClock clock)
+internal sealed class MicrosoftTodoSettings(IAppSettingsStore store, IClock clock,
+    UberDashboard.Application.Synchronization.ISyncStore? syncStore = null,
+    UberDashboard.Application.Synchronization.ISyncCoordinator? coordinator = null)
 {
-    private const string Key = "integration.microsoft-todo";
+    internal const string Key = "integration.microsoft-todo";
     public event EventHandler<MicrosoftTodoPreferences>? Saved;
 
     public async Task<MicrosoftTodoPreferences> LoadAsync(CancellationToken token)
@@ -51,6 +53,14 @@ internal sealed class MicrosoftTodoSettings(IAppSettingsStore store, IClock cloc
     {
         var json = await Task.Run(() => JsonSerializer.Serialize(preferences), token);
         await store.SetAsync(Key, json, clock.UtcNow, token);
+        if (syncStore is not null && coordinator is not null)
+        {
+            var selected = preferences.SelectedLists.Select(id => "lists/" + Uri.EscapeDataString(id) + "/tasks").ToHashSet(StringComparer.Ordinal);
+            foreach (var binding in (await syncStore.ListAsync(token)).Where(b => b.Enabled &&
+                b.Provider == UberDashboard.Core.Synchronization.SyncProviderKind.MicrosoftTodo &&
+                (b.ClientId != preferences.ClientId.ToString("D") || b.AccountId != preferences.AccountId || !selected.Contains(b.ResourcePath))))
+                await coordinator.SetEnabledAsync(binding.Id, false, token);
+        }
         Saved?.Invoke(this, preferences);
     }
 

@@ -33,6 +33,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private Task _pendingSave = Task.CompletedTask;
     [ObservableProperty] private string saveStatus = UiText.Get("ChangesSaveAutomatically");
     public Task FlushAsync() => _pendingSave;
+    internal void NotifyProjectLinkFailure() => _toasts.Show(UiText.Get("CouldNotOpenProjectLink"), ToastSeverity.Warning);
     public IAsyncRelayCommand RetrySaveCommand { get; }
 
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)

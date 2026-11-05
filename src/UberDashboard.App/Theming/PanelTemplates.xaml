@@ -81,6 +81,7 @@
           <Button Command="{Binding PreviousCommand}" Content="‹" AutomationProperties.Name="{loc:Text PreviousPeriod}" ToolTip="{loc:Text MovesToThePreviousDateRange}"/>
           <Button Command="{Binding GoToTodayCommand}" Content="{loc:Text Today}" AutomationProperties.Name="{loc:Text CurrentPeriod}" ToolTip="{loc:Text ReturnsToTheRangeContainingTodayS}"/>
           <Button Command="{Binding NextCommand}" Content="›" AutomationProperties.Name="{loc:Text NextPeriod}" ToolTip="{loc:Text MovesToTheNextDateRange}"/>
+          <Button Command="{Binding OpenSyncEditorCommand}" Content="{loc:Text SyncEditorTitle}" AutomationProperties.Name="{loc:Text SyncEditorTitle}" ToolTip="{loc:Text SyncEnableHelp}" Style="{StaticResource ToolbarButton}"/>
           <ComboBox Style="{StaticResource ThemedComboBox}" Margin="6,0,0,0" MinWidth="122"
                     ItemsSource="{Binding Modes}" SelectedValue="{Binding Mode}" SelectedValuePath="Mode"
                     DisplayMemberPath="Label" AutomationProperties.Name="{loc:Text CalendarView}"/>
@@ -741,6 +742,7 @@
 
   <DataTemplate DataType="{x:Type todo:MicrosoftTodoListViewModel}">
     <DockPanel Margin="{DynamicResource Token.Padding.Panel}">
+      <Button DockPanel.Dock="Top" HorizontalAlignment="Left" Command="{Binding OpenSyncEditorCommand}" Content="{loc:Text SyncEditorTitle}" ToolTip="{loc:Text SyncEnableHelp}" AutomationProperties.Name="{loc:Text SyncEditorTitle}" Style="{StaticResource ToolbarButton}"/>
       <TextBlock DockPanel.Dock="Top" Text="{Binding Status}" TextWrapping="Wrap"
                  Foreground="{DynamicResource Brush.Text.Muted}" Margin="0,0,0,6"/>
       <ListBox ItemsSource="{Binding Items}" Background="Transparent" BorderThickness="0"

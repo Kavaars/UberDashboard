@@ -1,4 +1,23 @@
 # Rejestr problemów
+## 2026-11-05T10:35:26+01:00 | 1.9.0 / 78633b6 + zmiany robocze | prywatność i dalsza synchronizacja
+
+- Zgłoszenie: kontynuować dwukierunkową integrację, użyć GitHuba jako strony projektu i sprawdzić rzeczywiste przepływy danych przed publikacją polityki. Właściciel jawnie zlecił zmianę repozytorium na publiczne po sprawdzeniu plików i sekretów.
+- Potwierdzono w kodzie: brak serwera autora i automatycznych raportów analitycznych/awarii; połączenia z Microsoft, Google i Open-Meteo są jednak rzeczywiste. Baza, logi i backupy nie są w całości szyfrowane. Poświadczenia sesji są chronione oddzielnie. Przegląd nie zastępuje przechwytywania całego ruchu ani audytu dowolnych pluginów.
+- Audyt Git/GitHub: Gitleaks z redakcją, historia i bieżące pliki, kontrola nazw historycznych plików oraz metadanych GitHuba; brak wykrytych sekretów. Polityka PL/EN została opublikowana, a publiczna widoczność i dostęp bez logowania potwierdzone. Google JSON pozostał poza repo; sprawdzono tylko zgodność typu i identyfikatora.
+- Wdrożono podstawowy edytor, harmonogram i powiązania kont; dodatkową zgodę na zapis; ochronę starych sesji i nowszych lokalnych/remote edycji; stan limitów i Retry-After; wstrzymanie po odznaczeniu listy Microsoft. Pełny plan nadal OTWARTY, szczegóły w docs/SYNCHRONIZACJA_DWUKIERUNKOWA.md.
+- Ograniczono logowanie HTTP. Test wykazał wcześniejsze dopuszczenie INFO, nie potwierdził zapisu pełnych współrzędnych; domyślny .NET maskuje parametry URI. To wzmocnienie prywatności, nie potwierdzony wyciek.
+- Regresje: błędna tożsamość/zgoda, odłączenie i odznaczenie listy, przerwany zapis pliku, edycja podczas wysyłania i otwartego formularza, starszy wybór konfliktu, potwierdzony POST z nieudanym GET, oba warianty roboczego schematu 4. Początkowy test WPF miał nieutworzony uchwyt właściciela; poprawiono test, a powtórzony odbiór przeszedł.
+- Wyniki: Release PASS, 0 ostrzeżeń/błędów; 438 testów PASS; VisualChecks PL/EN po 161 PNG PASS; PluginChecks PASS. Nie wykonano logowania kont użytkownika, zapisu w rzeczywistych usługach, DPI/Narratora ani publicznej weryfikacji wydawców; nie pakowano wydania.
+
+## 2026-11-05T09:23:23+01:00 | 1.9.0 / dfb5926 + zmiany robocze | integracje jednokierunkowe
+
+- Moduły: Microsoft To Do i Google Calendar; Windows, WPF/.NET 10, SQLite. Typy rzeczywistych kont i produkcyjne rejestracje OAuth niepodane.
+- Zgłoszenie: obie integracje muszą działać w obu kierunkach. Oczekiwane: trwała edycja lokalna wysyłana do usług, odbiór zmian zdalnych, konflikty i offline. Faktyczne: panele nadal korzystają z poprzedniego odczytu.
+- Analiza ostatnich zmian: dfb5926 zachował implementację odczytu kalendarza i wcześniejsze odświeżanie Microsoft. W MicrosoftTodoSettings.CreateDocument gubione są zdalne ID; CalendarEntry jest projekcją do wyświetlania. Brakuje ścieżki zapisu i trwałej kolejki; nie jest to potwierdzona regresja logowania. Odtworzenie na rzeczywistym koncie nie było wykonane.
+- Stan: OTWARTE. Dodano fundament Core/Application/Infrastructure, CAS i outbox w SQLite, scalanie i podstawowe transporty. Nie podłączono OAuth zapisu, edytorów ani wszystkich funkcji planu. Nie wolno uznać zgłoszenia za naprawione.
+- Regresje: testy niezależnych pól, konfliktów i kolekcji, atomowości/CAS, kont/powiązań, delta/syncToken, stronicowania, błędów HTTP, niepewnego POST i nowszej edycji podczas wysyłania. Kontrole na rzeczywistych kontach i pomiary pokrycia pozostają niewykonane.
+- Weryfikacja robocza: Release 0 ostrzeżeń/błędów, 421 testów PASS, dotychczasowe VisualChecks PL/EN i PluginChecks PASS. Szczegóły i pozostały zakres: docs/SYNCHRONIZACJA_DWUKIERUNKOWA.md.
+- Wcześniejszy nieudany build bez szczegółów nie ma potwierdzonej przyczyny. W tej sesji proces testowy bez szerszego dostępu przekroczył limit połączenia testhost; zatwierdzone uruchomienie tych samych testów przeszło. Pierwszy długi przebieg kompilacji trafił dodatkowo na celowo dodany jeszcze bez implementacji test regresji; nie jest to błąd bazowego commita.
 
 ## 2026-11-05T07:46:00+01:00 | źródła 1.8.0 / b1512b0 + zmiany robocze | odtwarzanie okna po autostarcie
 

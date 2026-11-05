@@ -12,6 +12,8 @@
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <Version>1.9.0</Version>
     <Product>UberDashboard</Product>
+    <RepositoryUrl>https://github.com/Kavaars/UberDashboard</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/Kavaars/UberDashboard</PackageProjectUrl>
     <NeutralLanguage>pl-PL</NeutralLanguage>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>

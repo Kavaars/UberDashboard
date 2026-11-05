@@ -1,3 +1,13 @@
+Prace robocze 1.9.0 (2026-11-05T10:35:26+01:00)
+- Repozytorium projektu i polityka prywatności PL/EN są publiczne po skanie sekretów i przeglądzie plików.
+- Dodano podstawowy edytor dwukierunkowy To Do i kalendarza, trwałą kolejkę, konflikty, zgody na zapis, ponowne łączenie i centrum powiązań.
+- Zachowano lokalne kopie; odłączenie konta Microsoft lub odznaczenie listy wstrzymuje jej synchronizację. Zabezpieczono podmianę plików sesji i starsze robocze bazy.
+- Pełny zakres funkcji dostawców i odbiór rzeczywistych kont nadal pozostają otwarte; to nie jest gotowe wydanie publiczne OAuth.
+
+Prace robocze 1.9.0 (2026-11-05T09:23:23+01:00)
+- Przygotowano wewnętrzny fundament synchronizacji zmian, kolejki offline i konfliktów dla Microsoft To Do oraz Google Calendar.
+- Funkcja nie jest jeszcze dostępna w panelach; obecne integracje nadal pobierają dane w jednym kierunku. Pełne wdrożenie i weryfikacja kont pozostają w toku.
+
 1.9.0 (2026-11-05T08:18:37+01:00)
 - Nowy panel Skróty do aplikacji, folderów, dokumentów i stron internetowych.
 - Widoki ikon, listy, przycisków i kafelków; własne nazwy, ikony, kolory, kolejność oraz tapeta panelu.

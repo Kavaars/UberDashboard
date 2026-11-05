@@ -1,3 +1,7 @@
+2026-11-05T10:35:26+01:00 | 1.9.0, prace robocze sync-privacy-20261105-1010. SQLite 5, edytor podstawowych zadań/wydarzeń, zgody i konta, polityka prywatności oraz publiczne repo. Release 0 ostrzeżeń/błędów, 438 testów PASS, VisualChecks PL/EN po 161 PNG i PluginChecks PASS. Bez testów rzeczywistych kont, publicznej weryfikacji OAuth i wydania 1.10.0.
+
+2026-11-05T09:23:23+01:00 | 1.9.0, prace robocze sync-foundation-20261105-0918. Fundament synchronizacji bez aktywacji w panelach; migracja SQLite 4. Build Release bez ostrzeżeń, 421 testów PASS, VisualChecks PL/EN (po 153 PNG) i PluginChecks PASS. Publiczny OAuth, pełne funkcje i odbiór kont pozostają otwarte; brak wydania 1.10.0.
+
 2026-11-05T08:21:38+01:00 | 1.9.0, kompilacja v1.9.0_shortcuts-20261105-082042-743 (Release/Dev). Panel Skróty. Build Release bez ostrzeżeń, 391 testów PASS, VisualChecks PL/EN (w tym edytor i po 24 rendery Skrótów) oraz PluginChecks PASS; publikacja win-x64 self-contained PASS. Rzeczywiste uruchamianie aplikacji i stron przez użytkownika nie było sprawdzane.
 
 2026-11-05T07:54:00+01:00 | 1.8.1, kompilacja v1.8.1_autostart-20261105-075255-447 (Release/Dev). Przywracanie trybu i położenia przy autostarcie. Build Release bez ostrzeżeń, 372 testy PASS, VisualChecks i PluginChecks PASS, publish win-x64 self-contained PASS. Pełny restart Windows z dwoma monitorami nie był testowany.
