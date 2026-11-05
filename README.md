@@ -1,267 +1,62 @@
 # UberDashboard
 
-Strona projektu: [GitHub — Kavaars/UberDashboard](https://github.com/Kavaars/UberDashboard). [Polityka prywatności / Privacy Policy](PRIVACY.md).
+Twój własny pulpit z notatkami, zadaniami, kalendarzem, pogodą i skrótami — w jednym miejscu na Windows 11. UberDashboard może działać jako zwykłe okno albo pasek przy krawędzi ekranu. Układ, zawartość i wygląd zapisują się lokalnie.
 
-Rozwijana synchronizacja Microsoft To Do i Google Calendar: [stan wdrożenia i ograniczenia](docs/SYNCHRONIZACJA_DWUKIERUNKOWA.md). W wersji roboczej przycisk **Synchronizacja dwukierunkowa** w powiązanej karcie To Do lub kalendarzu otwiera edytor z trwałą kolejką. Pierwsze włączenie wymaga zgody dostawcy na zapis. **Ustawienia → Integracje → Centrum synchronizacji** pokazuje istniejące powiązania. Nie oznacza to jeszcze odbioru pełnego zakresu API ani publicznego OAuth.
+[Strona projektu](https://github.com/Kavaars/UberDashboard) · [Historia zmian](changelog.txt) · [Polityka prywatności / Privacy Policy](PRIVACY.md) · [Zgłoś problem](https://github.com/Kavaars/UberDashboard/issues)
 
-Lokalna aplikacja desktopowa dla Windows 11 do budowy własnych pulpitów z paneli. Projekt jest rozwijany w .NET 10, WPF i architekturze modularnego monolitu z wyraźnym podziałem na warstwy domeny, aplikacji, infrastruktury, integracji Windows i hosta UI.
+## Co potrafi aplikacja
 
-## Zasady tworzenia paneli
+- **Wiele pulpitów i zakładek** — osobne zestawy do pracy, spraw prywatnych i innych zajęć. Jeden panel może mieć kilka zakładek z niezależną treścią.
+- **Własny układ** — dodawanie paneli obok siebie i pod sobą, zmiana proporcji, przenoszenie, ukrywanie i przywracanie.
+- **Notatnik** — notatki i import plików TXT oraz Markdown.
+- **ToDo** — lokalne listy zadań, import TXT, Markdown i CSV oraz połączenie z Microsoft To Do.
+- **Kalendarz Google** — widoki miesiąca, tygodnia, dwóch tygodni, dnia, własnego zakresu i listy wydarzeń.
+- **Pogoda** — prognoza dla wybranej miejscowości, pobierana z Open-Meteo po włączeniu połączeń.
+- **Skróty** — uruchamianie aplikacji, otwieranie folderów, dokumentów i stron; widoki ikon, listy, przycisków oraz kafelków.
+- **Monitor zasobów** — wykorzystanie CPU, GPU, RAM i VRAM; temperatury i wentylatory zależą od dostępnych czujników.
+- **Afirmacje** — własne teksty do ćwiczenia i śledzenie postępów.
+- **Wtyczki** — dodatkowe panele w paczkach `.udplugin`, między innymi ramka na zdjęcia PhotoFrame.
+- **Personalizacja** — motyw jasny, ciemny lub systemowy, kolory, fonty, tapety i wygląd poszczególnych paneli. Interfejs jest dostępny po polsku i angielsku.
 
-Przed projektowaniem lub tworzeniem nowego panelu AI musi przeczytać w całości [zasady projektu](ZASADY_PROJEKTU.md) oraz [wytyczne paneli](docs/WYTYCZNE_PANELI.md) i przestrzegać ich podczas implementacji i weryfikacji. Wytyczne obejmują wspólne funkcje, zakładki, zapis, wygląd, dostępność i listę odbioru. Obowiązek zapisano również w [AGENTS.md](AGENTS.md).
+## Pierwsze kroki
 
-## Stan zgodności
+Projekt jest w rozwoju. Bieżąca wersja źródeł to **1.9.0**; gotowy instalator nie został jeszcze opublikowany w [Wydaniach](https://github.com/Kavaars/UberDashboard/releases). Lista zmian poniżej opisuje również funkcje rozwijane w bieżącym kodzie.
 
-Aktualny audyt i lista otwartych wymagań: [raport z 2026-11-02](docs/AUDYT_ZALOZEN_2026-11-02.md). Panele wbudowane i host instalowanych pluginów są dostępne. Wersja 1.2.0 dodaje paczki .udplugin i ramkę na zdjęcia; instrukcja i API: [Pluginy](docs/PLUGINY.md). Rzeczywista warstwa widgetów i pełny restore pozostają do wdrożenia. AppBar wymaga odbioru na żywej powłoce Windows. Nie wykonano protokołu KPI.
+1. Po uruchomieniu utwórz lub wybierz pulpit i dodaj potrzebne panele.
+2. Włącz **Edytuj układ**, aby zmienić ich położenie i rozmiary. Menu **Układ** pozwala zrobić to również bez przeciągania.
+3. Użyj **+** w nagłówku panelu, aby dodać zakładkę. Nazwę zmienisz dwuklikiem lub klawiszem **F2**, a kolejność także skrótem **Ctrl+Shift+strzałka**.
+4. Opcje panelu i sekcja **Wygląd** pozwalają dopasować jego działanie i prezentację. W **Ustawieniach** wybierzesz między innymi tryb okna, motyw, język i integracje. Zmiana języka działa po ponownym uruchomieniu.
 
-Osobny projekt `tests/UberDashboard.VisualChecks` renderuje szablony WPF na profilu testowym z fikcyjną pogodą, sprawdza glify i obraz w notatce oraz zapisuje zrzuty obu motywów, układów i zakładek ustawień. Nie zastępuje testów natywnego AppBar, schowka, DPI ani Narratora:
+Zmiany zapisują się automatycznie. Jeśli zapis się nie powiedzie, aplikacja pokazuje błąd i umożliwia ponowienie. Własna tapeta wskazuje plik na dysku — po jego przeniesieniu trzeba wybrać go ponownie.
 
-```powershell
-dotnet run --project tests/UberDashboard.VisualChecks -c Release -- "Release/Dev/visual-$(Get-Date -Format yyyyMMdd-HHmmss)"
-```
+## Microsoft To Do i Google Calendar
 
-## Zakres v1
+Microsoft To Do skonfigurujesz w **Ustawienia → Integracje**. Listę można zaimportować jako niezależną lokalną kopię albo powiązać z usługą. Google połączysz w opcjach panelu kalendarza; obecna konfiguracja wymaga lokalnego pliku JSON klienta OAuth typu Desktop.
 
-- wiele nazwanych pulpitów
-- układ paneli oparty o drzewo podziałów
-- panele wbudowane: Notatnik, ToDo i Pogoda
-- host paneli oraz instalowanie/usuwanie pluginów .udplugin z ustawień i przez upuszczenie pliku
-- lokalny zapis do SQLite poza wątkiem UI
-- motywy jasny/ciemny
-- globalne toasty
-- skrypty build/test/installer dla Windows 11
+W bieżącym kodzie przycisk **Synchronizacja dwukierunkowa** otwiera edytor powiązanej listy lub kalendarza. Pierwsze włączenie wymaga osobnej zgody Microsoft lub Google na zapis. Edytor pozwala tworzyć, zmieniać i usuwać podstawowe zadania oraz wydarzenia. Zmiany trafiają najpierw do lokalnej kolejki, która zachowuje je także po restarcie. Synchronizacja działa podczas uruchomienia aplikacji, również w zasobniku.
 
-## Architektura
+**Ta funkcja pozostaje w rozwoju.** Pełna obsługa cykliczności, załączników, uczestników i zarządzania listami oraz kalendarzami nie jest jeszcze ukończona. Nie zakończono prób na rzeczywistych kontach ani weryfikacji publicznego OAuth. [Aktualny zakres i ograniczenia](docs/SYNCHRONIZACJA_DWUKIERUNKOWA.md).
 
-```text
-src/
-  UberDashboard.App                 WPF, DI, okno główne, host aplikacji
-  UberDashboard.Application         use-case'y i abstrakcje
-  UberDashboard.Contracts           kontrakty hosta i paneli
-  UberDashboard.Core                logika domenowa i silnik layoutu
-  UberDashboard.Infrastructure      SQLite, logowanie, ścieżki, kolejka DB
-  UberDashboard.Platform.Windows    AppBar, monitory, DPI, interop
+**Ustawienia → Integracje → Centrum synchronizacji** pokazuje powiązania, kolejkę i konflikty. Edytor umożliwia ponowienie, wstrzymanie synchronizacji i ponowne połączenie konta. Usuwanie wydarzenia lub zadania w edytorze oznacza zmianę w usłudze; usunięcie samego panelu lub zakładki nie usuwa danych w Microsoft ani Google. Dotychczasowe lokalne importy nie są automatycznie wysyłane do usług.
 
-tests/
-  UberDashboard.Core.Tests
-  UberDashboard.Application.Tests
-  UberDashboard.Infrastructure.Tests
-```
+## Dane i prywatność
 
-## Najważniejsze decyzje techniczne
+Notatki, zadania lokalne, ustawienia i kolejka synchronizacji znajdują się na komputerze, domyślnie w `%LOCALAPPDATA%\UberDashboard`. Kopie zapasowe są w podfolderze `Backups`, a logi w `LOGS`. Odinstalowanie programu pozostawia profil użytkownika.
 
-- `Directory.Build.props` jest źródłem wersji aplikacji.
-- dane użytkownika są trzymane poza katalogiem programu, domyślnie pod `%LOCALAPPDATA%\UberDashboard`
-- logi aplikacji trafiają do katalogu `LOGS` w profilu użytkownika
-- buildy trafiają do `Release/Dev`, `Release/Prod`, `Release/Instal`
-- skrypty `buduj*.bat` zachowują wersję aplikacji i tworzą unikalny katalog builda
+Integracje łączą się bezpośrednio z Microsoft, Google lub Open-Meteo i przekazują dane potrzebne do wybranej funkcji. Nie znaleziono automatycznej analityki autora ani wysyłania raportów awarii. Tokeny są chronione mechanizmami Windows; baza danych i zwykłe kopie zapasowe nie są w całości szyfrowane. Wtyczki działają z uprawnieniami aplikacji — instaluj je z zaufanego źródła. Szczegóły opisuje [polityka prywatności](PRIVACY.md).
 
-## Wymagania
+## Ostatnie zmiany
 
-- Windows 11
-- .NET SDK 10
-- PowerShell 7 (`pwsh`)
-- opcjonalnie Inno Setup 6 do budowy instalatora
+| Wersja / etap | Zmiany dla użytkownika |
+| --- | --- |
+| Prace nad synchronizacją, 5 listopada 2026 | Podstawowe edytory Microsoft To Do i Google Calendar, trwała kolejka zmian, konflikty, osobna zgoda na zapis i centrum synchronizacji. Publiczna polityka prywatności. Pełny zakres integracji nadal w przygotowaniu. |
+| 1.9.0 | Panel Skróty: aplikacje, foldery, dokumenty i strony, kilka widoków oraz własne ikony i kolory. |
+| 1.8.1 | Zapamiętywanie trybu, pozycji i rozmiaru okna oraz bezpieczne odtwarzanie po odłączeniu monitora. |
+| Rozwój 1.8.0 | Kalendarz Google, Monitor zasobów, Microsoft To Do, import plików, wspólne zakładki i język angielski. Zadokowany pasek korzysta z zasobnika Windows. |
+| 1.7.0 | Odświeżone motywy, bardziej zwarty interfejs i ustawienia wyglądu. |
 
-## Szybki start
+Pełna historia: [changelog.txt](changelog.txt).
 
-1. Przywróć zależności:
+## Pomoc i kontakt
 
-```powershell
-dotnet restore UberDashboard.slnx
-```
-
-2. Zbuduj rozwiązanie:
-
-```powershell
-dotnet build UberDashboard.slnx
-```
-
-3. Uruchom testy:
-
-```powershell
-dotnet test UberDashboard.slnx -v q
-```
-
-4. Zbuduj gotową paczkę:
-
-```powershell
-.\budujprod.bat
-```
-
-## Skrypty w katalogu głównym
-
-### `testuj.bat`
-
-Pełna walidacja projektu:
-
-- `dotnet build UberDashboard.slnx -c Release`
-- `dotnet test UberDashboard.slnx -c Release --no-build`
-- integracja WPF/SQLite/pluginów przez `tests/UberDashboard.PluginChecks`
-
-Ten skrypt **nie podbija wersji**.
-
-### `budujdev.bat`
-
-Build developerski:
-
-- zachowuje wersję aplikacji
-- uruchamia pełną walidację
-- publikuje aplikację w trybie `Debug`
-- zapisuje wynik do `Release/Dev/<build-id>`
-- uruchamia zbudowaną aplikację
-
-### `budujfast.bat`
-
-Szybki build bez testów:
-
-- zachowuje wersję aplikacji
-- pomija build/test rozwiązania
-- publikuje aplikację jako build nieweryfikowany
-- zapisuje wynik do `Release/Dev/<build-id>-fast`
-- uruchamia zbudowaną aplikację
-
-### `budujprod.bat`
-
-Build produkcyjny:
-
-- zachowuje wersję aplikacji
-- uruchamia pełną walidację
-- publikuje aplikację w `Release`, `win-x64`, `self-contained`
-- zapisuje wynik do `Release/Prod/<build-id>`
-- uruchamia zbudowaną aplikację
-
-### `budujinst.bat`
-
-Budowa instalatora:
-
-- zachowuje wersję aplikacji
-- uruchamia pełną walidację
-- publikuje staging aplikacji
-- buduje instalator Inno Setup
-- zapisuje wynik do `Release/Instal/<build-id>`
-
-Jeżeli `ISCC.exe` nie jest dostępne, skrypt kończy się kontrolowanym błędem.
-
-### `usun.bat`
-
-Czyszczenie starych buildów:
-
-- zachowuje najnowszy katalog w `Release/Dev`
-- zachowuje najnowszy katalog w `Release/Prod`
-- zachowuje najnowszy katalog w `Release/Instal`
-
-Tryb podglądu:
-
-```powershell
-.\usun.bat -DryRun
-```
-
-### `folder.bat`
-
-Otwiera katalog `Release` w Eksploratorze Windows.
-
-## Wersjonowanie
-
-- wersja jest zapisywana w `Directory.Build.props`
-- wersję aplikacji zmieniamy jawnie po zmianie zachowania; skrypty buildów jej nie podbijają
-- każdy build dostaje katalog w formacie:
-
-```text
-v<wersja>_<YYYYMMDD-HHMMSS-fff>
-```
-
-lub dla szybkiego builda:
-
-```text
-v<wersja>_<YYYYMMDD-HHMMSS-fff>-fast
-```
-
-## Instalator
-
-Konfiguracja instalatora znajduje się w:
-
-```text
-installer/UberDashboard.iss
-```
-
-Instalacja jest wykonywana per-user i nie powinna naruszać danych użytkownika zapisanych poza katalogiem programu.
-
-## Dane użytkownika i logi
-
-Domyślne lokalizacje:
-
-- profil aplikacji: `%LOCALAPPDATA%\UberDashboard`
-- baza danych: `%LOCALAPPDATA%\UberDashboard\Data\dashboard.db`
-- logi: `%LOCALAPPDATA%\UberDashboard\LOGS`
-- backupy: `%LOCALAPPDATA%\UberDashboard\Backups`
-
-## Testy
-
-Aktualny zestaw testów obejmuje:
-
-- `UberDashboard.Core.Tests`
-- `UberDashboard.Application.Tests`
-- `UberDashboard.Infrastructure.Tests`
-
-Uruchomienie:
-
-```powershell
-dotnet test UberDashboard.slnx -v q
-```
-
-## Repozytorium git
-
-- repo zdalne: `https://github.com/Kavaars/UberDashboard`
-- gałąź główna: `main`, śledzi `origin/main`
-- remote `origin`: `https://github.com/Kavaars/UberDashboard.git`
-
-### Konwencja commitów
-
-Format: `typ: krótki opis` (Conventional Commits, opis po polsku, bez ogonków w nagłówku).
-
-Najczęściej używane typy:
-
-- `feat` — nowa funkcja
-- `fix` — poprawka błędu
-- `chore` — porządki, konfiguracja, zależności
-- `docs` — dokumentacja i pliki rejestrów
-- `test` — testy
-- `refactor` — zmiany bez wpływu na zachowanie
-
-### Workflow
-
-1. Praca odbywa się na `main` (projekt jednoosobowy).
-2. Po zamknięciu zadania: `git add <pliki>` → `git commit`.
-3. Wypchnięcie: `git push`.
-4. Rejestry projektu (`listaZmian.md`, `wersje.md`, `changelog.txt`) aktualizuje się razem ze zmianą kodu w tym samym commicie.
-
-### Tagi wersji
-
-- tag tworzy się z wersji w `Directory.Build.props`, w formacie `v<MAJOR>.<MINOR>.<PATCH>`
-- tag jest dołączony do commita reprezentującego dany stan wersji
-
-```powershell
-git tag -a v1.0.7 -m "UberDashboard 1.0.7 - opis"
-git push origin v1.0.7
-```
-
-- poprawka błędu podbija `PATCH`, nowa funkcja `MINOR`, zmiana łamiąca `MAJOR`
-- skrypty `buduj*.bat` odczytują wersję z `Directory.Build.props`; tag zakłada się ręcznie po weryfikacji builda
-
-### Układ i personalizacja od 1.1.0
-
-- Włącz **Edytuj układ** i przeciągnij tytuł panelu ku wybranej stronie drugiej karty. Etykieta wskazuje miejsce upuszczenia. Menu **Układ** udostępnia alternatywę bez przeciągania.
-- **Dodaj obok** tworzy podział na kolumny, **Dodaj poniżej** na wiersze. Podziały można zagnieżdżać, a dzielniki regulują proporcje. **Trzy panele w kolumnie** zachowuje oryginalny panel i dodaje dwa mniejsze.
-- **Wygląd** dotyczy jednej instancji panelu, niezależnie od pozycji i ukrywania. Pusty kolor oznacza motyw. Własny font jest opcjonalny; bez niego panel korzysta z globalnego. Tapeta wskazuje lokalny plik PNG/JPEG/BMP, który musi pozostać dostępny. Domyślny wygląd usuwa także tapetę.
-- Zgoda na połączenia, opisy i odnośniki pogodowe są w opcjach pogody pod ikoną koła zębatego.
-- Ustawienia aplikacji pokazują zmiany od razu, zapisują je po krótkiej pauzie i udostępniają **Ponów zapis** w razie błędu. Wybór motywu w formularzu przywraca jego globalną paletę; osobny wygląd paneli pozostaje zachowany.
-- Walidacja WPF obejmuje osobne profile i przykładową pogodę. Nie zastępuje ręcznego odbioru przeciągania, integracji z Windows ani AppBar.
-
-## Pluginy od 1.2.0
-
-Pełna instrukcja instalacji, usuwania, budowy i kontraktów: [docs/PLUGINY.md](docs/PLUGINY.md). Pierwszy plugin jest osobnym projektem w plugins/PhotoFrame; paczkę tworzy scripts/BuildPhotoFramePlugin.ps1. Panele pluginów korzystają ze wspólnego układu i autozapisu. Usunięcie kodu zachowuje dane paneli do ponownej instalacji.
-
-### Wysokość i wygląd paneli (1.3.0)
-
-Włącz **Edytuj układ**. Przeciągnij dolną krawędź panelu w górę albo górną w dół, aby wydzielić wolne miejsce. Kliknij **Dodaj panel tutaj** lub przeciągnij tam nagłówek istniejącego panelu. Granice istniejących obszarów można przesuwać ponownie; zapis układu zachowuje pozycje i wolne miejsca. Ustawienia wyglądu są pod kołem zębatym panelu, w sekcji **Wygląd**. Wybór koloru pokazuje koło, jasność i krycie; pole wartości rozwija się przez **Wpisz wartość koloru**.
+Problemy oraz propozycje zgłaszaj w [Issues projektu](https://github.com/Kavaars/UberDashboard/issues). W sprawach prywatności kontaktuj się przez [profil Kavaars](https://github.com/Kavaars). Nie zamieszczaj w publicznych zgłoszeniach tokenów, haseł, plików poświadczeń ani prywatnej treści notatek i kalendarzy.
