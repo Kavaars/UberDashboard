@@ -52,12 +52,13 @@ Te zasady uzupełniają [AGENTS.md](AGENTS.md), który określa ogólny proces p
 - Po zmianach zachowania aktualizuj `listaZmian.md`, `wersje.md` i `changelog.txt` zgodnie z `AGENTS.md`. Wpisy mają być krótkie, z czasem i rzeczywistym zakresem weryfikacji.
 - Poznaj `scripts/BuildTools.ps1` i skrypty `buduj*.bat` przed uruchomieniem. Nie pakuj po nieudanym teście lub buildzie. Każdy build ma osobny identyfikator/katalog w istniejącej strukturze `Release/Dev`, `Release/Prod`, `Release/Instal`.
 - Nie usuwaj danych użytkownika w ramach sprzątania kompilacji. Operacje destrukcyjne wymagają potwierdzenia zakresu.
-- Commituj po przeglądzie różnic. Stosuj konwencję README: `typ: krotki opis po polsku bez ogonkow`. Push wykonuj w zakresie zleconym przez użytkownika; nie nadpisuj zdalnej historii.
+- Commituj po przeglądzie różnic. Stosuj konwencję [dokumentacji rozwoju](docs/ROZWOJ.md): `typ: krotki opis po polsku bez ogonkow`. Push wykonuj w zakresie zleconym przez użytkownika; nie nadpisuj zdalnej historii.
 
 ## Dokumenty powiązane
 
 - [Wytyczne paneli](docs/WYTYCZNE_PANELI.md) — obowiązkowa specyfikacja wspólnych funkcji, wyglądu i odbioru nowych paneli.
-- [README](README.md) — uruchamianie, testy, wersjonowanie, dane i Git.
+- [README](README.md) — opis aplikacji, obsługa i historia zmian dla użytkowników.
+- [Rozwój](docs/ROZWOJ.md) — uruchamianie kodu, testy, wersjonowanie i Git.
 - [Kierunek UI](docs/UI_KIERUNEK_2026-11-03.md) — uzgodnienia i historia wdrożenia wyglądu; odróżniaj propozycje od wdrożenia.
 - [Pluginy](docs/PLUGINY.md) oraz [Instrukcja pluginów](Instrukcja-pluginow.md) — kontrakty, dystrybucja i przykład PhotoFrame.
 - [Plan budowy](PLAN_BUDOWY.md) i [audyt założeń](docs/AUDYT_ZALOZEN_2026-11-02.md) — kontekst i ograniczenia; nie są aktualnym raportem testów.
