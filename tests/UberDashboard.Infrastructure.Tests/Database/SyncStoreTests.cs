@@ -9,9 +9,10 @@ namespace UberDashboard.Infrastructure.Tests.Database;
 public sealed class SyncStoreTests
 {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Version_four_upgrade_preserves_pending_changes_with_or_without_the_early_metadata_column(bool earlyMetadataColumn)
+    [InlineData(4, false)]
+    [InlineData(4, true)]
+    [InlineData(5, false)]
+    public async Task Upgrade_preserves_pending_changes_from_both_version_four_variants_and_version_five(int version, bool earlyMetadataColumn)
     {
         await using var fixture = new DatabaseFixture();
         var binding = new SyncBinding(Guid.NewGuid(), SyncProviderKind.MicrosoftTodo, "client", "account", "lists/a/tasks", "Test", true);
@@ -22,14 +23,17 @@ public sealed class SyncStoreTests
             using var command = connection.CreateCommand();
             command.CommandText = "CREATE TABLE SchemaMigration (Version INTEGER PRIMARY KEY, Name TEXT NOT NULL, AppliedAtUtc TEXT NOT NULL);";
             command.ExecuteNonQuery();
-            foreach (var migration in UberDashboard.Infrastructure.Database.SqliteSchema.Migrations.Take(4))
+            foreach (var migration in UberDashboard.Infrastructure.Database.SqliteSchema.Migrations.Take(version))
             {
                 foreach (var statement in migration.Statements) { command.CommandText = statement; command.ExecuteNonQuery(); }
                 command.CommandText = $"INSERT INTO SchemaMigration VALUES ({migration.Version}, 'test', '2026-11-05');"; command.ExecuteNonQuery();
             }
             if (earlyMetadataColumn)
             { command.CommandText = "ALTER TABLE SyncBinding ADD COLUMN BindingJson TEXT NOT NULL DEFAULT '{}';"; command.ExecuteNonQuery(); }
-            command.CommandText = "INSERT INTO SyncBinding (BindingId, Provider, ClientId, AccountId, ResourcePath, Version, StateJson) VALUES ($id, 0, 'client', 'account', 'lists/a/tasks', 0, $state);";
+            command.CommandText = version == 4
+                ? "INSERT INTO SyncBinding (BindingId, Provider, ClientId, AccountId, ResourcePath, Version, StateJson) VALUES ($id, 0, 'client', 'account', 'lists/a/tasks', 0, $state);"
+                : "INSERT INTO SyncBinding (BindingId, Provider, ClientId, AccountId, ResourcePath, BindingJson, Version, StateJson) VALUES ($id, 0, 'client', 'account', 'lists/a/tasks', $binding, 0, $state);";
+            if (version == 5) command.Parameters.AddWithValue("$binding", System.Text.Json.JsonSerializer.Serialize(binding, System.Text.Json.JsonSerializerOptions.Web));
             command.Parameters.AddWithValue("$id", binding.Id.ToString("D"));
             command.Parameters.AddWithValue("$state", System.Text.Json.JsonSerializer.Serialize(original, System.Text.Json.JsonSerializerOptions.Web));
             command.ExecuteNonQuery();
@@ -39,7 +43,7 @@ public sealed class SyncStoreTests
         Assert.Equal("not uploaded", Assert.Single(loaded.Items).Local!["title"]!.GetValue<string>());
         Assert.Equal(Assert.Single(original.Queue).Id, Assert.Single(loaded.Queue).Id);
         Assert.Equal(binding.Id, Assert.Single(await store.ListAsync()).Id);
-        Assert.NotEmpty(Directory.GetFiles(Path.Combine(fixture.Root, "Data", "Backups"), "pre-sync-v5-*.db"));
+        Assert.NotEmpty(Directory.GetFiles(Path.Combine(fixture.Root, "Data", "Backups"), $"pre-sync-v{UberDashboard.Infrastructure.Database.SqliteSchema.CurrentVersion}-*.db"));
     }
 
     [Fact]

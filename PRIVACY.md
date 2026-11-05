@@ -45,6 +45,8 @@ Sesja Microsoft jest przechowywana przez chroniony cache MSAL dla Windows. Plik 
 
 Dane treści i konfiguracja pozostają do zmiany/usunięcia przez użytkownika. Logi rotują dziennie, z limitem 14 plików. Usługa zwykłych kopii bazy domyślnie zachowuje 10 kopii; kopie przed migracją i inne samodzielnie zapisane kopie mogą pozostać dłużej. Historia odzyskiwania nowego mechanizmu synchronizacji ma domyślnie 30 dni; nierozstrzygnięte i niewysłane zmiany są zachowywane dłużej. Usunięcie elementu z aktywnego widoku nie usuwa automatycznie wszystkich jego starszych kopii.
 
+Pobrane zakresy kalendarza mogą być przechowywane w lokalnej bazie do przeglądania offline, wraz z tytułami, terminami i identyfikatorami wydarzeń/serii. Kopie są rozdzielone według konta i kalendarza; odłączenie konta nie usuwa ich automatycznie. Usunięcie całego profilu usuwa także tę lokalną pamięć podręczną, z zastrzeżeniem osobno zachowanych kopii zapasowych.
+
 ### 5. Kontrola i usuwanie danych
 
 Można nie włączać integracji sieciowych, odłączyć konto w aplikacji oraz odwołać dostęp w ustawieniach konta [Google](https://myaccount.google.com/connections) lub [Microsoft](https://account.live.com/consent/Manage). Dla kont organizacyjnych dostęp może podlegać administratorowi organizacji. Odłączenie nie oznacza usunięcia zadań/wydarzeń z usługi i nie gwarantuje usunięcia lokalnych kopii, logów lub backupów.
@@ -95,6 +97,8 @@ The default profile is `%LOCALAPPDATA%\UberDashboard`, including `Data\dashboard
 Microsoft sessions use the Windows-protected MSAL cache. Google session files use Windows DPAPI for the current user. **The database, ordinary assets, logs, and database backups are not fully encrypted by UberDashboard.** Windows account security, file permissions, and disk protection also matter. Do not publish your profile or backups.
 
 Content/settings remain until changed or removed. Daily log rotation retains up to 14 files. Ordinary database backups default to 10 retained copies; pre-migration and independently saved copies may remain longer. The new synchronization engine's recovery history defaults to 30 days, retaining unresolved/unsent changes longer. Removing an item from a view does not automatically erase every older copy.
+
+Fetched calendar ranges may be stored in the local database for offline viewing, including titles, times, and event/series identifiers. Copies are separated by account and calendar; disconnecting does not automatically erase them. Removing the full app profile also removes this local cache, subject to separately retained backups.
 
 ### 5. Control and deletion
 

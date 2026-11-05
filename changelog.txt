@@ -1,3 +1,10 @@
+Prace robocze 1.9.0 (2026-11-05T20:56:22+01:00)
+- README opisuje aplikację i jej obsługę; dokumentacja techniczna jest oddzielona.
+- Zadania Microsoft: ważność, istniejące kategorie, daty, przypomnienie i sześć wzorców powtarzania. Zmieniony opis jest wysyłany w formacie HTML wymaganym przez API.
+- Pobrane zakresy Google Calendar są dostępne offline, z datą lokalnej kopii; niepobrany zakres ma osobny komunikat. Konta i kalendarze nie współdzielą prywatnej treści.
+- Potwierdzenie starszej wysyłki nie cofa niezależnych zmian serwera; sprzeczna nowsza edycja tworzy konflikt. Poprawiono etykiety i wygląd pól dat.
+- To nadal etap wdrożenia pełnej synchronizacji; nie przygotowano wydania 1.10.0 ani odbioru rzeczywistych kont.
+
 Prace robocze 1.9.0 (2026-11-05T10:35:26+01:00)
 - Repozytorium projektu i polityka prywatności PL/EN są publiczne po skanie sekretów i przeglądzie plików.
 - Dodano podstawowy edytor dwukierunkowy To Do i kalendarza, trwałą kolejkę, konflikty, zgody na zapis, ponowne łączenie i centrum powiązań.

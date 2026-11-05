@@ -25,7 +25,8 @@ internal readonly record struct CalendarPeriod(DateOnly Start, DateOnly End, int
     }
 }
 
-internal sealed record CalendarEntry(string Title, DateOnly Start, DateOnly End, TimeOnly? Time)
+internal sealed record CalendarEntry(string Title, DateOnly Start, DateOnly End, TimeOnly? Time,
+    string? RemoteId = null, string? RecurringEventId = null, string? OriginalStart = null)
 {
     public bool OccursOn(DateOnly day) => Start <= day && day < End;
 }

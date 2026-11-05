@@ -8,16 +8,16 @@ using UberDashboard.Core.Localization;
 using UberDashboard.Core.Synchronization;
 using Button = System.Windows.Controls.Button;
 using CheckBox = System.Windows.Controls.CheckBox;
-using ComboBox = System.Windows.Controls.ComboBox;
 using TextBox = System.Windows.Controls.TextBox;
 using ListBox = System.Windows.Controls.ListBox;
-using Control = System.Windows.Controls.Control;
 
 namespace UberDashboard.App.Features.Integrations;
 
 /// <summary>A modeless editor of the durable document. An offline edit never depends on a successful HTTP call.</summary>
 internal static class SyncEditorWindow
 {
+    private static readonly DependencyProperty InvalidDateInputProperty = DependencyProperty.RegisterAttached(
+        "InvalidDateInput", typeof(bool), typeof(SyncEditorWindow), new PropertyMetadata(false));
     internal static void OpenCenter(Window owner, IntegrationSyncService service)
     {
         var window = WindowFrame.Create(owner, UiText.Get("SyncCenterTitle"), 680, 480);
@@ -198,6 +198,8 @@ internal static class SyncEditorWindow
     {
         var calendar = provider == SyncProviderKind.GoogleCalendar;
         var window = WindowFrame.Create(owner, UiText.Get("SyncEdit"), 620, 640);
+        window.Resources.MergedDictionaries.Add(new ResourceDictionary
+            { Source = new Uri("pack://application:,,,/UberDashboard;component/Theming/IntegrationEditors.xaml") });
         window.MinWidth = 400; window.MinHeight = 360;
         var fields = (JsonObject?)original?.DeepClone() ?? new JsonObject();
         var form = new StackPanel { Margin = new Thickness(16) };
@@ -207,7 +209,7 @@ internal static class SyncEditorWindow
         DatePicker? startDate = null, endDate = null;
         TextBox? startTime = null, endTime = null;
         CheckBox? allDay = null;
-        ComboBox? taskStatus = null;
+        MicrosoftTaskForm? taskForm = null;
         DateTime? initialStart = null, initialEnd = null;
         if (calendar)
         {
@@ -223,12 +225,7 @@ internal static class SyncEditorWindow
         }
         else
         {
-            Label(form, "SyncTaskStatus");
-            var values = new[] { "notStarted", "inProgress", "completed", "waitingOnOthers", "deferred" };
-            var current = fields["status"]?.GetValue<string>() ?? "notStarted";
-            var options = values.Append(current).Distinct().Select(v => new Choice(v, UiText.Get(values.Contains(v) ? "SyncTaskStatus_" + v : "SyncTaskStatusOther"))).ToArray();
-            taskStatus = new ComboBox { ItemsSource = options, DisplayMemberPath = nameof(Choice.Label), SelectedItem = options.First(o => o.Value == current) };
-            taskStatus.SetResourceReference(FrameworkElement.StyleProperty, "ThemedComboBox"); AutomationProperties.SetName(taskStatus, UiText.Get("SyncTaskStatus")); form.Children.Add(taskStatus);
+            taskForm = new MicrosoftTaskForm(form, original);
         }
         var validation = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 8) }; form.Children.Add(validation);
         var buttons = new WrapPanel(); form.Children.Add(buttons);
@@ -243,11 +240,12 @@ internal static class SyncEditorWindow
                 if (original is null || description.Text != (original["description"]?.GetValue<string>() ?? "")) fields["description"] = description.Text;
                 if (original is null || location!.Text != (original["location"]?.GetValue<string>() ?? "")) fields["location"] = location!.Text;
                 var timeChanged = original is null || allDay!.IsChecked != (original["start"]?["date"] is not null) ||
+                    HasDateError(startDate!) || HasDateError(endDate!) ||
                     startDate!.SelectedDate != initialStart!.Value.Date || endDate!.SelectedDate != initialEnd!.Value.Date ||
                     startTime!.Text != initialStart.Value.ToString("HH:mm", CultureInfo.InvariantCulture) || endTime!.Text != initialEnd.Value.ToString("HH:mm", CultureInfo.InvariantCulture);
                 if (timeChanged)
                 {
-                    if (startDate!.SelectedDate is not { } first || endDate!.SelectedDate is not { } last)
+                    if (DateValue(startDate!) is not { } first || DateValue(endDate!) is not { } last)
                     { validation.Text = UiText.Get("SyncInvalidDates"); return; }
                     if (allDay!.IsChecked == true)
                     {
@@ -270,10 +268,20 @@ internal static class SyncEditorWindow
             }
             else
             {
-                // Untouched rich descriptions retain their original content type and payload.
-                if (original is null || description.Text != (original["body"]?["content"]?.GetValue<string>() ?? ""))
-                    fields["body"] = new JsonObject { ["contentType"] = "text", ["content"] = description.Text };
-                if (taskStatus!.SelectedItem is Choice choice) fields["status"] = choice.Value;
+                if (!taskForm!.TryApply(original, title.Text, description.Text, out var taskFields, out var taskError))
+                {
+                    validation.Text = UiText.Get(taskError switch
+                    {
+                        MicrosoftTaskValidation.TitleRequired => "SyncTitleRequired",
+                        MicrosoftTaskValidation.InvalidTimeZone => "SyncInvalidTimeZone",
+                        MicrosoftTaskValidation.ReminderDateRequired => "SyncReminderDateRequired",
+                        MicrosoftTaskValidation.InvalidChoice => "SyncInvalidTaskChoice",
+                        MicrosoftTaskValidation.InvalidRecurrence => "SyncInvalidTaskRecurrence",
+                        _ => "SyncInvalidTaskDate",
+                    });
+                    return;
+                }
+                fields = taskFields;
             }
             if (calendar && fields["recurrence"] is not null && ThemedMessageBox.Show(window, UiText.Get("SyncWholeSeriesNotice"),
                 UiText.Get("SyncEdit"), MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
@@ -300,23 +308,30 @@ internal static class SyncEditorWindow
         var zone = TimeZoneInfo.TryConvertWindowsIdToIanaId(TimeZoneInfo.Local.Id, out var iana) ? iana : TimeZoneInfo.Local.Id;
         return new() { ["dateTime"] = new DateTimeOffset(local, TimeZoneInfo.Local.GetUtcOffset(local)).ToString("O", CultureInfo.InvariantCulture), ["timeZone"] = zone };
     }
-    private static void Label(System.Windows.Controls.Panel parent, string key) => parent.Children.Add(new TextBlock { Text = UiText.Get(key), Margin = new Thickness(0, 7, 0, 3), TextWrapping = TextWrapping.Wrap });
-    private static TextBox Field(System.Windows.Controls.Panel parent, string key, string value, bool multiline = false)
+    internal static void Label(System.Windows.Controls.Panel parent, string key) => parent.Children.Add(new TextBlock { Text = UiText.Get(key), Margin = new Thickness(0, 7, 0, 3), TextWrapping = TextWrapping.Wrap });
+    internal static TextBox Field(System.Windows.Controls.Panel parent, string key, string value, bool multiline = false)
     {
         Label(parent, key);
         var field = new TextBox { Text = value, AcceptsReturn = multiline, TextWrapping = multiline ? TextWrapping.Wrap : TextWrapping.NoWrap, MinHeight = multiline ? 70 : 26 };
         field.SetResourceReference(FrameworkElement.StyleProperty, "ThemedTextBox"); AutomationProperties.SetName(field, UiText.Get(key)); parent.Children.Add(field); return field;
     }
-    private static DatePicker DateField(System.Windows.Controls.Panel parent, string key, DateTime value)
+    internal static DatePicker DateField(System.Windows.Controls.Panel parent, string key, DateTime value)
     {
         Label(parent, key); var field = new DatePicker { SelectedDate = value.Date };
-        if (System.Windows.Application.Current.TryFindResource("ThemedTextBox") is Style textStyle)
-            field.Resources.Add(typeof(System.Windows.Controls.Primitives.DatePickerTextBox),
-                new Style(typeof(System.Windows.Controls.Primitives.DatePickerTextBox), textStyle));
-        field.SetResourceReference(Control.BackgroundProperty, "Brush.Surface");
-        field.SetResourceReference(Control.ForegroundProperty, "Brush.Text");
+        field.Language = System.Windows.Markup.XmlLanguage.GetLanguage(UiText.Culture.IetfLanguageTag);
+        field.SetResourceReference(FrameworkElement.StyleProperty, "IntegrationDatePicker");
+        // WPF may restore the previous date after invalid typed input. Do not silently save that old value.
+        field.DateValidationError += (_, error) => { error.ThrowException = false; field.SetValue(InvalidDateInputProperty, true); };
+        field.SelectedDateChanged += (_, _) => field.SetValue(InvalidDateInputProperty, false);
+        field.GotKeyboardFocus += (_, args) =>
+        {
+            if (args.OriginalSource is System.Windows.Controls.Primitives.DatePickerTextBox)
+                field.SetValue(InvalidDateInputProperty, false);
+        };
         AutomationProperties.SetName(field, UiText.Get(key)); parent.Children.Add(field); return field;
     }
+    internal static bool HasDateError(DatePicker field) => (bool)field.GetValue(InvalidDateInputProperty);
+    internal static DateTime? DateValue(DatePicker field) => HasDateError(field) ? null : field.SelectedDate;
 
     private static void Resolve(Window owner, IntegrationSyncService service, Guid bindingId, SyncEntity entity, CancellationToken token)
     {
@@ -373,9 +388,8 @@ internal static class SyncEditorWindow
         window.Content = new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto }; window.Show();
     }
 
-    private sealed record Row(SyncEntity Entity, string Label);
-    private sealed record Choice(string Value, string Label);
-    private sealed record BindingRow(Guid Id, string Label);
+    private sealed record Row(SyncEntity Entity, string Label) { public override string ToString() => Label; }
+    private sealed record BindingRow(Guid Id, string Label) { public override string ToString() => Label; }
 
     private static string Describe(JsonObject? value)
     {

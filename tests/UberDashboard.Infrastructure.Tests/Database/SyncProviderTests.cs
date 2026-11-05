@@ -10,6 +10,32 @@ namespace UberDashboard.Infrastructure.Tests.Database;
 public sealed class SyncProviderTests
 {
     [Fact]
+    public async Task Graph_extended_task_edit_sends_only_dirty_fields_and_preserves_server_status()
+    {
+        var baseline = JsonNode.Parse("""{"title":"Task","status":"waitingOnOthers","importance":"normal","categories":["Old"],"dueDateTime":{"dateTime":"2030-05-12T00:00:00","timeZone":"UTC"},"body":{"contentType":"html","content":"<b>Keep</b>"}}""")!.AsObject();
+        var draft = MicrosoftTaskDraft.Read(baseline) with { Importance = "high", Categories = "Work", Due = new(true, "2030-05-13", "09:00", "Europe/Warsaw") };
+        Assert.True(draft.TryApply(baseline, out var desired, out _));
+        var server = (JsonObject)baseline.DeepClone(); server["status"] = "deferred";
+        JsonObject? patch = null;
+        using var transport = new Transport((request, body) =>
+        {
+            if (request.Method == HttpMethod.Patch)
+            {
+                patch = JsonNode.Parse(body!)!.AsObject();
+                Assert.Equal(new[] { "categories", "dueDateTime", "importance" }, patch.Select(p => p.Key).Order(StringComparer.Ordinal));
+                foreach (var field in patch) server[field.Key] = field.Value?.DeepClone();
+            }
+            var response = (JsonObject)server.DeepClone(); response["id"] = "task"; return Json(response.ToJsonString());
+        });
+        using var http = new HttpClient(transport);
+        var result = await new MicrosoftTodoProvider(http, new Accounts()).WriteAsync(Binding(SyncProviderKind.MicrosoftTodo),
+            new(Guid.NewGuid(), Guid.NewGuid(), 1, SyncOperationKind.Update, desired, "task", null, Baseline: baseline), default);
+        Assert.NotNull(patch); Assert.Equal(SyncWriteStatus.Success, result.Status);
+        Assert.Equal("deferred", result.Entity!.Fields!["status"]!.GetValue<string>());
+        Assert.Equal("Europe/Warsaw", result.Entity.Fields["dueDateTime"]!["timeZone"]!.GetValue<string>());
+    }
+
+    [Fact]
     public async Task Acknowledged_create_stays_successful_when_the_followup_read_fails()
     {
         using var transport = new Transport((request, _) => request.Method == HttpMethod.Post

@@ -11,7 +11,8 @@ namespace UberDashboard.App.Features.Calendar;
 
 internal sealed class CalendarPanelDescriptor(PanelStateScheduler scheduler,
     UberDashboard.App.Features.Integrations.IntegrationSyncService? sync = null,
-    UberDashboard.App.Features.Integrations.IntegrationAccounts? accounts = null) : IPanelDescriptor, IPanelFactory
+    UberDashboard.App.Features.Integrations.IntegrationAccounts? accounts = null,
+    UberDashboard.Application.Synchronization.ICalendarViewCache? viewCache = null) : IPanelDescriptor, IPanelFactory
 {
     public const string Id = "calendar";
     public string TypeId => Id;
@@ -22,7 +23,7 @@ internal sealed class CalendarPanelDescriptor(PanelStateScheduler scheduler,
     public IPanelFactory Factory => this;
 
     public ValueTask<IPanelInstance> CreateAsync(PanelContext context, CancellationToken cancellationToken) =>
-        ValueTask.FromResult<IPanelInstance>(new CalendarPanel(context, scheduler, sync, accounts));
+        ValueTask.FromResult<IPanelInstance>(new CalendarPanel(context, scheduler, sync, accounts, viewCache));
 }
 
 public sealed partial class CalendarPanel : ObservableObject, IPanelInstance, IPanelOptionsPresenter
@@ -40,6 +41,7 @@ public sealed partial class CalendarPanel : ObservableObject, IPanelInstance, IP
     private TaskCompletionSource? _operationFinished;
     private bool _loading;
     private bool _followsToday = true;
+    private long _viewVersion;
 
     [ObservableProperty] private bool _isOptionsOpen;
     [ObservableProperty] private CalendarMode _mode;
@@ -75,11 +77,12 @@ public sealed partial class CalendarPanel : ObservableObject, IPanelInstance, IP
 
     internal CalendarPanel(PanelContext context, PanelStateScheduler scheduler,
         UberDashboard.App.Features.Integrations.IntegrationSyncService? sync = null,
-        UberDashboard.App.Features.Integrations.IntegrationAccounts? accounts = null)
+        UberDashboard.App.Features.Integrations.IntegrationAccounts? accounts = null,
+        UberDashboard.Application.Synchronization.ICalendarViewCache? viewCache = null)
     {
         _context = context;
         _scheduler = scheduler;
-        _client = new(context.Storage);
+        _client = new(context.Storage, viewCache: viewCache);
         _sync = sync; _accounts = accounts;
         _timer.Tick += OnTick;
     }
@@ -185,6 +188,8 @@ public sealed partial class CalendarPanel : ObservableObject, IPanelInstance, IP
 
     private void ChangePeriod()
     {
+        _viewVersion++;
+        _operation?.Cancel();
         _entries = [];
         Rebuild();
         ScheduleRefresh();
@@ -221,6 +226,7 @@ public sealed partial class CalendarPanel : ObservableObject, IPanelInstance, IP
         return RunAsync(UiText.Get("FinishSigningInInYourBrowser"), async token =>
         {
             await Task.Run(() => _client.ConnectAsync(dialog.FileName, token), token).ConfigureAwait(true);
+            _viewVersion++;
             _entries = [];
             Rebuild();
             await FetchAsync(token).ConfigureAwait(true);
@@ -231,6 +237,7 @@ public sealed partial class CalendarPanel : ObservableObject, IPanelInstance, IP
     private Task DisconnectAsync() => RunAsync(UiText.Get("Disconnecting"), async token =>
     {
         await Task.Run(() => _client.DisconnectAsync(token), token).ConfigureAwait(true);
+        _viewVersion++;
         _entries = [];
         Rebuild();
         Status = UiText.Get("ConnectGoogleCalendarBySelectingTheOauth");
@@ -327,19 +334,45 @@ public sealed partial class CalendarPanel : ObservableObject, IPanelInstance, IP
         if (_followsToday && _anchor != Today)
         {
             _anchor = Today;
+            _viewVersion++;
             _entries = [];
             Rebuild();
         }
 
         var period = Period;
         var id = string.IsNullOrWhiteSpace(CalendarId) ? "primary" : CalendarId.Trim();
-        var entries = await Task.Run(() => _client.ReadAsync(id, period, token), token).ConfigureAwait(true);
+        var version = _viewVersion;
+        var finished = false;
+        var progress = new Progress<CalendarViewReadResult>(cached =>
+        {
+            if (finished || token.IsCancellationRequested || version != _viewVersion) return;
+            _entries = cached.Entries ?? []; Rebuild();
+            Status = UiText.Format("CalendarCachedAsOf", cached.FetchedAt?.LocalDateTime) + " · " + UiText.Get("FetchingEvents");
+        });
+        CalendarViewReadResult result;
+        try { result = await Task.Run(() => _client.ReadViewAsync(id, period, token, progress), token).ConfigureAwait(true); }
+        finally { finished = true; }
         token.ThrowIfCancellationRequested();
-        _entries = entries ?? [];
+        if (version != _viewVersion) return;
+        _entries = result.Entries ?? [];
         Rebuild();
-        Status = entries is null
-            ? UiText.Get("ConnectGoogleCalendarBySelectingTheOauth")
-            : UiText.Format("LastSyncedAt", DateTime.Now) + (entries.Any(entry => entry.Start < period.End && entry.End > period.Start) ? "" : UiText.Get("NoEventsInThisPeriod"));
+        Status = result.Entries is null ? "" : UiText.Format(result.IsCached ? "CalendarCachedAsOf" : "LastSyncedAt", result.FetchedAt?.LocalDateTime);
+        var error = result.Failure switch
+        {
+            CalendarViewFailure.NotConnected => "ConnectGoogleCalendarBySelectingTheOauth",
+            CalendarViewFailure.AuthenticationRequired => "TheSessionExpiredConnectYourGoogleAccount",
+            CalendarViewFailure.Forbidden => "AccessDeniedCheckThatGoogleCalendarApi",
+            CalendarViewFailure.NotFound => "TheCalendarIsUnavailableCheckItsId",
+            CalendarViewFailure.CacheUnavailable => "CalendarViewCacheFailed",
+            CalendarViewFailure.Offline => "SyncOffline",
+            CalendarViewFailure.ServiceError => "CouldNotFetchEventsCheckYourConnection",
+            _ => null,
+        };
+        if (error is not null) Status += (Status.Length > 0 ? " · " : "") + UiText.Get(error);
+        if (result.Entries is null && result.Failure is not (CalendarViewFailure.AuthenticationRequired or CalendarViewFailure.NotConnected))
+            Status += " · " + UiText.Get("CalendarOfflineRangeMissing");
+        else if (result.Entries is not null && !_entries.Any(entry => entry.Start < period.End && entry.End > period.Start))
+            Status += UiText.Get("NoEventsInThisPeriod");
     }
 
     private void Rebuild()

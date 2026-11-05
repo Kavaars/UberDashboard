@@ -92,7 +92,8 @@ public static class AppServiceCollectionExtensions
         services.AddSingleton<BuiltInPanelRegistration>(provider => new BuiltInPanelRegistration(
             CalendarPanelDescriptor.Id, new CalendarPanelDescriptor(provider.GetRequiredService<PanelStateScheduler>(),
                 provider.GetService<UberDashboard.Application.Synchronization.ISyncStore>() is null ? null : provider.GetRequiredService<Features.Integrations.IntegrationSyncService>(),
-                provider.GetService<UberDashboard.Application.Synchronization.ISyncStore>() is null ? null : provider.GetRequiredService<Features.Integrations.IntegrationAccounts>())));
+                provider.GetService<UberDashboard.Application.Synchronization.ISyncStore>() is null ? null : provider.GetRequiredService<Features.Integrations.IntegrationAccounts>(),
+                provider.GetService<UberDashboard.Application.Synchronization.ICalendarViewCache>())));
         services.AddSingleton<BuiltInPanelRegistration>(provider => new BuiltInPanelRegistration(
             ResourcePanelDescriptor.Id, new ResourcePanelDescriptor(provider.GetRequiredService<HardwareSampler>())));
 
