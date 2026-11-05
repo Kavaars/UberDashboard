@@ -40,3 +40,11 @@ Zgodnie z decyzją właściciela stroną projektu jest adres repozytorium GitHub
 - Odłączenie konta blokuje dostęp do jego kopii przez bieżącą sesję, lecz nie kasuje wierszy cache ani backupów. Polityka PL/EN ujawnia ten zakres i sposób usunięcia całego profilu.
 - Testy kontrolowanego HTTP/SQLite obejmują zmianę konta podczas pobierania i zapisu cache, brak konfiguracji, przerwane stronicowanie, starszą odpowiedź oraz izolację tożsamości. Nie jest to przechwycenie ruchu prawdziwego konta.
 - Bieżący snapshot plików wersjonowanych i nowych plików źródłowych ponownie przeskanowano Gitleaks 8.30.1 z pełną redakcją wyników: brak wykrytych sekretów. Snapshot źródeł i raporty pozostały w ignorowanym Release/Audits; profile testowe są w Release/Dev.
+
+## Aktualizacja relacji Microsoft — 2026-11-05
+
+- Nowe dane: kroki checklisty (nazwa, stan, daty) i powiązania zadania (nazwa, aplikacja źródłowa, URL, externalId). Są zapisywane lokalnie w tym samym dokumencie SQLite co lista oraz przesyłane bezpośrednio do Microsoft Graph v1.0 w ramach wybranej synchronizacji i zgody Tasks.ReadWrite. Nie dodano serwera autora ani analityki.
+- URL powiązania jest danymi. Otwieranie HTTP/HTTPS wymaga kliknięcia użytkownika i używa domyślnej przeglądarki z kanonicznym adresem URI; odnośniki aplikacji natywnych nie są automatycznie wykonywane. Polityka PL/EN ujawnia kontakt z docelową stroną po świadomym otwarciu.
+- Ręczne wskazanie istniejącego ID po niepewnym tworzeniu wykonuje odczyt i lokalny zapis mapowania, bez ponowienia POST. Podgląd pokazuje aktualną lokalną wersję i informuje o możliwości późniejszego wysłania nowszych zmian przez zwykłą synchronizację. Testy blokują stare lokalne/zdalne podglądy i przejęcie elementu z własnymi zmianami.
+- Wspólne konto/lista nadal wybiera token; odłączenie lub odznaczenie listy blokuje jego pobranie także dla endpointów relacji. Dane relacji i historia odzyskiwania nie zawierają poświadczeń sesji. Są częścią nieszyfrowanej w całości bazy i jej kopii.
+- Skan bieżącego snapshotu źródeł i dokumentacji Gitleaks 8.30.1 z pełną redakcją: brak wykrytych sekretów. Snapshot i raport są w ignorowanym Release/Audits/sync-relations-20261105-2145, a profile i rendery w Release/Dev. Odbiór realnych kont i przechwycenie ich ruchu nie były wykonywane; wynik dotyczy kodu, testów kontrolowanych i skanu plików.

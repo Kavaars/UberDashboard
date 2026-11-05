@@ -1,3 +1,5 @@
+2026-11-05T21:50:08+01:00 | 1.9.0 / prace robocze, bez wydania: relacje To Do, uzgadnianie niepewnego tworzenia, SQLite 7 / format 2. Release 0 ostrzeżeń/błędów, 522 testy PASS, PL/EN po 183 rendery i PluginChecks PASS. Rzeczywiste konta i pełny plan nadal otwarte.
+
 2026-11-05T20:56:22+01:00 | 1.9.0 / prace robocze, bez wydania: pola i cykliczność To Do, cache kalendarza SQLite 6, scalanie potwierdzeń. Release 0 ostrzeżeń/błędów, 489 testów PASS, WPF PL/EN i pluginy PASS; prawdziwe OAuth i pełny plan nadal otwarte.
 
 2026-11-05T10:35:26+01:00 | 1.9.0, prace robocze sync-privacy-20261105-1010. SQLite 5, edytor podstawowych zadań/wydarzeń, zgody i konta, polityka prywatności oraz publiczne repo. Release 0 ostrzeżeń/błędów, 438 testów PASS, VisualChecks PL/EN po 161 PNG i PluginChecks PASS. Bez testów rzeczywistych kont, publicznej weryfikacji OAuth i wydania 1.10.0.

@@ -38,7 +38,7 @@ internal sealed class IntegrationAccounts(MicrosoftTodoSession microsoft, IAppSe
             var selectedJson = await settings.GetAsync(MicrosoftTodoSettings.Key, token).ConfigureAwait(false);
             var selected = selectedJson is null ? null : JsonSerializer.Deserialize<MicrosoftTodoPreferences>(selectedJson);
             if (selected is null || selected.ClientId != clientId || selected.AccountId != binding.AccountId ||
-                !selected.SelectedLists.Any(id => binding.ResourcePath == "lists/" + Uri.EscapeDataString(id) + "/tasks")) return null;
+                !selected.SelectedLists.Any(id => MicrosoftTodoRelations.TaskCollectionPath(binding.ResourcePath) == "lists/" + Uri.EscapeDataString(id) + "/tasks")) return null;
             try { return (await microsoft.TrySignInSilentlyAsync(clientId, binding.AccountId, token, write).ConfigureAwait(false))?.AccessToken; }
             catch (Microsoft.Identity.Client.MsalException) { throw new SyncAuthenticationException(); }
         }

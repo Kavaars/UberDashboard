@@ -1,3 +1,10 @@
+Prace robocze 1.9.0 (2026-11-05T21:50:08+01:00)
+- Microsoft To Do: dodawanie, edycja i usuwanie kroków checklisty oraz powiązań z dokumentami i aplikacjami; oznaczanie wykonania kroku.
+- Elementy zależne czekają na utworzenie zadania; niewysłane zmiany są chronione przed usunięciem zadania i odtwarzaniem po konflikcie.
+- Kolejka pozwala wskazać konkretny istniejący element Microsoft po niepewnym tworzeniu, z ponownym sprawdzeniem danych i bez powtarzania tworzenia.
+- Wstrzymywanie i zamykanie okien zachowuje kolejkę. Odczyty respektują Retry-After także przy przejściowym błędzie usługi; migracja zachowuje starsze dane i blokuje zapis starego formatu.
+- Zaktualizowano instrukcję użytkownika i politykę prywatności. To nadal etap pełnego planu, bez publicznego wydania 1.10.0.
+
 Prace robocze 1.9.0 (2026-11-05T20:56:22+01:00)
 - README opisuje aplikację i jej obsługę; dokumentacja techniczna jest oddzielona.
 - Zadania Microsoft: ważność, istniejące kategorie, daty, przypomnienie i sześć wzorców powtarzania. Zmieniony opis jest wysyłany w formacie HTML wymaganym przez API.

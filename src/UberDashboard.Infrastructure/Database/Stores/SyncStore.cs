@@ -33,12 +33,13 @@ public sealed class SyncStore(IWorkQueue queue, SqliteDatabase database) : ISync
 
     public Task<bool> SaveAsync(SyncState state, long expectedVersion, CancellationToken token = default)
     {
-        if (expectedVersion < -1 || state.FormatVersion != 1) throw new InvalidDataException("Unsupported synchronization format or version.");
+        if (expectedVersion < -1 || state.FormatVersion != 2) throw new InvalidDataException("Unsupported synchronization format or version.");
         if (state.Binding.Id == Guid.Empty || string.IsNullOrWhiteSpace(state.Binding.ClientId) ||
             string.IsNullOrWhiteSpace(state.Binding.AccountId) || string.IsNullOrWhiteSpace(state.Binding.ResourcePath))
             throw new ArgumentException("A synchronization binding requires a stable identity.", nameof(state));
         return queue.EnqueueAsync(_ =>
         {
+            ValidateEntities(state);
             database.EnsureInitialized();
             using var transaction = database.Connection.BeginTransaction();
             using var command = database.Connection.CreateCommand();
@@ -73,7 +74,20 @@ public sealed class SyncStore(IWorkQueue queue, SqliteDatabase database) : ISync
     {
         var state = JsonSerializer.Deserialize<SyncState>(json, Options)
             ?? throw new InvalidDataException("Invalid synchronization state.");
-        if (state.FormatVersion != 1) throw new InvalidDataException("Unsupported synchronization state format.");
+        if (state.FormatVersion != 2) throw new InvalidDataException("Unsupported synchronization state format.");
+        ValidateEntities(state);
         return state;
+    }
+
+    private static void ValidateEntities(SyncState state)
+    {
+        var ids = state.Items.Select(e => e.LocalId).ToHashSet();
+        var parents = state.Items.Where(e => e.Kind == SyncEntityKind.Item).Select(e => e.LocalId).ToHashSet();
+        if (ids.Contains(Guid.Empty) || ids.Count != state.Items.Count || state.Queue.Any(o => !ids.Contains(o.EntityId)) ||
+            state.Items.Any(e => !Enum.IsDefined(e.Kind) || e.Kind == SyncEntityKind.Item && e.ParentId is not null ||
+                e.Kind != SyncEntityKind.Item && (state.Binding.Provider != SyncProviderKind.MicrosoftTodo ||
+                    MicrosoftTodoRelations.TaskCollectionPath(state.Binding.ResourcePath) != state.Binding.ResourcePath ||
+                    !parents.Contains(e.ParentId ?? Guid.Empty))))
+            throw new InvalidDataException("Invalid synchronization item identities or parent relationships.");
     }
 }

@@ -1,3 +1,5 @@
+2026-11-05T21:50:08+01:00 | Checklisty i powiązania Microsoft: trwała kolejka zależności, konflikty usunięcia zadania i ręczne wskazanie istniejącego elementu po niepewnym tworzeniu.
+
 2026-11-05T20:56:22+01:00 | README dla użytkowników; rozszerzone zadania Microsoft, kalendarz offline i ochrona nowszych edycji podczas potwierdzania zapisu.
 
 2026-11-05T10:35:26+01:00 | Upubliczniono repo po audycie, dodano politykę prywatności i podłączono podstawowy edytor synchronizacji MS/Google z ochroną sesji i kolejki.

@@ -1,4 +1,14 @@
 # Rejestr problemów
+## 2026-11-05T21:50:08+01:00 | 1.9.0 / 1ac890a + zmiany robocze | relacje Microsoft i niepewne wyniki
+
+- Zgłoszenie: kontynuować pełny plan synchronizacji. Środowisko: WPF/.NET 10, Windows, izolowane profile testowe i kontrolowane HTTP. Rzeczywiste konta Microsoft/Google nie były modyfikowane; brak ich odbioru pozostaje otwarty.
+- W 1ac890a adapter znał endpointy relacji, lecz magazyn/edytor nie rozróżniał kroków i powiązań od zadań; wybór listy w ochronie konta dopuszczał tylko dokładny adres kolekcji zadań. Dodano rodzaj elementu, stabilne lokalne powiązanie nadrzędne, wspólną transakcję z outboxem i kontrolę właściwej listy przy endpointach relacji. Żadne dopasowanie nie korzysta z tytułu.
+- Zależności: dziecko czeka na potwierdzony ID zadania; niepewny POST nie jest powtarzany. Zdalne usunięcie zadania kontra edycja dziecka tworzy konflikt; wybór odtworzenia przygotowuje nowe zdalne tożsamości, a wybór usunięcia archiwizuje lokalne treści. Usunięcie lokalnego zadania z niewysłanymi relacjami jest blokowane do sprawdzenia ich kolejki.
+- Pierwszy test nowej akceptacji usunięcia ujawnił zbyt wczesną blokadę zależności dla pustej zmiany; kolejność walidacji poprawiono i regresja przeszła. Odtworzenie zadania po tombstone musi używać CREATE, co sprawdza dodatkowa asercja. Migracja 4/5/6 → 7 zachowuje kolejkę i podnosi CAS wraz z formatem JSON 1 → 2.
+- Ręczne uzgodnienie: użytkownik wybiera istniejący ID i porównuje szkic wysyłki, aktualne dane lokalne oraz usługę. Powtórny GET i CAS blokują stare podglądy; nowsza lokalna edycja pozostaje lub tworzy konflikt. Kandydat z własnymi zmianami nie jest automatycznie wchłaniany. Testy obejmują zadania, kroki, mapowanie dzieci, zmianę po podglądzie i Retry-After.
+- Analiza odczytów wykazała, że 408/503 z Retry-After nie były przekazywane do mechanizmu odroczenia odczytu. Dodano testy 408/429/503 i obsługę tych odpowiedzi; nie zmieniono ostrożnego traktowania niepewnych zapisów POST.
+- Pierwszy odbiór WPF zakończył się brakiem klucza SyncRelatedUrlInvalid; dodano PL/EN i sprawdzono kompletność literalnych kluczy edytorów. Końcowy Release 0 ostrzeżeń/błędów; 522 testy PASS; VisualChecks PL/EN po 183 PNG i PluginChecks PASS. Obejrzano małe okno uzgodnienia i formularz z tekstem 24 DIP. Nie wykonano pełnej ręcznej klawiatury, DPI, Narratora, pomiaru dużych list ani prawdziwego OAuth. Szczegóły pokrycia i pozostający zakres: docs/SYNCHRONIZACJA_DWUKIERUNKOWA.md.
+
 ## 2026-11-05T20:56:22+01:00 | 1.9.0 / f0387a1 + zmiany robocze | kontynuacja synchronizacji
 
 - Zgłoszenie: kontynuować pełny plan i oddzielić publiczną instrukcję użytkownika od dokumentacji rozwoju. README opublikowano jako f0387a1; pozostały zakres integracji nadal OTWARTY.

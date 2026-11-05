@@ -2,6 +2,10 @@ namespace UberDashboard.Infrastructure.Database;
 
 internal static class SyncStorageSchema
 {
+    public static SqliteMigration CreateRelatedItems() => new(7, "typed-task-relations", [
+        // Bump CAS together with the format so an already-open older writer cannot replace the new shape.
+        "UPDATE SyncBinding SET StateJson = json_set(StateJson, '$.formatVersion', 2, '$.version', Version + 1), Version = Version + 1 WHERE COALESCE(json_extract(StateJson, '$.formatVersion'), 1) = 1;",
+    ]);
     public static SqliteMigration Create() => new(4, "durable-integration-sync", [
         """
         CREATE TABLE SyncBinding (

@@ -13,6 +13,9 @@ public static class SyncEdits
         var previous = state.Items.FirstOrDefault(e => e.LocalId == entityId);
         if (previous is null && desired is null) return state;
         if (previous is not null && JsonNode.DeepEquals(previous.Local, desired)) return state;
+        if (previous?.Kind == SyncEntityKind.Item && desired is null && MicrosoftTodoRelations.HasPendingChildren(state, entityId))
+            throw new SyncDependentChangesException();
+        if (previous is { Kind: not SyncEntityKind.Item }) ValidateParent(state, previous.ParentId);
         if (previous?.Conflicts is { Length: > 0 }) throw new InvalidOperationException("Resolve the conflict before editing this item.");
         var entity = previous is null
             ? new SyncEntity(entityId, null, null, Clone(desired), Revision: 1)
@@ -21,22 +24,62 @@ public static class SyncEdits
         var predecessor = queue.LastOrDefault(o => o.EntityId == entityId);
         if (!JsonNode.DeepEquals(entity.Baseline, desired) || predecessor is not null)
         {
-            var kind = entity.RemoteId is null ? SyncOperationKind.Create : desired is null ? SyncOperationKind.Delete : SyncOperationKind.Update;
+            var kind = entity.RemoteId is null || entity.Baseline is null ? SyncOperationKind.Create : desired is null ? SyncOperationKind.Delete : SyncOperationKind.Update;
             if (desired is not null || entity.RemoteId is not null || predecessor is not null)
-                queue.Add(new(Guid.NewGuid(), entityId, entity.Revision, kind, Clone(desired), entity.RemoteId ??
-                    (state.Binding.Provider == SyncProviderKind.GoogleCalendar && state.Binding.ResourcePath.EndsWith("/events", StringComparison.Ordinal)
-                        ? Guid.NewGuid().ToString("N") : null),
+                queue.Add(new(Guid.NewGuid(), entityId, entity.Revision, kind, Clone(desired), kind == SyncOperationKind.Create
+                    ? state.Binding.Provider == SyncProviderKind.GoogleCalendar && state.Binding.ResourcePath.EndsWith("/events", StringComparison.Ordinal)
+                        ? Guid.NewGuid().ToString("N") : null : entity.RemoteId,
                     entity.ETag, RequiresApproval(state.Binding, entity.Baseline, desired)
                         ? SyncOperationState.AwaitingApproval : SyncOperationState.Pending, DependsOn: predecessor?.Id, Baseline: Clone(entity.Baseline)));
         }
         var history = previous is null ? state.History : state.History.Append(new(entityId, now, Clone(previous.Local), "local-edit")).ToArray();
-        return state with
+        var changed = state with
         {
             Entities = state.Items.Where(e => e.LocalId != entityId).Append(entity).ToArray(),
             Operations = queue,
             Recovery = history.Where(h => h.CreatedAt >= now.AddDays(-30) ||
                 queue.Any(o => o.EntityId == h.EntityId)).ToArray(),
         };
+        return entity.ParentId is { } parentId ? TouchParent(changed, parentId) : changed;
+    }
+
+    internal static SyncState TouchParent(SyncState state, Guid parentId) => state with
+        { Entities = state.Items.Select(e => e.LocalId == parentId ? e with { Revision = checked(e.Revision + 1) } : e).ToArray() };
+
+    public static SyncState EditChild(SyncState state, Guid parentId, Guid entityId, SyncEntityKind kind, JsonObject? desired, DateTimeOffset now)
+    {
+        if (state.Binding.Provider != SyncProviderKind.MicrosoftTodo || kind is not (SyncEntityKind.ChecklistItem or SyncEntityKind.LinkedResource) ||
+            MicrosoftTodoRelations.TaskCollectionPath(state.Binding.ResourcePath) != state.Binding.ResourcePath)
+            throw new InvalidOperationException("This collection does not support related task items.");
+        ValidateParent(state, parentId);
+        var existing = state.Items.FirstOrDefault(e => e.LocalId == entityId);
+        if (existing is not null && (existing.ParentId != parentId || existing.Kind != kind))
+            throw new InvalidOperationException("An item cannot change its parent or type.");
+        if (existing is null && desired is not null)
+            state = state with { Entities = state.Items.Append(new(entityId, null, null, null, Kind: kind, ParentId: parentId)).ToArray() };
+        return Edit(state, entityId, desired, now);
+    }
+
+    /// <summary>A confirmed parent deletion or an explicit conflict choice resets remote identities, never titles.</summary>
+    public static SyncState ResetChildren(SyncState state, Guid parentId, bool keepLocal, DateTimeOffset now)
+    {
+        var children = state.Items.Where(e => e.ParentId == parentId).ToArray();
+        var ids = children.Select(e => e.LocalId).ToHashSet();
+        if (state.Queue.Any(o => ids.Contains(o.EntityId) && o.State == SyncOperationState.Sending)) throw new SyncDependentChangesException();
+        state = state with { Entities = state.Items.Select(e => ids.Contains(e.LocalId)
+            ? e with { RemoteId = null, Baseline = null, Local = null, Remote = null, Conflicts = null, ETag = null, Metadata = null } : e).ToArray(),
+            Operations = state.Queue.Where(o => !ids.Contains(o.EntityId)).ToArray(),
+            Recovery = state.History.Concat(children.Where(e => e.Local is not null || e.Baseline is not null)
+                .Select(e => new SyncRecovery(e.LocalId, now, Clone(e.Local ?? e.Baseline), "parent-deletion-resolved"))).ToArray() };
+        if (keepLocal) foreach (var child in children.Where(e => e.Local is not null)) state = Edit(state, child.LocalId, child.Local, now);
+        return state;
+    }
+
+    private static void ValidateParent(SyncState state, Guid? parentId)
+    {
+        if (!state.Items.Any(e => e.LocalId == parentId && e.Kind == SyncEntityKind.Item && e.Local is not null && e.Conflicts is not { Length: > 0 }) ||
+            state.Queue.Any(o => o.EntityId == parentId && o.Kind == SyncOperationKind.Delete))
+            throw new InvalidOperationException("The parent is unavailable or has an unresolved conflict.");
     }
 
     public static SyncState Approve(SyncState state, Guid operationId)
