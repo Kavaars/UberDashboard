@@ -1,6 +1,12 @@
 
 # PROJECT DEVELOPMENT RULES
 
+## Mandatory UberDashboard project and panel rules
+
+- Before designing, generating code for, creating or extending any panel, AI MUST read the entire [ZASADY_PROJEKTU.md](ZASADY_PROJEKTU.md) and [docs/WYTYCZNE_PANELI.md](docs/WYTYCZNE_PANELI.md).
+- Follow both documents throughout implementation, testing and verification, for built-in panels and plugin panels. Review the panel acceptance checklist before completion and report any deviations or checks not performed.
+- These documents supplement the general rules below; current user instructions take precedence.
+
 ## 1. EXECUTION WORKFLOW
 
 - Follow: EXPLORE -> PLAN -> TEST -> IMPLEMENT -> VERIFY -> DOCUMENT.
