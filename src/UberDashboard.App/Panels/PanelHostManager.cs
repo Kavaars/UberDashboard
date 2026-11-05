@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using UberDashboard.Application.Abstractions;
@@ -252,7 +253,7 @@ public sealed class PanelHostManager : IAsyncDisposable
             foreach (var panel in panels) { await panel.LifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(true); locked.Add(panel); }
             foreach (var panel in panels)
                 if (!_hosted.TryGetValue(panel.Record.InstanceId, out var current) || !ReferenceEquals(panel, current))
-                    throw new InvalidOperationException("Stan panelu zmienił się; ponów usuwanie.");
+                    throw new InvalidOperationException(UiText.Get("ThePanelStateChangedTryDeletingIt"));
             foreach (var panel in panels) _scheduler.Untrack(panel.Record.InstanceId);
             try
             {
@@ -355,7 +356,7 @@ public sealed class PanelHostManager : IAsyncDisposable
             if (!hosted.SaveFailureReported)
             {
                 hosted.SaveFailureReported = true;
-                _toasts.Show("Nie zapisano zmian panelu. Kolejna edycja lub próba zamknięcia ponowi zapis.", ToastSeverity.Error);
+                _toasts.Show(UiText.Get("PanelChangesCouldNotBeSavedEditing"), ToastSeverity.Error);
             }
             throw;
         }

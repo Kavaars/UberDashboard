@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Net.Http;
@@ -50,7 +51,7 @@ internal sealed class MicrosoftTodoRefresh(MicrosoftTodoSession session, Microso
             var credential = await session.TrySignInSilentlyAsync(saved.ClientId, accountId, token);
             if (credential is null)
             {
-                LastError = "Sesja Microsoft wymaga ponownego połączenia w kreatorze.";
+                LastError = UiText.Get("ReconnectTheMicrosoftAccountInTheSetup");
                 return;
             }
 
@@ -74,13 +75,13 @@ internal sealed class MicrosoftTodoRefresh(MicrosoftTodoSession session, Microso
             token.ThrowIfCancellationRequested();
             if (snapshots.Count > 0)
                 await settings.SaveAsync(saved.UpdateSnapshots(snapshots.ToArray(), DateTimeOffset.UtcNow), token);
-            LastError = unavailable ? "Niektóre listy są niedostępne. Ich ostatnie kopie nadal są widoczne." : null;
+            LastError = unavailable ? UiText.Get("SomeListsAreUnavailableTheirLastSaved") : null;
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (Exception error)
         {
             if (LastError is null) logger.LogWarning("Microsoft To Do refresh failed with {ErrorType}", error.GetType().Name);
-            LastError = "Nie udało się automatycznie odświeżyć list. Dostępna jest ostatnia zapisana kopia.";
+            LastError = UiText.Get("CouldNotRefreshTheListsAutomaticallyThe");
         }
         finally { _pending = null; }
     }

@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using UberDashboard.Application.Platform;
 
 
@@ -102,7 +103,7 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
 
         {
 
-            throw new ArgumentException("Window handle cannot be zero.", nameof(windowHandle));
+            throw new ArgumentException(UiText.Get("WindowHandleCannotBeZero"), nameof(windowHandle));
 
         }
 
@@ -132,13 +133,44 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
 
         await _transitionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-        try { return await SwitchCoreAsync(mode, cancellationToken).ConfigureAwait(false); }
+        try
+        {
+            var settings = (await _settingsService.GetAsync(cancellationToken).ConfigureAwait(false)).Normalize();
+            // Resolve before undocking restores the old normal-window monitor.
+            var monitor = mode == WindowMode.DockedBar ? ResolveMonitor(settings.MonitorId) : null;
+            var result = await SwitchCoreAsync(mode, cancellationToken).ConfigureAwait(false);
+            if (result.IsSuccess)
+            {
+                try
+                {
+                    await _settingsService.SetAsync(settings with
+                    {
+                        LaunchMode = result.ActiveMode,
+                        MonitorId = monitor?.Id ?? settings.MonitorId,
+                    }, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    Serilog.Log.Error(ex, "Nie zapisano trybu okna. Module={Module}", nameof(MainWindowModeCoordinator));
+                    return WindowModeTransitionResult.Fail(result.ActiveMode, UiText.Get("CouldNotSaveData"));
+                }
+            }
+            return result;
+        }
 
         finally { _transitionGate.Release(); }
 
     }
 
 
+
+    /// <inheritdoc />
+    public async Task<WindowModeTransitionResult> SwitchTemporarilyAsync(WindowMode mode, CancellationToken cancellationToken = default)
+    {
+        await _transitionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try { return await SwitchCoreAsync(mode, cancellationToken).ConfigureAwait(false); }
+        finally { _transitionGate.Release(); }
+    }
 
     private async Task<WindowModeTransitionResult> SwitchCoreAsync(WindowMode mode, CancellationToken cancellationToken)
 
@@ -152,7 +184,7 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
 
             var monitor = ResolveMonitor(settings.MonitorId);
 
-            if (monitor is null) return WindowModeTransitionResult.Fail(CurrentMode, "Brak dostępnego monitora.");
+            if (monitor is null) return WindowModeTransitionResult.Fail(CurrentMode, UiText.Get("NoDisplayIsAvailable"));
 
             var updated = _appBar.UpdateConfiguration(settings.DockEdge, settings.DockThickness, monitor.Bounds);
 
@@ -160,9 +192,12 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
 
                 ? WindowModeTransitionResult.Success(WindowMode.DockedBar)
 
-                : WindowModeTransitionResult.Fail(CurrentMode, updated.Message ?? "Nie udało się zmienić położenia paska.");
+                : WindowModeTransitionResult.Fail(CurrentMode, updated.Message ?? UiText.Get("CouldNotRepositionTheDockedBar"));
 
         }
+
+        if (mode == WindowMode.DockedBar && settings.MonitorId is null)
+            settings = settings with { MonitorId = ResolveMonitor(null)?.Id };
 
         await ExitSpecialModesAsync(cancellationToken).ConfigureAwait(false);
 
@@ -178,7 +213,7 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
 
             WindowMode.DesktopWidget => await EnterDesktopWidgetAsync(settings, cancellationToken).ConfigureAwait(false),
 
-            _ => WindowModeTransitionResult.Fail(WindowMode.Normal, "Unsupported window mode."),
+            _ => WindowModeTransitionResult.Fail(WindowMode.Normal, UiText.Get("UnsupportedWindowMode")),
 
         };
 
@@ -216,7 +251,7 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
 
         var settings = await _settingsService.GetAsync(cancellationToken).ConfigureAwait(false);
 
-        return await SwitchAsync(settings.LaunchMode, cancellationToken).ConfigureAwait(false);
+        return await SwitchTemporarilyAsync(settings.LaunchMode, cancellationToken).ConfigureAwait(false);
 
     }
 
@@ -232,7 +267,7 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
 
             CurrentMode = WindowMode.Normal;
 
-            return WindowModeTransitionResult.Fail(WindowMode.Normal, "Main window handle is not attached.");
+            return WindowModeTransitionResult.Fail(WindowMode.Normal, UiText.Get("MainWindowHandleNotAttached"));
 
         }
 
@@ -246,7 +281,7 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
 
             CurrentMode = WindowMode.Normal;
 
-            return WindowModeTransitionResult.Fail(WindowMode.Normal, "No usable monitor is available for docked bar mode.");
+            return WindowModeTransitionResult.Fail(WindowMode.Normal, UiText.Get("NoMonitorForDock"));
 
         }
 
@@ -264,7 +299,7 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
 
             CurrentMode = WindowMode.Normal;
 
-            return WindowModeTransitionResult.Fail(WindowMode.Normal, "Nie udało się ustawić okna w obszarze paska. Przywrócono zwykłe okno.");
+            return WindowModeTransitionResult.Fail(WindowMode.Normal, UiText.Get("CouldNotPlaceTheWindowInThe"));
 
         }
 
@@ -272,7 +307,7 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
 
             ? WindowModeTransitionResult.Success(WindowMode.DockedBar)
 
-            : WindowModeTransitionResult.Fail(WindowMode.Normal, result.Message ?? "Docked bar activation failed.");
+            : WindowModeTransitionResult.Fail(WindowMode.Normal, result.Message ?? UiText.Get("DockedBarActivationFailed"));
 
     }
 
@@ -292,7 +327,7 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
 
             CurrentMode = WindowMode.Normal;
 
-            return WindowModeTransitionResult.Fail(WindowMode.Normal, "Main window handle is not attached.");
+            return WindowModeTransitionResult.Fail(WindowMode.Normal, UiText.Get("MainWindowHandleNotAttached"));
 
         }
 
@@ -322,9 +357,9 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
 
         return settings.DesktopWidgetFallbackToNormal
 
-            ? WindowModeTransitionResult.Fail(WindowMode.Normal, "Widget pulpitu jest eksperymentalny i nie ma jeszcze zweryfikowanej integracji z powłoką. Pozostawiono zwykłe okno.")
+            ? WindowModeTransitionResult.Fail(WindowMode.Normal, UiText.Get("TheDesktopWidgetIsExperimentalTheApp"))
 
-            : WindowModeTransitionResult.Fail(WindowMode.Normal, "Widget pulpitu jest niedostępny. Zachowano zwykłe okno, aby aplikacja pozostała osiągalna.");
+            : WindowModeTransitionResult.Fail(WindowMode.Normal, UiText.Get("TheDesktopWidgetIsUnavailableTheApp"));
 
     }
 

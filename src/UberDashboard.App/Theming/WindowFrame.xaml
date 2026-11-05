@@ -1,4 +1,4 @@
-<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<ResourceDictionary xmlns:loc="clr-namespace:UberDashboard.App.Localization" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
                     xmlns:controls="clr-namespace:UberDashboard.App.Controls">
@@ -18,6 +18,7 @@
   </Style>
 
   <Style x:Key="ThemedWindow" TargetType="Window">
+    <Setter Property="Language" Value="{loc:Language}"/>
     <Setter Property="Background" Value="{DynamicResource Brush.Window.Background}"/>
     <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
     <Setter Property="FontFamily" Value="{DynamicResource Token.FontFamily}"/>
@@ -39,23 +40,23 @@
                 <DockPanel>
                   <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <Button x:Name="Minimize" Style="{StaticResource CaptionButton}"
-                            Command="{x:Static SystemCommands.MinimizeWindowCommand}" ToolTip="Minimalizuje okno do paska zadań."
-                            AutomationProperties.Name="Minimalizuj">
+                            Command="{x:Static SystemCommands.MinimizeWindowCommand}" ToolTip="{loc:Text MinimizesTheWindowToTheTaskbar}"
+                            AutomationProperties.Name="{loc:Text Minimize}">
                       <Path Style="{StaticResource CaptionIcon}" Data="M 1,6.5 H 11"/>
                     </Button>
                     <Button x:Name="Maximize" Style="{StaticResource CaptionButton}"
-                            Command="{x:Static SystemCommands.MaximizeWindowCommand}" ToolTip="Powiększa okno do obszaru roboczego ekranu."
-                            AutomationProperties.Name="Maksymalizuj">
+                            Command="{x:Static SystemCommands.MaximizeWindowCommand}" ToolTip="{loc:Text MaximizesTheWindowWithinTheDesktopWork}"
+                            AutomationProperties.Name="{loc:Text Maximize}">
                       <Path Style="{StaticResource CaptionIcon}" Data="M 1.5,1.5 H 10.5 V 10.5 H 1.5 Z"/>
                     </Button>
                     <Button x:Name="Restore" Style="{StaticResource CaptionButton}" Visibility="Collapsed"
-                            Command="{x:Static SystemCommands.RestoreWindowCommand}" ToolTip="Przywraca poprzedni rozmiar okna."
-                            AutomationProperties.Name="Przywróć rozmiar">
+                            Command="{x:Static SystemCommands.RestoreWindowCommand}" ToolTip="{loc:Text RestoresThePreviousWindowSize}"
+                            AutomationProperties.Name="{loc:Text RestoreSize}">
                       <Path Style="{StaticResource CaptionIcon}" Data="M 1.5,4.5 H 7.5 V 10.5 H 1.5 Z M 4.5,4.5 V 1.5 H 10.5 V 7.5 H 7.5"/>
                     </Button>
                     <Button Style="{StaticResource CaptionButton}"
-                            Command="{x:Static SystemCommands.CloseWindowCommand}" ToolTip="Zamyka to okno."
-                            AutomationProperties.Name="Zamknij">
+                            Command="{x:Static SystemCommands.CloseWindowCommand}" ToolTip="{loc:Text ClosesThisWindow}"
+                            AutomationProperties.Name="{loc:Text Close}">
                       <Path Style="{StaticResource CaptionIcon}" Data="M 2,2 L 10,10 M 10,2 L 2,10"/>
                     </Button>
                   </StackPanel>

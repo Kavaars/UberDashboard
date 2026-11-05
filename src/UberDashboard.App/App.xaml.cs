@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,7 +22,7 @@ public partial class App : System.Windows.Application
     internal Settings.MicrosoftTodoWizard? MicrosoftTodo => _host?.Services.GetRequiredService<Settings.MicrosoftTodoWizard>();
 
     /// <inheritdoc />
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
@@ -32,14 +33,15 @@ public partial class App : System.Windows.Application
         try
         {
             _host = AppHostBuilder.Build();
-            _host.Start();
+            await _host.StartAsync().ConfigureAwait(true);
         }
         catch (Exception ex)
         {
             Log.Fatal(ex, "Nie udało się uruchomić hosta aplikacji.");
             Log.CloseAndFlush();
+            LoadLocalizedResources();
             WpfMessageBox.Show(
-                $"Nie udało się uruchomić UberDashboard:\n{ex.Message}",
+                UiText.Format("UberdashboardCouldNotStart", ex.Message),
                 "UberDashboard",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
@@ -47,11 +49,35 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        try
+        {
+            var settings = await _host.Services.GetRequiredService<Settings.IApplicationSettingsService>()
+                .LoadAsync().ConfigureAwait(true);
+            UiText.Configure(settings.Language);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Nie udało się odczytać języka aplikacji. Użyto polskiego.");
+            UiText.Configure(UiText.Polish);
+        }
+
+        LoadLocalizedResources();
         var window = _host.Services.GetRequiredService<MainWindow>();
         MainWindow = window;
         window.Show();
         _todoRefresh = _host.Services.GetRequiredService<Features.Todo.MicrosoftTodoRefresh>();
         _todoRefresh.Start();
+    }
+
+    private void LoadLocalizedResources()
+    {
+        foreach (var resource in new[] { "Controls", "WindowFrame", "PanelTemplates" })
+        {
+            Resources.MergedDictionaries.Add(new ResourceDictionary
+            {
+                Source = new Uri($"pack://application:,,,/UberDashboard;component/Theming/{resource}.xaml"),
+            });
+        }
     }
 
     /// <inheritdoc />
@@ -70,6 +96,7 @@ public partial class App : System.Windows.Application
         try
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            await _host.Services.GetRequiredService<UberDashboard.App.Shell.WindowPlacementTracker>().FlushAsync().WaitAsync(timeout.Token).ConfigureAwait(true);
             await _host.Services.GetRequiredService<UberDashboard.App.Plugins.PluginSettingsViewModel>().StopAsync().WaitAsync(timeout.Token).ConfigureAwait(true);
             if (MainWindow?.DataContext is UberDashboard.App.Shell.ShellViewModel shell)
             {

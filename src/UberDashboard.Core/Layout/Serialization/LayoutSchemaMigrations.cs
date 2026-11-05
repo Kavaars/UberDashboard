@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Text.Json.Nodes;
 
 namespace UberDashboard.Core.Layout.Serialization;
@@ -36,7 +37,7 @@ public sealed class LayoutSchemaMigrations
             if (migration.ToVersion != migration.FromVersion + 1)
             {
                 throw new ArgumentException(
-                    $"Migracja {migration.FromVersion}→{migration.ToVersion} musi zwiększać wersję dokładnie o jeden.",
+                    UiText.Format("MigrationMustIncreaseTheVersionByExactly", migration.FromVersion, migration.ToVersion),
                     nameof(migrations));
             }
 

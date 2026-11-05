@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Security.Cryptography;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -33,7 +34,7 @@ public sealed class PanelGroupSession : ObservableObject
         ActiveViewModel = new UnavailablePanelViewModel(root.PluginId, root.DisplayName);
     }
 
-    public void ReportError(Exception error) => _toasts.Show($"Nie wykonano operacji zakładki: {error.Message}", ToastSeverity.Error);
+    public void ReportError(Exception error) => _toasts.Show(UiText.Format("TheTabOperationFailed", error.Message), ToastSeverity.Error);
     public string ImportDisplayName => _root.DisplayName;
     internal bool ImportsTasks => _root.PanelTypeId == Features.Todo.TodoPanelDescriptor.TypeId;
     internal bool SupportsFileImport => ImportsTasks || _root.PanelTypeId == Features.Notes.NotesPanelDescriptor.TypeId;
@@ -47,7 +48,7 @@ public sealed class PanelGroupSession : ObservableObject
         {
             EnsureOpen();
             if (!SupportsFileImport)
-                throw new InvalidOperationException("Ten panel nie obsługuje importu.");
+                throw new InvalidOperationException(UiText.Get("ThisPanelDoesNotSupportImport"));
 
             var next = Group;
             var records = new List<PanelInstanceRecord>(tabs.Count);
@@ -69,7 +70,7 @@ public sealed class PanelGroupSession : ObservableObject
             await _groups.AddBatchAsync(Group, next, records, token).ConfigureAwait(true);
             Group = next;
             Changed?.Invoke(this, EventArgs.Empty);
-            _toasts.Show($"Zaimportowano zakładki: {records.Count}.", ToastSeverity.Success);
+            _toasts.Show(UiText.Format("ImportedTabs", records.Count), ToastSeverity.Success);
         }
         finally { IsBusy = false; _gate.Release(); }
     }
@@ -100,9 +101,9 @@ public sealed class PanelGroupSession : ObservableObject
         if (id == Group.ActiveId) return;
         var next = Group.Select(id);
         var previous = Group.ActiveId;
-        var record = await _instances.GetAsync(id, token).ConfigureAwait(true) ?? throw new InvalidOperationException("Brak stanu zakładki.");
+        var record = await _instances.GetAsync(id, token).ConfigureAwait(true) ?? throw new InvalidOperationException(UiText.Get("TabStateIsMissing"));
         var instance = await _host.ActivateAsync(record, token).ConfigureAwait(true);
-        if (instance is null) throw new InvalidOperationException("Panel zakładki jest niedostępny.");
+        if (instance is null) throw new InvalidOperationException(UiText.Get("TheTabSPanelIsUnavailable"));
         try
         {
             await _host.SuspendAsync(previous, token).ConfigureAwait(true);
@@ -249,7 +250,7 @@ public sealed class PanelGroupSession : ObservableObject
 
     private void EnsureOpen()
     {
-        if (_closed) throw new InvalidOperationException("Panel został zamknięty lub ukryty.");
+        if (_closed) throw new InvalidOperationException(UiText.Get("ThePanelWasClosedOrHidden"));
     }
 
     private async Task SetViewAsync(PanelInstanceId id, CancellationToken token)

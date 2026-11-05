@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Globalization;
 using Microsoft.Data.Sqlite;
 using UberDashboard.Application.Abstractions;
@@ -76,7 +77,7 @@ public sealed class SqliteBackupService
 
                         if (!CheckIntegrity(destination))
                         {
-                            return BackupResult.Fail("Kopia nie przeszła kontroli integralności.");
+                            return BackupResult.Fail(UiText.Get("TheBackupFailedItsIntegrityCheck"));
                         }
                     }
 

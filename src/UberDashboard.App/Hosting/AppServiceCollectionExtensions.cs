@@ -1,8 +1,11 @@
+using UberDashboard.Core.Localization;
 using UberDashboard.Application.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using UberDashboard.Application.Panels;
 using UberDashboard.Application.Weather;
 using UberDashboard.App.Features.Notes;
+using UberDashboard.App.Features.Calendar;
+using UberDashboard.App.Features.Resources;
 using UberDashboard.App.Features.Todo;
 using UberDashboard.App.Features.Weather;
 using UberDashboard.App.Panels;
@@ -43,6 +46,7 @@ public static class AppServiceCollectionExtensions
         services.AddSingleton<IDockedBarWindowHost, DockedBarWindowHost>();
         services.AddSingleton<IDesktopWidgetWindowHost, DesktopWidgetWindowHost>();
         services.AddSingleton<IWindowModeCoordinator, MainWindowModeCoordinator>();
+        services.AddSingleton<WindowPlacementTracker>();
 
         services.AddSingleton<IPanelRemovalConfirmation, PanelRemovalConfirmation>();
         services.AddSingleton<PanelStateScheduler>();
@@ -54,7 +58,7 @@ public static class AppServiceCollectionExtensions
         services.AddSingleton<PanelGroupInitializer>();
         services.AddSingleton<Func<PanelInstanceId, IPanelStateSink>>(
             _ => instanceId => throw new InvalidOperationException(
-                "Fabryka ujścia stanu panelu jest rozwiązywana wyłącznie przez kontener dla konkretnej instancji."));
+                UiText.Get("ThePanelStateSinkFactoryIsResolved")));
 
         services.AddSingleton<BuiltInPanelRegistration>(_ => new BuiltInPanelRegistration(Features.Space.SpacePanelDescriptor.Id, new Features.Space.SpacePanelDescriptor()));
         RegisterBuiltInPanels(services);
@@ -74,6 +78,14 @@ public static class AppServiceCollectionExtensions
 
     private static void RegisterBuiltInPanels(IServiceCollection services)
     {
+        services.AddSingleton<BuiltInPanelRegistration>(provider => new BuiltInPanelRegistration(
+            Features.Shortcuts.ShortcutsPanelDescriptor.Id, new Features.Shortcuts.ShortcutsPanelDescriptor(provider.GetRequiredService<PanelStateScheduler>())));
+        services.AddSingleton<HardwareSampler>();
+        services.AddSingleton<BuiltInPanelRegistration>(provider => new BuiltInPanelRegistration(
+            CalendarPanelDescriptor.Id, new CalendarPanelDescriptor(provider.GetRequiredService<PanelStateScheduler>())));
+        services.AddSingleton<BuiltInPanelRegistration>(provider => new BuiltInPanelRegistration(
+            ResourcePanelDescriptor.Id, new ResourcePanelDescriptor(provider.GetRequiredService<HardwareSampler>())));
+
         services.AddSingleton<BuiltInPanelRegistration>(provider => new BuiltInPanelRegistration(
             "affirmations",
             new Features.Affirmations.AffirmationPanelDescriptor(new Features.Affirmations.AffirmationPanelFactory(provider.GetRequiredService<PanelStateScheduler>()))));
@@ -109,7 +121,7 @@ public static class AppServiceCollectionExtensions
             if (!catalog.TryRegister(BuiltInPluginId, registration.Descriptor))
             {
                 throw new InvalidOperationException(
-                    $"Typ panelu '{registration.Descriptor.TypeId}' jest zarejestrowany więcej niż raz.");
+                    UiText.Format("ThePanelTypeIsRegisteredMoreThan", registration.Descriptor.TypeId));
             }
         }
 

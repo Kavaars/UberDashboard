@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Collections.Immutable;
 using UberDashboard.Core.Layout;
 
@@ -31,23 +32,23 @@ public sealed class PanelTabGroup
         ValidateId(groupId);
         ArgumentNullException.ThrowIfNull(tabs);
         var copy = tabs.ToImmutableArray();
-        if (copy.IsEmpty) throw new ArgumentException("Panel musi mieć co najmniej jedną zakładkę.", nameof(tabs));
+        if (copy.IsEmpty) throw new ArgumentException(UiText.Get("APanelMustHaveAtLeastOne"), nameof(tabs));
         var ids = new HashSet<PanelInstanceId>();
         foreach (var tab in copy)
         {
-            if (tab is null) throw new ArgumentException("Nieprawidłowa zakładka.", nameof(tabs));
+            if (tab is null) throw new ArgumentException(UiText.Get("InvalidTab"), nameof(tabs));
             ValidateId(tab.InstanceId);
             _ = ValidateName(tab.Name);
-            if (!ids.Add(tab.InstanceId)) throw new ArgumentException("Powtórzony identyfikator zakładki.", nameof(tabs));
+            if (!ids.Add(tab.InstanceId)) throw new ArgumentException(UiText.Get("DuplicateTabId"), nameof(tabs));
         }
-        if (!ids.Contains(activeId)) throw new ArgumentException("Aktywna zakładka nie należy do panelu.", nameof(activeId));
+        if (!ids.Contains(activeId)) throw new ArgumentException(UiText.Get("TheActiveTabDoesNotBelongTo"), nameof(activeId));
         return new PanelTabGroup(groupId, copy, activeId);
     }
 
     public PanelTabGroup Add(PanelInstanceId id, string name)
     {
         ValidateId(id);
-        if (Tabs.Any(tab => tab.InstanceId == id)) throw new ArgumentException("Identyfikator zakładki już istnieje.", nameof(id));
+        if (Tabs.Any(tab => tab.InstanceId == id)) throw new ArgumentException(UiText.Get("TheTabIdAlreadyExists"), nameof(id));
         return new PanelTabGroup(GroupId, Tabs.Add(new PanelTab(id, ValidateName(name))), ActiveId);
     }
 
@@ -74,7 +75,7 @@ public sealed class PanelTabGroup
     public PanelTabGroup Remove(PanelInstanceId id)
     {
         var index = Find(id);
-        if (Tabs.Length == 1) throw new InvalidOperationException("Nie można usunąć ostatniej zakładki.");
+        if (Tabs.Length == 1) throw new InvalidOperationException(UiText.Get("TheLastTabCannotBeDeleted"));
         var remaining = Tabs.RemoveAt(index);
         var active = id == ActiveId ? remaining[Math.Max(0, index - 1)].InstanceId : ActiveId;
         return new PanelTabGroup(GroupId, remaining, active);
@@ -84,14 +85,14 @@ public sealed class PanelTabGroup
     {
         for (var index = 0; index < Tabs.Length; index++)
             if (Tabs[index].InstanceId == id) return index;
-        throw new ArgumentException("Nie znaleziono zakładki.", nameof(id));
+        throw new ArgumentException(UiText.Get("TheTabWasNotFound"), nameof(id));
     }
 
     private static void ValidateId(PanelInstanceId id)
     {
-        if (id.IsEmpty) throw new ArgumentException("Identyfikator zakładki nie może być pusty.", nameof(id));
+        if (id.IsEmpty) throw new ArgumentException(UiText.Get("TheTabIdCannotBeEmpty"), nameof(id));
     }
 
     private static string ValidateName(string name) =>
-        string.IsNullOrWhiteSpace(name) ? throw new ArgumentException("Nazwa zakładki nie może być pusta.", nameof(name)) : name.Trim();
+        string.IsNullOrWhiteSpace(name) ? throw new ArgumentException(UiText.Get("TheTabNameCannotBeEmpty"), nameof(name)) : name.Trim();
 }

@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -28,7 +29,7 @@ public sealed class MicrosoftTodoReader(HttpClient client)
             if (!uri.IsAbsoluteUri || uri.Scheme != Uri.UriSchemeHttps || uri.Host != Graph.Host ||
                 !uri.IsDefaultPort || uri.UserInfo.Length != 0 ||
                 !uri.AbsolutePath.StartsWith(Graph.AbsolutePath, StringComparison.Ordinal) || !seen.Add(uri) || seen.Count > 1_000)
-                throw new InvalidDataException("Microsoft Graph zwrócił nieprawidłowy adres kolejnej strony.");
+                throw new InvalidDataException(UiText.Get("MicrosoftGraphReturnedAnInvalidNextPage"));
 
             using var request = new HttpRequestMessage(HttpMethod.Get, uri);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -36,13 +37,13 @@ public sealed class MicrosoftTodoReader(HttpClient client)
             response.EnsureSuccessStatusCode();
             await using var body = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
             var page = await JsonSerializer.DeserializeAsync<Page<T>>(body, JsonSerializerOptions.Web, cancellationToken)
-                .ConfigureAwait(false) ?? throw new InvalidDataException("Microsoft Graph zwrócił pustą odpowiedź.");
+                .ConfigureAwait(false) ?? throw new InvalidDataException(UiText.Get("MicrosoftGraphReturnedAnEmptyResponse"));
             result.AddRange(page.Value ?? throw new InvalidDataException("Brakuje danych na stronie Microsoft Graph."));
             if (result.Count > 10_000)
-                throw new InvalidDataException("Przekroczono limit 10 000 elementów na import.");
+                throw new InvalidDataException(UiText.Get("TheLimitOf10000ItemsPer"));
             if (string.IsNullOrEmpty(page.NextLink)) return result;
             if (!Uri.TryCreate(page.NextLink, UriKind.Absolute, out var next))
-                throw new InvalidDataException("Microsoft Graph zwrócił nieprawidłowy adres kolejnej strony.");
+                throw new InvalidDataException(UiText.Get("MicrosoftGraphReturnedAnInvalidNextPage"));
             uri = next;
         }
     }

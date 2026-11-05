@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using UberDashboard.Application.Abstractions;
 using UberDashboard.Core.Layout;
 using UberDashboard.Core.Layout.Serialization;
@@ -59,7 +60,7 @@ public sealed class LayoutStore : ILayoutStore
                 return LayoutLoadResult.Fail(
                     result.Error,
                     result.SchemaVersion > 0 ? result.SchemaVersion : storedVersion,
-                    result.Message ?? "Nie udało się odczytać dokumentu układu.",
+                    result.Message ?? UiText.Get("CouldNotReadTheLayoutDocument"),
                     result.MustPreserveOriginalDocument);
             },
             cancellationToken);

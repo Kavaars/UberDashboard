@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace UberDashboard.App.Features.Todo;
@@ -16,7 +17,7 @@ public sealed class MicrosoftTodoListViewModel : ObservableObject
         var enabled = preferences.ClientId == link.ClientId && preferences.AccountId == link.AccountId &&
             preferences.SelectedLists.Contains(link.ListId);
         Status = enabled
-            ? $"Microsoft To Do · Tylko odczyt. Ostatnie odświeżenie: {(_snapshot?.RefreshedAt ?? preferences.LastSync)?.ToLocalTime():g}."
-            : "Microsoft To Do · Ostatnia kopia. Synchronizacja jest wyłączona.";
+            ? UiText.Format("MicrosoftToDoReadOnlyLastRefreshed", (_snapshot?.RefreshedAt ?? preferences.LastSync)?.ToLocalTime())
+            : UiText.Get("MicrosoftToDoLatestCopySyncIs");
     }
 }

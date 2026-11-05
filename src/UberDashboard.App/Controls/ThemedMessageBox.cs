@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -22,8 +23,8 @@ public static class ThemedMessageBox
         window.SetResourceReference(Window.ForegroundProperty, "Brush.Text");
         var root = new StackPanel { Margin = new Thickness(22) };
         var heading = new DockPanel { Margin = new Thickness(0, 0, 0, 14), LastChildFill = true };
-        var close = new Button { Content = "×", MinWidth = 30, Padding = new Thickness(4), ToolTip = "Zamyka komunikat bez potwierdzania operacji." };
-        System.Windows.Automation.AutomationProperties.SetName(close, "Zamknij komunikat");
+        var close = new Button { Content = "×", MinWidth = 30, Padding = new Thickness(4), ToolTip = UiText.Get("ClosesTheMessageWithoutConfirmingTheOperation") };
+        System.Windows.Automation.AutomationProperties.SetName(close, UiText.Get("CloseMessage"));
         if (System.Windows.Application.Current?.TryFindResource("ToolbarButton") is Style closeStyle) close.Style = closeStyle;
         close.Click += (_, _) => window.Close();
         DockPanel.SetDock(close, Dock.Right);
@@ -46,8 +47,8 @@ public static class ThemedMessageBox
             bar.Children.Add(button);
             if (button.IsDefault) window.Loaded += (_, _) => button.Focus();
         }
-        if (buttons == MessageBoxButton.YesNo) { Add("Tak", MessageBoxResult.Yes, false); Add("Nie", MessageBoxResult.No, true); }
-        else if (buttons == MessageBoxButton.OKCancel) { Add("OK", MessageBoxResult.OK, false); Add("Anuluj", MessageBoxResult.Cancel, true); }
+        if (buttons == MessageBoxButton.YesNo) { Add(UiText.Get("Yes"), MessageBoxResult.Yes, false); Add(UiText.Get("No"), MessageBoxResult.No, true); }
+        else if (buttons == MessageBoxButton.OKCancel) { Add("OK", MessageBoxResult.OK, false); Add(UiText.Get("Cancel"), MessageBoxResult.Cancel, true); }
         else Add("OK", MessageBoxResult.OK, true);
         root.Children.Add(bar);
         var frame = new Border { BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8), Child = new ScrollViewer { Content = root, VerticalScrollBarVisibility = ScrollBarVisibility.Auto } };

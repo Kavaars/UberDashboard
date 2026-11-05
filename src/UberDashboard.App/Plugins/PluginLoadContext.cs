@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.IO;
 using System.Reflection;
 using System.Runtime.Loader;
@@ -17,7 +18,7 @@ internal sealed class PluginLoadContext(string directory) : AssemblyLoadContext(
         if (name.Name == typeof(IPanelInstance).Assembly.GetName().Name) return typeof(IPanelInstance).Assembly;
         if (name.Name == typeof(PanelInstanceId).Assembly.GetName().Name) return typeof(PanelInstanceId).Assembly;
         if (name.Name?.StartsWith("UberDashboard", StringComparison.Ordinal) == true)
-            throw new FileLoadException("Plugin może odwoływać się tylko do publicznych Contracts i Core.");
+            throw new FileLoadException(UiText.Get("PluginsMayReferenceOnlyThePublicContracts"));
         var path = Path.Combine(_directory, name.Name + ".dll");
         return File.Exists(path) ? LoadManaged(path) : null;
     }
@@ -28,5 +29,5 @@ internal sealed class PluginLoadContext(string directory) : AssemblyLoadContext(
         return LoadFromStream(stream);
     }
     protected override IntPtr LoadUnmanagedDll(string unmanagedDllName)
-        => throw new DllNotFoundException("API pluginów 1.1 nie obsługuje prywatnych bibliotek natywnych.");
+        => throw new DllNotFoundException(UiText.Get("PluginApi11DoesNotSupport"));
 }

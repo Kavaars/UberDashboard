@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 namespace UberDashboard.Application.Platform;
 
 
@@ -68,7 +69,7 @@ public sealed class AppBarController
 
         {
 
-            return AppBarDockResult.Fail("Pasek jest już zarejestrowany.");
+            return AppBarDockResult.Fail(UiText.Get("TheDockedBarIsAlreadyRegistered"));
 
         }
 
@@ -78,7 +79,7 @@ public sealed class AppBarController
 
         {
 
-            return AppBarDockResult.Fail("Nieprawidłowy uchwyt okna.");
+            return AppBarDockResult.Fail(UiText.Get("InvalidWindowHandle"));
 
         }
 
@@ -88,7 +89,7 @@ public sealed class AppBarController
 
         {
 
-            return AppBarDockResult.Fail("Grubość paska musi być dodatnia.");
+            return AppBarDockResult.Fail(UiText.Get("DockThicknessMustBePositive"));
 
         }
 
@@ -98,7 +99,7 @@ public sealed class AppBarController
 
         {
 
-            return AppBarDockResult.Fail("Obszar roboczy monitora jest niepoprawny.");
+            return AppBarDockResult.Fail(UiText.Get("TheDisplayWorkAreaIsInvalid"));
 
         }
 
@@ -108,7 +109,7 @@ public sealed class AppBarController
 
         {
 
-            return AppBarDockResult.Fail("Powłoka odrzuciła rejestrację paska.");
+            return AppBarDockResult.Fail(UiText.Get("WindowsRejectedTheDockedBarRegistration"));
 
         }
 
@@ -160,7 +161,7 @@ public sealed class AppBarController
 
     {
 
-        if (!_isRegistered) return AppBarDockResult.Fail("Pasek nie jest zarejestrowany.");
+        if (!_isRegistered) return AppBarDockResult.Fail(UiText.Get("TheDockedBarIsNotRegistered"));
 
         var handle = _windowHandle;
 
@@ -182,7 +183,7 @@ public sealed class AppBarController
 
     {
 
-        if (!_isRegistered || thickness <= 0 || !monitorBounds.IsValid) return AppBarDockResult.Fail("Nieprawidłowa konfiguracja paska.");
+        if (!_isRegistered || thickness <= 0 || !monitorBounds.IsValid) return AppBarDockResult.Fail(UiText.Get("InvalidDockConfiguration"));
 
         _edge = edge;
 
@@ -204,7 +205,7 @@ public sealed class AppBarController
 
         {
 
-            return AppBarDockResult.Fail("Pasek nie jest zarejestrowany.");
+            return AppBarDockResult.Fail(UiText.Get("TheDockedBarIsNotRegistered"));
 
         }
 
@@ -226,7 +227,7 @@ public sealed class AppBarController
 
         {
 
-            return AppBarDockResult.Fail("Pasek nie jest zarejestrowany.");
+            return AppBarDockResult.Fail(UiText.Get("TheDockedBarIsNotRegistered"));
 
         }
 
@@ -236,7 +237,7 @@ public sealed class AppBarController
 
         {
 
-            return AppBarDockResult.Fail("Obszar roboczy monitora jest niepoprawny.");
+            return AppBarDockResult.Fail(UiText.Get("TheDisplayWorkAreaIsInvalid"));
 
         }
 
@@ -330,7 +331,7 @@ public sealed class AppBarController
 
             ? AppBarDockResult.Ok(final)
 
-            : AppBarDockResult.Fail("Powłoka nie zwróciła poprawnego obszaru paska.");
+            : AppBarDockResult.Fail(UiText.Get("WindowsDidNotReturnAValidDock"));
 
     }
 

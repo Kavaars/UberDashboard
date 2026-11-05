@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Text.Json;
@@ -51,13 +52,13 @@ public sealed class PluginManager(IAppPaths paths, PanelCatalog catalog, PanelHo
                     manifest = await Task.Run(async () =>
                     {
                         var json = await File.ReadAllTextAsync(Path.Combine(directory, "plugin.json"), token);
-                        var value = JsonSerializer.Deserialize<PluginManifest>(json, PluginPackage.JsonOptions) ?? throw new InvalidDataException("Pusty manifest.");
+                        var value = JsonSerializer.Deserialize<PluginManifest>(json, PluginPackage.JsonOptions) ?? throw new InvalidDataException(UiText.Get("EmptyManifest"));
                         PluginPackage.ValidateManifest(value, HostVersion);
                         return value;
                     }, token);
                     loaded = await LoadAsync(directory, manifest, token);
                     Register(loaded);
-                    Installed.Add(new(manifest, directory, "Aktywny"));
+                    Installed.Add(new(manifest, directory, UiText.Get("Active2")));
                 }
                 catch (OperationCanceledException) { loaded?.Context.Unload(); throw; }
                 catch (Exception ex)
@@ -67,9 +68,9 @@ public sealed class PluginManager(IAppPaths paths, PanelCatalog catalog, PanelHo
                     // Uszkodzona instalacja nadal widoczna i możliwa do usunięcia.
                     Installed.Add(new(manifest ?? new PluginManifest
                     {
-                        Id = Path.GetFileName(directory), Name = "Nieprawidłowa paczka", Version = "?", ApiVersion = "?", MinHostVersion = "?",
+                        Id = Path.GetFileName(directory), Name = UiText.Get("InvalidPackage"), Version = "?", ApiVersion = "?", MinHostVersion = "?",
                         TargetFramework = "?", EntryAssembly = "?", EntryType = "?",
-                    }, directory, "Błąd ładowania — sprawdź logi lub usuń plugin"));
+                    }, directory, UiText.Get("CouldNotLoadThePluginCheckThe")));
                 }
             }
             _initialized = true;
@@ -88,8 +89,8 @@ public sealed class PluginManager(IAppPaths paths, PanelCatalog catalog, PanelHo
         {
             var manifest = await Task.Run(() => PluginPackage.ExtractAsync(package, staging, HostVersion, token), token);
             if (Installed.Any(p => string.Equals(p.Id, manifest.Id, StringComparison.OrdinalIgnoreCase)))
-                throw new InvalidDataException("Ten plugin jest już zainstalowany. Najpierw usuń poprzednią wersję; dane paneli zostaną zachowane.");
-            if (manifest.Panels.Any(p => catalog.Contains(p.TypeId))) throw new InvalidDataException("Identyfikator panelu jest już zajęty.");
+                throw new InvalidDataException(UiText.Get("ThisPluginIsAlreadyInstalledRemoveThe"));
+            if (manifest.Panels.Any(p => catalog.Contains(p.TypeId))) throw new InvalidDataException(UiText.Get("ThePanelIdIsAlreadyInUse"));
             // Najpierw pełne ładowanie modułu i walidacja rejestracji. Błąd nie publikuje częściowej instalacji.
             loaded = await LoadAsync(staging, manifest, token);
             token.ThrowIfCancellationRequested();
@@ -101,7 +102,7 @@ public sealed class PluginManager(IAppPaths paths, PanelCatalog catalog, PanelHo
             }, CancellationToken.None);
             loaded.Context.SetDirectory(committed);
             Register(loaded);
-            Installed.Add(new(manifest, committed, "Aktywny"));
+            Installed.Add(new(manifest, committed, UiText.Get("Active2")));
             published = true;
             _logger.LogInformation("Zainstalowano plugin {PluginId} {Version}.", manifest.Id, manifest.Version);
         }
@@ -146,18 +147,18 @@ public sealed class PluginManager(IAppPaths paths, PanelCatalog catalog, PanelHo
 
     private Task<LoadedPlugin> LoadAsync(string directory, PluginManifest manifest, CancellationToken token) => Task.Run(async () =>
     {
-        if (_loaded.ContainsKey(manifest.Id)) throw new InvalidDataException("Powtórzony identyfikator pluginu.");
+        if (_loaded.ContainsKey(manifest.Id)) throw new InvalidDataException(UiText.Get("DuplicatePluginId"));
         var context = new PluginLoadContext(directory);
         try
         {
             var assembly = context.LoadManaged(Path.Combine(directory, manifest.EntryAssembly));
             var module = Activator.CreateInstance(assembly.GetType(manifest.EntryType, throwOnError: true)!) as IPluginModule
-                ?? throw new InvalidDataException("Typ wejściowy nie implementuje IPluginModule.");
+                ?? throw new InvalidDataException(UiText.Get("TheEntryTypeDoesNotImplementIpluginmodule"));
             var host = new RegistrationContext(manifest, loggerFactory);
             await module.InitializeAsync(host, token);
             host.Seal();
             if (host.Descriptors.Count != manifest.Panels.Count || manifest.Panels.Any(p => !host.Descriptors.Any(d => d.TypeId == p.TypeId)))
-                throw new InvalidDataException("Rejestracje modułu nie zgadzają się z manifestem.");
+                throw new InvalidDataException(UiText.Get("ModuleRegistrationsDoNotMatchTheManifest"));
             return new LoadedPlugin(manifest, context, host.Descriptors.ToArray(), module);
         }
         catch { context.Unload(); throw; }
@@ -165,7 +166,7 @@ public sealed class PluginManager(IAppPaths paths, PanelCatalog catalog, PanelHo
 
     private void Register(LoadedPlugin plugin)
     {
-        if (plugin.Descriptors.Any(d => catalog.Contains(d.TypeId))) throw new InvalidDataException("Konflikt typów paneli.");
+        if (plugin.Descriptors.Any(d => catalog.Contains(d.TypeId))) throw new InvalidDataException(UiText.Get("ConflictingPanelTypes"));
         foreach (var descriptor in plugin.Descriptors) catalog.TryRegister(plugin.Manifest.Id, descriptor);
         _loaded.Add(plugin.Manifest.Id, plugin);
     }
@@ -188,12 +189,12 @@ public sealed class PluginManager(IAppPaths paths, PanelCatalog catalog, PanelHo
         public void Seal() => _sealed = true;
         public void RegisterPanel(IPanelDescriptor descriptor)
         {
-            if (_sealed) throw new InvalidOperationException("Rejestracja jest dostępna tylko podczas InitializeAsync.");
+            if (_sealed) throw new InvalidOperationException(UiText.Get("RegistrationIsAvailableOnlyDuringInitializeasync"));
             if (descriptor is null || string.IsNullOrWhiteSpace(descriptor.TypeId) || string.IsNullOrWhiteSpace(descriptor.DisplayName)
                 || descriptor.Factory is null || descriptor.StateSchemaVersion < 1
                 || !double.IsFinite(descriptor.MinSize.Width) || !double.IsFinite(descriptor.MinSize.Height)
                 || descriptor.MinSize.Width < 0 || descriptor.MinSize.Height < 0 || Descriptors.Any(d => d.TypeId == descriptor.TypeId))
-                throw new InvalidDataException("Niepoprawny lub powtórzony deskryptor panelu.");
+                throw new InvalidDataException(UiText.Get("InvalidOrDuplicatePanelDescriptor"));
             Descriptors.Add(descriptor);
         }
     }

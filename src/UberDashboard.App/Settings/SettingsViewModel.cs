@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Media;
@@ -30,7 +31,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private bool _launchModeDirty;
     private bool _integrationDirty;
     private Task _pendingSave = Task.CompletedTask;
-    [ObservableProperty] private string saveStatus = "Zmiany zapisują się automatycznie.";
+    [ObservableProperty] private string saveStatus = UiText.Get("ChangesSaveAutomatically");
     public Task FlushAsync() => _pendingSave;
     public IAsyncRelayCommand RetrySaveCommand { get; }
 
@@ -55,7 +56,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             do
             {
                 revision = _revision;
-                SaveStatus = "Zapisywanie…";
+                SaveStatus = UiText.Get("Saving");
                 await Task.Delay(180).ConfigureAwait(true);
                 if (revision != _revision) continue;
                 var windowDirty = _windowDirty; _windowDirty = false;
@@ -63,11 +64,11 @@ public sealed partial class SettingsViewModel : ObservableObject
                 try { await ApplyAsync(windowDirty, integrationDirty).ConfigureAwait(true); }
                 catch { _windowDirty |= windowDirty; _integrationDirty |= integrationDirty; throw; }
             } while (revision != _revision);
-            SaveStatus = "Zapisano automatycznie";
+            SaveStatus = UiText.Get("SavedAutomatically");
         }
         catch (Exception)
         {
-            SaveStatus = "Nie zapisano ustawień. Użyj Ponów zapis.";
+            SaveStatus = UiText.Get("SettingsCouldNotBeSavedSelectRetry");
             _toasts.Show(SaveStatus, ToastSeverity.Error);
         }
         finally { _saving = false; }
@@ -145,6 +146,17 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>Monitory wykryte przez host systemowy.</summary>
     public ObservableCollection<DisplayMonitor> Monitors { get; }
 
+    public IReadOnlyList<LanguageOption> LanguageOptions { get; } =
+        [new(UiText.Polish, "Polski"), new(UiText.English, "English")];
+
+    public sealed record LanguageOption(string Code, string Name)
+    {
+        public override string ToString() => Name;
+    }
+
+    [ObservableProperty]
+    private string selectedLanguage = UiText.Polish;
+
     [ObservableProperty]
     private ThemeKind selectedTheme;
 
@@ -188,7 +200,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private void ChooseWallpaper()
     {
-        var dialog = new UberDashboard.App.Controls.ThemedFileDialog { Filter = "Obrazy|*.png;*.jpg;*.jpeg;*.bmp", Title = "Wybierz tapetę aplikacji" };
+        var dialog = new UberDashboard.App.Controls.ThemedFileDialog { Filter = UiText.Get("ImagesPngJpgJpegBmp"), Title = UiText.Get("ChooseAppWallpaper") };
         if (dialog.ShowDialog() == true) WallpaperPath = dialog.FileName;
     }
 
@@ -253,6 +265,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         SelectedTheme = _themeService.Current;
 
         var applicationSettings = await _applicationSettingsService.LoadAsync(cancellationToken).ConfigureAwait(true);
+        SelectedLanguage = applicationSettings.Language;
         AccentColor = applicationSettings.AccentColor ?? "";
         WindowBackgroundColor = applicationSettings.WindowBackgroundColor ?? "";
         SurfaceColor = applicationSettings.SurfaceColor ?? "";
@@ -295,6 +308,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private ApplicationSettings CaptureSettings() => new ApplicationSettings
         {
             PaletteVersion = 1,
+            Language = SelectedLanguage,
             AccentColor = AccentColor, WindowBackgroundColor = WindowBackgroundColor, SurfaceColor = SurfaceColor,
             SurfaceAltColor = SurfaceAltColor, FontFamilyName = SelectedFontFamily, FontSize = FontSize,
             CornerRadius = CornerRadius, DensityScale = DensityScale, WeatherRefreshMinutes = WeatherRefreshMinutes,
@@ -305,26 +319,7 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     private async Task ApplyAsync(bool changeWindow = true, bool changeIntegration = true)
     {
-        var applicationSettings = new ApplicationSettings
-        {
-            PaletteVersion = 1,
-            AccentColor = AccentColor,
-            WindowBackgroundColor = WindowBackgroundColor,
-            SurfaceColor = SurfaceColor,
-            SurfaceAltColor = SurfaceAltColor,
-            FontFamilyName = SelectedFontFamily,
-            FontSize = FontSize,
-            CornerRadius = CornerRadius,
-            DensityScale = DensityScale,
-            PanelSpacing = PanelSpacing,
-            DividerThickness = DividerThickness,
-            WeatherRefreshMinutes = WeatherRefreshMinutes,
-            StartWithWindows = StartWithWindows,
-            EnableTrayIcon = EnableTrayIcon,
-            CloseBehavior = SelectedCloseBehavior,
-            WallpaperPath = WallpaperPath, WallpaperBlur = WallpaperBlur, BackgroundSurfaceOpacity = BackgroundSurfaceOpacity, WindowOpacity = WindowOpacity, DesktopBlur = DesktopBlur, TransparentDesktopBackground = TransparentDesktopBackground,
-        }.Normalize();
-
+        var applicationSettings = CaptureSettings();
         await _themeService.PersistSelectionAsync(SelectedTheme, applicationSettings).ConfigureAwait(true);
         if (changeIntegration)
         {
@@ -333,15 +328,16 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
 
         if (!changeWindow) return;
-        var windowSettings = new WindowModeSettings
+        var currentWindowSettings = await _windowModeSettingsService.GetAsync().ConfigureAwait(true);
+        var windowSettings = (currentWindowSettings with
         {
-            LaunchMode = SelectedLaunchMode,
+            LaunchMode = _launchModeDirty ? SelectedLaunchMode : currentWindowSettings.LaunchMode,
             MonitorId = SelectedMonitor?.Id,
             DockEdge = SelectedDockEdge,
             DockThickness = DockThickness,
             WidgetOpacity = WidgetOpacity,
             DesktopWidgetFallbackToNormal = DesktopWidgetFallbackToNormal,
-        }.Normalize();
+        }).Normalize();
 
         await _windowModeSettingsService.SetAsync(windowSettings, CancellationToken.None).ConfigureAwait(true);
         var targetMode = _launchModeDirty ? windowSettings.LaunchMode : _windowModeCoordinator.CurrentMode;
@@ -351,13 +347,13 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         if (result.IsSuccess)
         {
-            SaveStatus = "Zapisano automatycznie";
+            SaveStatus = UiText.Get("SavedAutomatically");
         }
         else
         {
             _toasts.Show(
                 string.IsNullOrWhiteSpace(result.Message)
-                    ? "Ustawienia zapisano, ale tryb okna wrócił do bezpiecznego stanu."
+                    ? UiText.Get("SettingsWereSavedTheWindowReturnedTo")
                     : result.Message,
                 ToastSeverity.Warning);
         }
@@ -375,7 +371,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         var result = await _windowModeCoordinator.SwitchAsync(WindowModeSettings.Default.LaunchMode, CancellationToken.None).ConfigureAwait(true);
         SyncShellWindowMode(result.ActiveMode);
         await LoadAsync(CancellationToken.None).ConfigureAwait(true);
-        _toasts.Show("Przywrócono domyślne ustawienia aplikacji.", ToastSeverity.Success);
+        _toasts.Show(UiText.Get("DefaultAppSettingsRestored"), ToastSeverity.Success);
     }
 
     private static void SyncShellWindowMode(WindowMode mode)

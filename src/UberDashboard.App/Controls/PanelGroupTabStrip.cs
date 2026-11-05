@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Collections.Immutable;
 using System.Windows;
 using System.Windows.Controls;
@@ -27,7 +28,7 @@ public sealed class PanelGroupTabStrip : ScrollViewer
     private readonly StackPanel _items = new() { Orientation = Orientation.Horizontal };
     private Point _start;
     private ImmutableArray<PanelTab> _rendered = [];
-    internal Func<PanelTab, bool> ConfirmDeletion { get; set; } = tab => ThemedMessageBox.Show($"Usunąć zakładkę „{tab.Name}” wraz z jej danymi?", "Usuwanie zakładki", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
+    internal Func<PanelTab, bool> ConfirmDeletion { get; set; } = tab => ThemedMessageBox.Show(UiText.Format("DeleteTheTabAndItsData", tab.Name), UiText.Get("DeleteTab"), MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
     public PanelGroupTabStrip()
     {
         HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden;
@@ -52,7 +53,7 @@ public sealed class PanelGroupTabStrip : ScrollViewer
             {
                 var selected = tab.InstanceId == session.Group.ActiveId;
                 button.SetResourceReference(Control.BackgroundProperty, selected ? "Brush.Surface.Alt" : "Brush.Surface");
-                System.Windows.Automation.AutomationProperties.SetItemStatus(button, selected ? "Aktywna" : "Nieaktywna");
+                System.Windows.Automation.AutomationProperties.SetItemStatus(button, selected ? UiText.Get("Active") : UiText.Get("Inactive"));
             }
     }
     private async Task Run(Func<Task> action)
@@ -68,12 +69,12 @@ public sealed class PanelGroupTabStrip : ScrollViewer
         if (Session is not { } session) return;
         foreach (var tab in session.Group.Tabs)
         {
-            var button = new Button { Tag = tab, Content = tab.Name, Padding = new Thickness(10, 5, 10, 5), Margin = new Thickness(0, 0, 3, 0), AllowDrop = true, ToolTip = "Wybiera zakładkę. Dwuklik lub F2 zmienia nazwę; przeciągnięcie albo Ctrl+Shift+strzałka zmienia kolejność." };
+            var button = new Button { Tag = tab, Content = tab.Name, Padding = new Thickness(10, 5, 10, 5), Margin = new Thickness(0, 0, 3, 0), AllowDrop = true, ToolTip = UiText.Get("SelectsTheTabDoubleClickOrPress") };
             button.SetResourceReference(StyleProperty, "PanelActionButton");
             button.SetResourceReference(Control.ForegroundProperty, "Brush.Text");
             button.SetResourceReference(Control.BackgroundProperty, tab.InstanceId == session.Group.ActiveId ? "Brush.Surface.Alt" : "Brush.Surface");
-            System.Windows.Automation.AutomationProperties.SetName(button, $"Zakładka {tab.Name}");
-            System.Windows.Automation.AutomationProperties.SetItemStatus(button, tab.InstanceId == session.Group.ActiveId ? "Aktywna" : "Nieaktywna");
+            System.Windows.Automation.AutomationProperties.SetName(button, UiText.Format("Tab2", tab.Name));
+            System.Windows.Automation.AutomationProperties.SetItemStatus(button, tab.InstanceId == session.Group.ActiveId ? UiText.Get("Active") : UiText.Get("Inactive"));
             button.Click += async (_, _) => await Run(() => session.SelectAsync(tab.InstanceId));
             button.MouseDoubleClick += (_, e) => { Rename(button, tab, session); e.Handled = true; };
             button.KeyDown += async (_, e) =>
@@ -102,23 +103,23 @@ public sealed class PanelGroupTabStrip : ScrollViewer
             };
             button.Drop += async (_, e) => { if (e.Data.GetData(typeof(PanelTab)) is PanelTab moving) await Run(() => session.UpdateAsync(group => group.Move(moving.InstanceId, group.Tabs.IndexOf(tab)))); e.Handled = true; };
             var menu = new ContextMenu();
-            var remove = new MenuItem { Header = "Usuń zakładkę", IsEnabled = session.Group.Tabs.Length > 1 };
+            var remove = new MenuItem { Header = UiText.Get("DeleteTab2"), IsEnabled = session.Group.Tabs.Length > 1 };
             remove.Click += async (_, _) => { await Run(async () => { if (!await session.NeedsDeletionConfirmationAsync(tab.InstanceId) || ConfirmDeletion(tab)) await session.RemoveAsync(tab.InstanceId); }); };
             menu.Items.Add(remove);
             if (session.SupportsFileImport)
             {
-                var import = new MenuItem { Header = "Importuj pliki do nowych zakładek…" };
+                var import = new MenuItem { Header = UiText.Get("ImportFilesIntoNewTabs") };
                 import.Click += async (_, _) => await Run(() => PanelFileImport.RunAsync(session, Window.GetWindow(this)));
                 menu.Items.Add(import);
             }
             button.ContextMenu = menu;
             _items.Children.Add(button);
         }
-        var add = new Button { Content = "+", Padding = new Thickness(6, 2, 6, 2), ToolTip = "Dodaje niezależną zakładkę tego panelu." };
+        var add = new Button { Content = "+", Padding = new Thickness(6, 2, 6, 2), ToolTip = UiText.Get("AddsAnIndependentTabToThisPanel") };
         add.SetResourceReference(StyleProperty, "PanelActionButton");
         add.MinWidth = 26;
         add.SetResourceReference(Control.ForegroundProperty, "Brush.Text");
-        System.Windows.Automation.AutomationProperties.SetName(add, "Dodaj zakładkę");
+        System.Windows.Automation.AutomationProperties.SetName(add, UiText.Get("AddTab"));
         add.Click += async (_, _) => await Run(() => session.AddAsync());
         _items.Children.Add(add);
     }

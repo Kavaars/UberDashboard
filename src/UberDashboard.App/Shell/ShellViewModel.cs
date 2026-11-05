@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Collections.ObjectModel;
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -31,7 +32,7 @@ public sealed record HiddenPanelEntry(PanelInstanceId InstanceId, string PanelTy
 /// </summary>
 public sealed class ShellViewModel : ObservableObject
 {
-    private const string DefaultDashboardName = "Mój pulpit";
+    private static string DefaultDashboardName => UiText.Get("MyDashboard");
 
     private readonly IPanelRemovalConfirmation _removalConfirmation;
     private readonly IDashboardStore _dashboards;
@@ -65,7 +66,7 @@ public sealed class ShellViewModel : ObservableObject
     public async Task FlushAppearancesAsync()
     {
         await Task.WhenAll(_appearances.Values.Select(value => value.FlushAsync())).ConfigureAwait(true);
-        if (_appearances.Values.Any(value => value.HasSaveError)) throw new System.IO.IOException("Nie zapisano wyglądu paneli.");
+        if (_appearances.Values.Any(value => value.HasSaveError)) throw new System.IO.IOException(UiText.Get("CouldNotSavePanelAppearances"));
     }
     public async Task FlushTabGroupsAsync(CancellationToken cancellationToken)
     {
@@ -83,7 +84,7 @@ public sealed class ShellViewModel : ObservableObject
     private bool _isBusy;
     private bool _initialized;
     private bool _suppressDashboardReload;
-    private string _statusMessage = "Gotowe.";
+    private string _statusMessage = UiText.Get("Ready");
     private WindowMode _currentWindowMode = WindowMode.Normal;
 
     /// <summary>Tworzy model widoku powłoki z usługami hosta.</summary>
@@ -146,7 +147,7 @@ public sealed class ShellViewModel : ObservableObject
 
         ToggleEditModeCommand = new RelayCommand(ToggleEditMode);
         NewDashboardCommand = new AsyncRelayCommand(NewDashboardAsync);
-        RetrySaveLayoutCommand = new AsyncRelayCommand(async () => { if (await SaveLayoutAsync().ConfigureAwait(true)) StatusMessage = "Układ zapisany."; });
+        RetrySaveLayoutCommand = new AsyncRelayCommand(async () => { if (await SaveLayoutAsync().ConfigureAwait(true)) StatusMessage = UiText.Get("LayoutSaved"); });
         ReloadCommand = new AsyncRelayCommand(() => LoadDashboardAsync(CurrentDashboardId, CancellationToken.None));
         ToggleThemeCommand = new AsyncRelayCommand(ToggleThemeAsync);
         OpenSettingsCommand = new AsyncRelayCommand(OpenSettingsAsync);
@@ -232,12 +233,7 @@ public sealed class ShellViewModel : ObservableObject
     }
 
     /// <summary><see langword="true"/>, gdy trwa operacja w tle.</summary>
-    public string WindowModeLabel => CurrentWindowMode switch
-    {
-        WindowMode.DockedBar => "Pasek pulpitu",
-        WindowMode.DesktopWidget => "Widget (eksperymentalny)",
-        _ => "Zwykłe okno",
-    };
+    public string WindowModeLabel => Controls.SettingsValueLabelConverter.Label(CurrentWindowMode);
 
     public bool IsDockedBar => CurrentWindowMode == WindowMode.DockedBar;
 
@@ -270,7 +266,7 @@ public sealed class ShellViewModel : ObservableObject
                 leaf.IsEditMode = value;
             }
 
-            StatusMessage = value ? "Tryb edycji układu włączony." : "Tryb edycji układu wyłączony.";
+            StatusMessage = value ? UiText.Get("LayoutEditingEnabled") : UiText.Get("LayoutEditingDisabled");
         }
     }
 
@@ -356,8 +352,8 @@ public sealed class ShellViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, "Nie udało się zainicjować powłoki.");
-            StatusMessage = "Nie udało się wczytać pulpitów.";
-            _toasts.Show("Nie udało się wczytać pulpitów.", ToastSeverity.Error);
+            StatusMessage = UiText.Get("CouldNotLoadDashboards");
+            _toasts.Show(UiText.Get("CouldNotLoadDashboards"), ToastSeverity.Error);
         }
     }
 
@@ -404,7 +400,7 @@ public sealed class ShellViewModel : ObservableObject
         var token = _loadCts.Token;
 
         IsBusy = true;
-        StatusMessage = "Wczytywanie pulpitu...";
+        StatusMessage = UiText.Get("LoadingDashboard");
 
         try
         {
@@ -416,13 +412,13 @@ public sealed class ShellViewModel : ObservableObject
             var load = await editor.LoadAsync(dashboardId, token).ConfigureAwait(true);
             if (!load.IsSuccess)
             {
-                if (propagateFailure) throw new InvalidOperationException($"Nie udało się wczytać układu: {load.Message}");
+                if (propagateFailure) throw new InvalidOperationException(UiText.Format("CouldNotLoadLayout", load.Message));
                 _logger.LogWarning(
                     "Układ pulpitu {DashboardId} wczytany z problemem: {Error} — {Message}.",
                     dashboardId,
                     load.Error,
                     load.Message);
-                _toasts.Show($"Nie udało się wczytać układu: {load.Error}.", ToastSeverity.Warning);
+                _toasts.Show(UiText.Format("CouldNotLoadLayout2", load.Error), ToastSeverity.Warning);
             }
 
             var records = await _instances.ListForDashboardAsync(dashboardId, token).ConfigureAwait(true);
@@ -447,12 +443,12 @@ public sealed class ShellViewModel : ObservableObject
             editor.SetVisibleInstances(_visible);
 
             var savedLayout = await editor.SaveAsync(force: false, token).ConfigureAwait(true);
-            if (propagateFailure && !savedLayout.IsSuccess) throw new InvalidOperationException($"Nie udało się zapisać układu: {savedLayout.Message}");
+            if (propagateFailure && !savedLayout.IsSuccess) throw new InvalidOperationException(UiText.Format("CouldNotSaveLayout", savedLayout.Message));
 
             RebuildTree();
             RefreshHiddenPanels();
 
-            StatusMessage = $"Pulpit „{_selectedDashboard?.Name}”: paneli {_visible.Count}, ukrytych {HiddenPanels.Count}.";
+            StatusMessage = UiText.Format("DashboardPanelsHidden", _selectedDashboard?.Name, _visible.Count, HiddenPanels.Count);
 
             await _dashboards.SetActiveDashboardAsync(dashboardId, token).ConfigureAwait(true);
         }
@@ -464,8 +460,8 @@ public sealed class ShellViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, "Nie udało się wczytać pulpitu {DashboardId}.", dashboardId);
-            StatusMessage = "Nie udało się wczytać pulpitu.";
-            _toasts.Show("Nie udało się wczytać pulpitu.", ToastSeverity.Error);
+            StatusMessage = UiText.Get("CouldNotLoadTheDashboard");
+            _toasts.Show(UiText.Get("CouldNotLoadTheDashboard"), ToastSeverity.Error);
             if (propagateFailure) throw;
         }
         finally
@@ -564,7 +560,7 @@ public sealed class ShellViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, "Nie udało się przenieść panelu {InstanceId} do {TargetId}.", source, target);
-            _toasts.Show("Nie udało się zapisać przeniesienia panelu. Ponów zapis układu.", ToastSeverity.Error);
+            _toasts.Show(UiText.Get("CouldNotSaveThePanelMoveTry"), ToastSeverity.Error);
             RebuildTree();
             RefreshHiddenPanels();
         }
@@ -577,7 +573,7 @@ public sealed class ShellViewModel : ObservableObject
         var result = _editor.Move(source, target, zone);
         if (!result.IsSuccess)
         {
-            _toasts.Show($"Nie przeniesiono panelu: {result.ErrorMessage}", ToastSeverity.Warning);
+            _toasts.Show(UiText.Format("CouldNotMoveThePanel", result.ErrorMessage), ToastSeverity.Warning);
             return;
         }
         if (targetIsSpace)
@@ -620,7 +616,7 @@ public sealed class ShellViewModel : ObservableObject
     {
         if (_moveSource is not { } source)
         {
-            _toasts.Show("Najpierw wybierz panel do przeniesienia w jego menu Układ.", ToastSeverity.Information);
+            _toasts.Show(UiText.Get("FirstSelectAPanelToMoveFrom"), ToastSeverity.Information);
             return;
         }
         await MovePanelAsync(source, target, zone).ConfigureAwait(true);
@@ -642,35 +638,35 @@ public sealed class ShellViewModel : ObservableObject
             var id = leaf.InstanceId;
             var actions = new List<PanelLayoutAction>
             {
-                new("Wybierz ten panel do przeniesienia", new RelayCommand(() => { _moveSource = id; StatusMessage = "Wybierz docelowy panel i pozycję w jego menu Układ."; })),
+                new(UiText.Get("SelectThisPanelToMove"), new RelayCommand(() => { _moveSource = id; StatusMessage = UiText.Get("ChooseTheTargetPanelAndPositionFrom"); })),
             };
             foreach (var zone in Enum.GetValues<DropZone>())
             {
-                var label = zone switch { DropZone.Left => "z lewej", DropZone.Right => "z prawej", DropZone.Top => "nad tym panelem", _ => "pod tym panelem" };
-                actions.Add(new($"Przenieś wybrany panel {label}", new AsyncRelayCommand(() => MoveSelectedHereAsync(id, zone))));
+                var label = zone switch { DropZone.Left => UiText.Get("ToTheLeft"), DropZone.Right => UiText.Get("ToTheRight"), DropZone.Top => UiText.Get("AboveThisPanel"), _ => UiText.Get("BelowThisPanel") };
+                actions.Add(new(UiText.Format("MoveSelectedPanel", label), new AsyncRelayCommand(() => MoveSelectedHereAsync(id, zone))));
             }
             if (!leaf.IsSpace)
             {
-                actions.Add(new("Zostaw wolne miejsce nad panelem", new AsyncRelayCommand(() => ReserveSpaceAsync(id, true, 100, 600))));
-                actions.Add(new("Zostaw wolne miejsce pod panelem", new AsyncRelayCommand(() => ReserveSpaceAsync(id, false, 100, 600))));
+                actions.Add(new(UiText.Get("LeaveEmptySpaceAboveThisPanel"), new AsyncRelayCommand(() => ReserveSpaceAsync(id, true, 100, 600))));
+                actions.Add(new(UiText.Get("LeaveEmptySpaceBelowThisPanel"), new AsyncRelayCommand(() => ReserveSpaceAsync(id, false, 100, 600))));
             }
             foreach (var type in PanelTypes)
             {
                 if (leaf.IsSpace)
                 {
-                    actions.Add(new($"Dodaj tutaj: {type.DisplayName}", new AsyncRelayCommand(() => AddPanelAtAsync(type.TypeId, id, SplitAxis.Vertical, replace: true))));
+                    actions.Add(new(UiText.Format("AddHere", type.DisplayName), new AsyncRelayCommand(() => AddPanelAtAsync(type.TypeId, id, SplitAxis.Vertical, replace: true))));
                     continue;
                 }
-                actions.Add(new($"Trzy panele w kolumnie: {type.DisplayName}", new AsyncRelayCommand(async () =>
+                actions.Add(new(UiText.Format("ThreePanelsInAColumn", type.DisplayName), new AsyncRelayCommand(async () =>
                 {
                     var before = _visible.ToHashSet();
                     await AddPanelAtAsync(type.TypeId, id, SplitAxis.Vertical).ConfigureAwait(true);
                     var added = _visible.Where(value => !before.Contains(value)).ToArray();
                     if (added.Length == 1) await AddPanelAtAsync(type.TypeId, added[0], SplitAxis.Vertical).ConfigureAwait(true);
                 })));
-                actions.Add(new($"Dodaj obok: {type.DisplayName}", new AsyncRelayCommand(() => AddPanelAtAsync(type.TypeId, id, SplitAxis.Horizontal))));
-                actions.Add(new($"Dodaj poniżej: {type.DisplayName}", new AsyncRelayCommand(() => AddPanelAtAsync(type.TypeId, id, SplitAxis.Vertical))));
-                actions.Add(new($"Zamień zawartość: {type.DisplayName}", new AsyncRelayCommand(() => AddPanelAtAsync(type.TypeId, id, SplitAxis.Horizontal, replace: true))));
+                actions.Add(new(UiText.Format("AddBeside", type.DisplayName), new AsyncRelayCommand(() => AddPanelAtAsync(type.TypeId, id, SplitAxis.Horizontal))));
+                actions.Add(new(UiText.Format("AddBelow", type.DisplayName), new AsyncRelayCommand(() => AddPanelAtAsync(type.TypeId, id, SplitAxis.Vertical))));
+                actions.Add(new(UiText.Format("ReplaceContents", type.DisplayName), new AsyncRelayCommand(() => AddPanelAtAsync(type.TypeId, id, SplitAxis.Horizontal, replace: true))));
             }
             leaf.LayoutActions = actions;
         }
@@ -794,7 +790,7 @@ public sealed class ShellViewModel : ObservableObject
         catch (Exception ex)
         {
             _logger.LogError(ex, "Nie udało się odtworzyć zakładek panelu {PanelId}. Dane pozostawiono bez zmian.", root.InstanceId);
-            _toasts.Show("Nie udało się odtworzyć zakładek panelu. Zachowano zapisane dane; ponów odczyt.", ToastSeverity.Error);
+            _toasts.Show(UiText.Get("CouldNotRestorePanelTabsSavedData"), ToastSeverity.Error);
         }
     }
 
@@ -810,7 +806,7 @@ public sealed class ShellViewModel : ObservableObject
     {
         var kind = _theme.IsDark ? ThemeKind.Light : ThemeKind.Dark;
         await _theme.ApplyAsync(kind, CancellationToken.None).ConfigureAwait(true);
-        StatusMessage = $"Motyw: {kind}.";
+        StatusMessage = UiText.Format("Theme2", Controls.SettingsValueLabelConverter.Label(kind));
     }
 
     private Task OpenSettingsAsync()
@@ -839,13 +835,13 @@ public sealed class ShellViewModel : ObservableObject
         CurrentWindowMode = result.ActiveMode;
         if (result.IsSuccess)
         {
-            StatusMessage = $"Tryb okna: {WindowModeLabel}.";
-            _toasts.Show($"Aktywny tryb: {WindowModeLabel}.", ToastSeverity.Success);
+            StatusMessage = UiText.Format("WindowMode2", WindowModeLabel);
+            _toasts.Show(UiText.Format("ActiveMode2", WindowModeLabel), ToastSeverity.Success);
         }
         else
         {
             StatusMessage = string.IsNullOrWhiteSpace(result.Message)
-                ? $"Nie udało się aktywować trybu {mode}; powrót do {result.ActiveMode}."
+                ? UiText.Format("CouldNotActivateReturnedTo", Controls.SettingsValueLabelConverter.Label(mode), WindowModeLabel)
                 : result.Message;
             _toasts.Show(StatusMessage, ToastSeverity.Warning);
         }
@@ -855,14 +851,14 @@ public sealed class ShellViewModel : ObservableObject
     public void SyncWindowMode(WindowMode mode)
     {
         CurrentWindowMode = mode;
-        StatusMessage = $"Tryb okna: {WindowModeLabel}.";
+        StatusMessage = UiText.Format("WindowMode2", WindowModeLabel);
     }
 
     public async Task DeleteDashboardAsync(DashboardSummary dashboard)
     {
         if (IsBusy || Dashboards.Count <= 1 || !Dashboards.Contains(dashboard)) return;
         var active = dashboard.DashboardId == CurrentDashboardId;
-        if (active && Controls.ThemedMessageBox.Show($"Usunąć aktywny pulpit „{dashboard.Name}” wraz z panelami i ich danymi? Operacji nie można cofnąć.", "Usuwanie pulpitu", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning, System.Windows.MessageBoxResult.No) != System.Windows.MessageBoxResult.Yes) return;
+        if (active && Controls.ThemedMessageBox.Show(UiText.Format("DeleteTheActiveDashboardItsPanelsAnd", dashboard.Name), UiText.Get("DeleteDashboard2"), System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning, System.Windows.MessageBoxResult.No) != System.Windows.MessageBoxResult.Yes) return;
         try
         {
             if (active)
@@ -883,12 +879,12 @@ public sealed class ShellViewModel : ObservableObject
             }
             await _dashboards.DeleteAsync(dashboard.DashboardId, CancellationToken.None).ConfigureAwait(true);
             Dashboards.Remove(dashboard);
-            _toasts.Show($"Usunięto pulpit „{dashboard.Name}”.", ToastSeverity.Success);
+            _toasts.Show(UiText.Format("DeletedDashboard", dashboard.Name), ToastSeverity.Success);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Nie udało się usunąć pulpitu {DashboardId}.", dashboard.DashboardId);
-            _toasts.Show("Nie udało się usunąć pulpitu. Sprawdź zapis danych i spróbuj ponownie.", ToastSeverity.Error);
+            _toasts.Show(UiText.Get("CouldNotDeleteTheDashboardCheckThat"), ToastSeverity.Error);
         }
     }
 
@@ -896,16 +892,16 @@ public sealed class ShellViewModel : ObservableObject
     {
         try
         {
-            var name = $"Pulpit {Dashboards.Count + 1}";
+            var name = UiText.Format("Dashboard", Dashboards.Count + 1);
             var created = await _dashboards.CreateAsync(name, _clock.UtcNow, CancellationToken.None).ConfigureAwait(true);
             Dashboards.Add(created);
             SelectedDashboard = created;
-            _toasts.Show($"Utworzono „{created.Name}“.", ToastSeverity.Success);
+            _toasts.Show(UiText.Format("Created", created.Name), ToastSeverity.Success);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Nie udało się utworzyć pulpitu.");
-            _toasts.Show("Nie udało się utworzyć pulpitu.", ToastSeverity.Error);
+            _toasts.Show(UiText.Get("CouldNotCreateADashboard"), ToastSeverity.Error);
         }
     }
 
@@ -923,7 +919,7 @@ public sealed class ShellViewModel : ObservableObject
         var descriptor = _catalog.DescriptorOf(typeId);
         if (descriptor is null)
         {
-            _toasts.Show($"Nieznany typ panelu: {typeId}.", ToastSeverity.Error);
+            _toasts.Show(UiText.Format("UnknownPanelType", typeId), ToastSeverity.Error);
             return;
         }
 
@@ -955,7 +951,7 @@ public sealed class ShellViewModel : ObservableObject
             if (instance is null)
             {
                 await RollbackAsync(instanceId).ConfigureAwait(true);
-                _toasts.Show("Nie udało się dodać panelu.", ToastSeverity.Error);
+                _toasts.Show(UiText.Get("CouldNotAddThePanel"), ToastSeverity.Error);
                 return;
             }
 
@@ -969,7 +965,7 @@ public sealed class ShellViewModel : ObservableObject
             if (!result.IsSuccess)
             {
                 await RollbackAsync(instanceId).ConfigureAwait(true);
-                _toasts.Show($"Nie udało się dodać panelu: {result.ErrorMessage}", ToastSeverity.Error);
+                _toasts.Show(UiText.Format("CouldNotAddThePanel2", result.ErrorMessage), ToastSeverity.Error);
                 return;
             }
 
@@ -994,12 +990,12 @@ public sealed class ShellViewModel : ObservableObject
             if (!await SaveLayoutAsync().ConfigureAwait(true)) { RebuildTree(); RefreshHiddenPanels(); return; }
             RebuildTree();
             RefreshHiddenPanels();
-            _toasts.Show($"Dodano panel „{descriptor.DisplayName}“.", ToastSeverity.Success);
+            _toasts.Show(UiText.Format("AddedPanel", descriptor.DisplayName), ToastSeverity.Success);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Błąd podczas dodawania panelu {PanelTypeId}.", typeId);
-            _toasts.Show("Nie udało się dodać panelu.", ToastSeverity.Error);
+            _toasts.Show(UiText.Get("CouldNotAddThePanel"), ToastSeverity.Error);
         }
         finally
         {
@@ -1029,7 +1025,7 @@ public sealed class ShellViewModel : ObservableObject
         var result = _editor.Remove(leaf.InstanceId);
         if (!result.IsSuccess)
         {
-            _toasts.Show($"Nie udało się ukryć panelu: {result.ErrorMessage}", ToastSeverity.Warning);
+            _toasts.Show(UiText.Format("CouldNotHideThePanel", result.ErrorMessage), ToastSeverity.Warning);
             return;
         }
 
@@ -1054,14 +1050,14 @@ public sealed class ShellViewModel : ObservableObject
             var restore = _editor.Restore(leaf.InstanceId, hint);
             if (!restore.IsSuccess) _logger.LogError("Nie udało się przywrócić położenia panelu {PanelId}: {Error}.", leaf.InstanceId, restore.ErrorMessage);
             RebuildTree(); RefreshHiddenPanels();
-            _toasts.Show("Nie ukryto panelu; jego dane zostały zachowane.", ToastSeverity.Error);
+            _toasts.Show(UiText.Get("ThePanelCouldNotBeHiddenIts"), ToastSeverity.Error);
             return;
         }
         if (!await SaveLayoutAsync().ConfigureAwait(true)) { RebuildTree(); RefreshHiddenPanels(); return; }
 
         RebuildTree();
         RefreshHiddenPanels();
-        _toasts.Show($"Ukryto panel „{leaf.DisplayName}“.", ToastSeverity.Information);
+        _toasts.Show(UiText.Format("HidPanel", leaf.DisplayName), ToastSeverity.Information);
     }
 
     private async Task RemovePanelAsync(PanelLeafViewModel? leaf)
@@ -1080,7 +1076,7 @@ public sealed class ShellViewModel : ObservableObject
         var result = _editor.Remove(leaf.InstanceId);
         if (!result.IsSuccess)
         {
-            _toasts.Show($"Nie udało się usunąć panelu: {result.ErrorMessage}", ToastSeverity.Warning);
+            _toasts.Show(UiText.Format("CouldNotDeleteThePanel", result.ErrorMessage), ToastSeverity.Warning);
             return;
         }
 
@@ -1110,7 +1106,7 @@ public sealed class ShellViewModel : ObservableObject
             var restore = _editor.Restore(leaf.InstanceId, hint);
             if (!restore.IsSuccess) _logger.LogError("Nie udało się odtworzyć położenia panelu {PanelId}: {Error}.", leaf.InstanceId, restore.ErrorMessage);
             RebuildTree(); RefreshHiddenPanels();
-            _toasts.Show("Nie usunięto panelu; jego dane zostały zachowane.", ToastSeverity.Error);
+            _toasts.Show(UiText.Get("ThePanelCouldNotBeDeletedIts"), ToastSeverity.Error);
             return;
         }
 
@@ -1126,7 +1122,7 @@ public sealed class ShellViewModel : ObservableObject
 
         RebuildTree();
         RefreshHiddenPanels();
-        _toasts.Show($"Usunięto panel „{leaf.DisplayName}“.", ToastSeverity.Information);
+        _toasts.Show(UiText.Format("DeletedPanel", leaf.DisplayName), ToastSeverity.Information);
     }
 
     private async Task SwapPanelAsync(PanelLeafViewModel? leaf)
@@ -1139,14 +1135,14 @@ public sealed class ShellViewModel : ObservableObject
         if (_swapSource is null)
         {
             _swapSource = leaf.InstanceId;
-            StatusMessage = $"Wybrano „{leaf.DisplayName}“ — wskaż drugi panel do zamiany.";
+            StatusMessage = UiText.Format("SelectedChooseTheOtherPanelToSwap", leaf.DisplayName);
             return;
         }
 
         if (_swapSource == leaf.InstanceId)
         {
             _swapSource = null;
-            StatusMessage = "Anulowano zamianę paneli.";
+            StatusMessage = UiText.Get("PanelSwapCanceled");
             return;
         }
 
@@ -1156,13 +1152,13 @@ public sealed class ShellViewModel : ObservableObject
 
         if (!result.IsSuccess)
         {
-            _toasts.Show($"Nie udało się zamienić paneli: {result.ErrorMessage}", ToastSeverity.Warning);
+            _toasts.Show(UiText.Format("CouldNotSwapPanels", result.ErrorMessage), ToastSeverity.Warning);
             return;
         }
 
         if (!await SaveLayoutAsync().ConfigureAwait(true)) { RebuildTree(); RefreshHiddenPanels(); return; }
         RebuildTree();
-        _toasts.Show("Zamieniono panele miejscami.", ToastSeverity.Success);
+        _toasts.Show(UiText.Get("SwappedPanelPositions"), ToastSeverity.Success);
     }
 
     private async Task RestorePanelAsync(HiddenPanelEntry? entry)
@@ -1175,7 +1171,7 @@ public sealed class ShellViewModel : ObservableObject
         var record = await _instances.GetAsync(entry.InstanceId, CancellationToken.None).ConfigureAwait(true);
         if (record is null)
         {
-            _toasts.Show("Nie znaleziono ukrytego panelu.", ToastSeverity.Warning);
+            _toasts.Show(UiText.Get("TheHiddenPanelCouldNotBeFound"), ToastSeverity.Warning);
             return;
         }
 
@@ -1192,7 +1188,7 @@ public sealed class ShellViewModel : ObservableObject
             _visible.Remove(record.InstanceId);
             _editor.SetVisibleInstances(_visible);
             await SuspendPanelAsync(record.InstanceId, CancellationToken.None).ConfigureAwait(true);
-            _toasts.Show($"Nie udało się przywrócić panelu: {result.ErrorMessage}", ToastSeverity.Warning);
+            _toasts.Show(UiText.Format("CouldNotRestoreThePanel", result.ErrorMessage), ToastSeverity.Warning);
             return;
         }
 
@@ -1213,8 +1209,8 @@ public sealed class ShellViewModel : ObservableObject
         RefreshHiddenPanels();
 
         var message = result.UsedFallback
-            ? $"Przywrócono panel „{record.DisplayName}“ w pozycji zastępczej."
-            : $"Przywrócono panel „{record.DisplayName}“.";
+            ? UiText.Format("RestoredPanelInADifferentPosition", record.DisplayName)
+            : UiText.Format("RestoredPanel", record.DisplayName);
         _toasts.Show(message, ToastSeverity.Success);
     }
 
@@ -1224,7 +1220,7 @@ public sealed class ShellViewModel : ObservableObject
         var result = _editor.Resize(splitId, ratio, regionLength);
         if (!result.IsSuccess)
         {
-            _toasts.Show($"Nie zmieniono proporcji: {result.ErrorMessage}", ToastSeverity.Warning);
+            _toasts.Show(UiText.Format("CouldNotResizeTheSplit", result.ErrorMessage), ToastSeverity.Warning);
             return;
         }
         if (!await SaveLayoutAsync().ConfigureAwait(true)) { RebuildTree(); RefreshHiddenPanels(); return; }
@@ -1240,13 +1236,13 @@ public sealed class ShellViewModel : ObservableObject
         var result = _editor.ToggleAxis(split.SplitId);
         if (!result.IsSuccess)
         {
-            _toasts.Show($"Nie udało się zmienić podziału: {result.ErrorMessage}", ToastSeverity.Warning);
+            _toasts.Show(UiText.Format("CouldNotChangeTheSplit", result.ErrorMessage), ToastSeverity.Warning);
             return;
         }
 
         if (!await SaveLayoutAsync().ConfigureAwait(true)) { RebuildTree(); RefreshHiddenPanels(); return; }
         RebuildTree();
-        StatusMessage = "Zmieniono orientację podziału.";
+        StatusMessage = UiText.Get("ChangedTheSplitOrientation");
     }
 
     private async Task<bool> SaveLayoutAsync()
@@ -1256,13 +1252,13 @@ public sealed class ShellViewModel : ObservableObject
         {
             var result = await _editor.SaveAsync(force: false).ConfigureAwait(true);
             if (result.IsSuccess) return true;
-            StatusMessage = "Nie zapisano układu. Użyj Zapisz układ, aby ponowić.";
-            _toasts.Show($"Nie zapisano układu: {result.Message}", ToastSeverity.Warning);
+            StatusMessage = UiText.Get("TheLayoutWasNotSavedSelectSave");
+            _toasts.Show(UiText.Format("CouldNotSaveTheLayout", result.Message), ToastSeverity.Warning);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Zapis układu nie powiódł się.");
-            StatusMessage = "Nie zapisano układu. Użyj Zapisz układ, aby ponowić.";
+            StatusMessage = UiText.Get("TheLayoutWasNotSavedSelectSave");
             _toasts.Show(StatusMessage, ToastSeverity.Error);
         }
         return false;

@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using Microsoft.Data.Sqlite;
 using UberDashboard.Application.Abstractions;
 using UberDashboard.Core.Layout;
@@ -13,7 +14,7 @@ public sealed class PanelTabGroupStore(IWorkQueue queue, SqliteDatabase database
         ArgumentNullException.ThrowIfNull(group);
         ArgumentNullException.ThrowIfNull(records);
         if (records.Count != group.Tabs.Length || records.Select(r => r.InstanceId).Distinct().Count() != records.Count || group.Tabs.Any(t => records.All(r => r.InstanceId != t.InstanceId)))
-            throw new ArgumentException("Stany nie odpowiadają zakładkom.", nameof(records));
+            throw new ArgumentException(UiText.Get("TheSavedStatesDoNotMatchThe"), nameof(records));
         return queue.EnqueueAsync(_ =>
         {
             database.EnsureInitialized();
@@ -25,14 +26,14 @@ public sealed class PanelTabGroupStore(IWorkQueue queue, SqliteDatabase database
                     " FROM PanelInstance WHERE InstanceId = $id;";
                 existing.Parameters.AddWithValue("$id", group.GroupId.ToString());
                 using var reader = existing.ExecuteReader();
-                if (!reader.Read()) throw new InvalidOperationException("Nie znaleziono panelu źródłowego.");
+                if (!reader.Read()) throw new InvalidOperationException(UiText.Get("TheSourcePanelWasNotFound"));
                 var dashboard = reader.GetString(0);
                 var plugin = reader.GetString(1);
                 var type = reader.GetString(2);
                 var oldState = reader.IsDBNull(3) ? null : reader.GetString(3);
-                if (!string.Equals(oldState, originalStateJson, StringComparison.Ordinal)) throw new InvalidOperationException("Stan źródłowy zmienił się; ponów migrację.");
+                if (!string.Equals(oldState, originalStateJson, StringComparison.Ordinal)) throw new InvalidOperationException(UiText.Get("TheSourceStateChangedRetryTheMigration"));
                 if (records.Any(r => r.DashboardId.ToString("D") != dashboard || r.PluginId != plugin || r.PanelTypeId != type))
-                    throw new InvalidOperationException("Wszystkie zakładki muszą mieć ten sam rodzaj i pulpit.");
+                    throw new InvalidOperationException(UiText.Get("AllTabsMustHaveTheSameType"));
             }
             foreach (var record in records)
             {
@@ -42,7 +43,7 @@ public sealed class PanelTabGroupStore(IWorkQueue queue, SqliteDatabase database
                     collision.Transaction = tx;
                     collision.CommandText = "SELECT COUNT(*) FROM PanelInstance WHERE InstanceId = $id;";
                     collision.Parameters.AddWithValue("$id", record.InstanceId.ToString());
-                    if ((long)collision.ExecuteScalar()! != 0) throw new InvalidOperationException("Identyfikator zakładki już istnieje.");
+                    if ((long)collision.ExecuteScalar()! != 0) throw new InvalidOperationException(UiText.Get("TheTabIdAlreadyExists"));
                 }
                 using var command = database.Connection.CreateCommand();
                 command.Transaction = tx;
@@ -131,7 +132,7 @@ public sealed class PanelTabGroupStore(IWorkQueue queue, SqliteDatabase database
             !expected.Tabs.SequenceEqual(updated.Tabs.Take(expected.Tabs.Length)) ||
             !records.Select(record => record.InstanceId)
                 .SequenceEqual(updated.Tabs.Skip(expected.Tabs.Length).Select(tab => tab.InstanceId)))
-            throw new InvalidOperationException("Nieprawidłowa partia zakładek.");
+            throw new InvalidOperationException(UiText.Get("InvalidTabBatch"));
         return InsertTabsAsync(expected, updated, records, cancellationToken);
     }
 
@@ -163,7 +164,7 @@ public sealed class PanelTabGroupStore(IWorkQueue queue, SqliteDatabase database
                 command.Parameters.AddWithValue("$dashboard", record.DashboardId.ToString("D"));
                 command.Parameters.AddWithValue("$plugin", record.PluginId);
                 command.Parameters.AddWithValue("$type", record.PanelTypeId);
-                if (command.ExecuteNonQuery() != 1) throw new InvalidOperationException("Nieprawidłowy rodzaj lub pulpit zakładki.");
+                if (command.ExecuteNonQuery() != 1) throw new InvalidOperationException(UiText.Get("InvalidTabTypeOrDashboard"));
             }
             WriteGroup(updated, tx);
             tx.Commit();
@@ -208,7 +209,7 @@ public sealed class PanelTabGroupStore(IWorkQueue queue, SqliteDatabase database
         var after = updated.Tabs.Select(x => x.InstanceId).ToHashSet();
         var valid = adding ? !before.Contains(id) && after.Remove(id) && before.SetEquals(after)
                            : before.Remove(id) && !after.Contains(id) && before.SetEquals(after);
-        if (!valid) throw new InvalidOperationException("Nieprawidłowa zmiana składu zakładek.");
+        if (!valid) throw new InvalidOperationException(UiText.Get("InvalidChangeToTheTabGroup"));
     }
 
     private void CheckExpected(PanelTabGroup expected, SqliteTransaction tx)
@@ -216,14 +217,14 @@ public sealed class PanelTabGroupStore(IWorkQueue queue, SqliteDatabase database
         using var header = database.Connection.CreateCommand(); header.Transaction = tx;
         header.CommandText = "SELECT ActiveInstanceId FROM PanelTabGroup WHERE GroupId = $id;";
         header.Parameters.AddWithValue("$id", expected.GroupId.ToString());
-        if (!string.Equals(header.ExecuteScalar() as string, expected.ActiveId.ToString(), StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Grupa zmieniła się; ponów operację.");
+        if (!string.Equals(header.ExecuteScalar() as string, expected.ActiveId.ToString(), StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException(UiText.Get("TheGroupChangedTryAgain"));
         using var read = database.Connection.CreateCommand(); read.Transaction = tx;
         read.CommandText = "SELECT InstanceId, Name FROM PanelTabMember WHERE GroupId = $id ORDER BY SortOrder;";
         read.Parameters.AddWithValue("$id", expected.GroupId.ToString());
         using var reader = read.ExecuteReader();
         var items = new List<PanelTab>();
         while (reader.Read()) items.Add(new PanelTab(new PanelInstanceId(Guid.Parse(reader.GetString(0))), reader.GetString(1)));
-        if (!items.SequenceEqual(expected.Tabs)) throw new InvalidOperationException("Grupa zmieniła się; ponów operację.");
+        if (!items.SequenceEqual(expected.Tabs)) throw new InvalidOperationException(UiText.Get("TheGroupChangedTryAgain"));
     }
 
     private void WriteGroup(PanelTabGroup updated, SqliteTransaction tx)
@@ -251,7 +252,7 @@ public sealed class PanelTabGroupStore(IWorkQueue queue, SqliteDatabase database
         ArgumentNullException.ThrowIfNull(expected);
         ArgumentNullException.ThrowIfNull(updated);
         if (expected.GroupId != updated.GroupId || !expected.Tabs.Select(t => t.InstanceId).ToHashSet().SetEquals(updated.Tabs.Select(t => t.InstanceId)))
-            throw new InvalidOperationException("Zmiana składu wymaga operacji dodania lub usunięcia zakładki.");
+            throw new InvalidOperationException(UiText.Get("ChangingTheGroupRequiresAddingOrDeleting"));
         return queue.EnqueueAsync(_ =>
         {
             database.EnsureInitialized();
@@ -262,7 +263,7 @@ public sealed class PanelTabGroupStore(IWorkQueue queue, SqliteDatabase database
                 header.CommandText = "SELECT ActiveInstanceId FROM PanelTabGroup WHERE GroupId = $id;";
                 header.Parameters.AddWithValue("$id", expected.GroupId.ToString());
                 if (!string.Equals(header.ExecuteScalar() as string, expected.ActiveId.ToString(), StringComparison.OrdinalIgnoreCase))
-                    throw new InvalidOperationException("Grupa zmieniła się; ponów operację.");
+                    throw new InvalidOperationException(UiText.Get("TheGroupChangedTryAgain"));
             }
             var existing = new List<PanelTab>();
             using (var read = database.Connection.CreateCommand())
@@ -273,7 +274,7 @@ public sealed class PanelTabGroupStore(IWorkQueue queue, SqliteDatabase database
                 using var reader = read.ExecuteReader();
                 while (reader.Read()) existing.Add(new PanelTab(new PanelInstanceId(Guid.Parse(reader.GetString(0))), reader.GetString(1)));
             }
-            if (!existing.SequenceEqual(expected.Tabs)) throw new InvalidOperationException("Grupa zmieniła się; ponów operację.");
+            if (!existing.SequenceEqual(expected.Tabs)) throw new InvalidOperationException(UiText.Get("TheGroupChangedTryAgain"));
             using (var delete = database.Connection.CreateCommand())
             {
                 delete.Transaction = tx;

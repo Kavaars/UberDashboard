@@ -1,4 +1,12 @@
+2026-11-05T08:21:38+01:00 | 1.9.0, kompilacja v1.9.0_shortcuts-20261105-082042-743 (Release/Dev). Panel Skróty. Build Release bez ostrzeżeń, 391 testów PASS, VisualChecks PL/EN (w tym edytor i po 24 rendery Skrótów) oraz PluginChecks PASS; publikacja win-x64 self-contained PASS. Rzeczywiste uruchamianie aplikacji i stron przez użytkownika nie było sprawdzane.
+
+2026-11-05T07:54:00+01:00 | 1.8.1, kompilacja v1.8.1_autostart-20261105-075255-447 (Release/Dev). Przywracanie trybu i położenia przy autostarcie. Build Release bez ostrzeżeń, 372 testy PASS, VisualChecks i PluginChecks PASS, publish win-x64 self-contained PASS. Pełny restart Windows z dwoma monitorami nie był testowany.
+
 2026-11-04T21:41:46+01:00 | 1.8.0, kontrola v1.8.0-bar-20261104-2142-registry. Poprawiono obecność zadokowanego okna w powłoce Windows.
+
+2026-11-04T21:34:48+01:00 | 1.8.0, kompilacja deweloperska v1.8.0-language-20261104-213303-964. Lokalizacja PL/EN. Przeszły 363 testy, kontrole WPF w obu językach i integracja wtyczek.
+
+2026-11-04T21:19:03+01:00 | 1.8.0, kompilacja deweloperska v1.8.0-panels-20261104-211800. Dodano dwa panele. Przeszło 360 testów, kontrole WPF i wtyczek.
 
 2026-11-04T11:31:34+01:00 | 1.8.0, kompilacja kontrolna v1.8.0-caption-20261104-113059-502: ikony pasków tytułu, 350 testów, kontrole WPF i wtyczek.
 

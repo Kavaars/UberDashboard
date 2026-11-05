@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 namespace UberDashboard.Core.Layout;
 
 /// <summary>Pojedynczy problem znaleziony w dokumencie układu.</summary>
@@ -21,7 +22,7 @@ public sealed record LayoutValidationResult(IReadOnlyList<LayoutValidationIssue>
     {
         if (IsValid)
         {
-            return "układ poprawny";
+            return UiText.Get("LayoutIsValid");
         }
 
         var codes = new List<string>(Issues.Count);
@@ -57,7 +58,7 @@ public static class LayoutValidator
             {
                 issues.Add(new LayoutValidationIssue(
                     LayoutErrorCode.MissingRoot,
-                    "Układ jest pusty, ale istnieją widoczne instancje paneli."));
+                    UiText.Get("TheLayoutIsEmptyButHasVisible")));
             }
 
             return new LayoutValidationResult(issues);
@@ -67,7 +68,7 @@ public static class LayoutValidator
         {
             issues.Add(new LayoutValidationIssue(
                 LayoutErrorCode.InconsistentEmptyState,
-                "Układ zawiera liście, ale nie ma widocznych instancji paneli."));
+                UiText.Get("TheLayoutHasLeavesButNoVisible")));
         }
 
         var seenInstances = new HashSet<PanelInstanceId>();
@@ -85,7 +86,7 @@ public static class LayoutValidator
             {
                 issues.Add(new LayoutValidationIssue(
                     LayoutErrorCode.NodeLimitExceeded,
-                    $"Układ przekracza limit {limits.MaxNodes} węzłów."));
+                    UiText.Format("TheLayoutExceedsTheLimitOfNodes", limits.MaxNodes)));
                 break;
             }
 
@@ -93,7 +94,7 @@ public static class LayoutValidator
             {
                 issues.Add(new LayoutValidationIssue(
                     LayoutErrorCode.DepthLimitExceeded,
-                    $"Układ przekracza limit głębokości {limits.MaxDepth}."));
+                    UiText.Format("TheLayoutExceedsTheDepthLimitOf", limits.MaxDepth)));
                 break;
             }
 
@@ -105,7 +106,7 @@ public static class LayoutValidator
                     {
                         issues.Add(new LayoutValidationIssue(
                             LayoutErrorCode.UnknownInstance,
-                            "Liść wskazuje pusty identyfikator instancji."));
+                            UiText.Get("ALeafHasAnEmptyInstanceId")));
                         break;
                     }
 
@@ -113,7 +114,7 @@ public static class LayoutValidator
                     {
                         issues.Add(new LayoutValidationIssue(
                             LayoutErrorCode.DuplicateInstance,
-                            $"Instancja {leaf.InstanceId} występuje w układzie więcej niż raz.",
+                            UiText.Format("InstanceAppearsMoreThanOnceInThe", leaf.InstanceId),
                             leaf.InstanceId));
                         break;
                     }
@@ -122,7 +123,7 @@ public static class LayoutValidator
                     {
                         issues.Add(new LayoutValidationIssue(
                             LayoutErrorCode.UnknownInstance,
-                            $"Liść wskazuje instancję {leaf.InstanceId}, której nie ma wśród widocznych paneli.",
+                            UiText.Format("ALeafPointsToInstanceWhichIs", leaf.InstanceId),
                             leaf.InstanceId));
                     }
 
@@ -135,13 +136,13 @@ public static class LayoutValidator
                     {
                         issues.Add(new LayoutValidationIssue(
                             LayoutErrorCode.InvalidSplitId,
-                            "Podział ma pusty identyfikator."));
+                            UiText.Get("ASplitHasAnEmptyId")));
                     }
                     else if (!seenSplits.Add(split.SplitId))
                     {
                         issues.Add(new LayoutValidationIssue(
                             LayoutErrorCode.InvalidSplitId,
-                            $"Identyfikator podziału {split.SplitId} występuje więcej niż raz.",
+                            UiText.Format("SplitIdAppearsMoreThanOnce", split.SplitId),
                             SplitId: split.SplitId));
                     }
 
@@ -149,7 +150,7 @@ public static class LayoutValidator
                     {
                         issues.Add(new LayoutValidationIssue(
                             LayoutErrorCode.InvalidRatio,
-                            $"Proporcja podziału {split.SplitId} jest niepoprawna: {split.Ratio}.",
+                            UiText.Format("SplitHasAnInvalidRatio", split.SplitId, split.Ratio),
                             SplitId: split.SplitId));
                     }
 
@@ -161,7 +162,7 @@ public static class LayoutValidator
                 default:
                     issues.Add(new LayoutValidationIssue(
                         LayoutErrorCode.MalformedDocument,
-                        "Układ zawiera nieznany typ węzła."));
+                        UiText.Get("TheLayoutContainsAnUnknownNodeType")));
                     break;
             }
         }
@@ -172,7 +173,7 @@ public static class LayoutValidator
             {
                 issues.Add(new LayoutValidationIssue(
                     LayoutErrorCode.UnknownInstance,
-                    $"Widoczna instancja {visible} nie występuje w układzie.",
+                    UiText.Format("VisibleInstanceIsMissingFromTheLayout", visible),
                     visible));
             }
         }

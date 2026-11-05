@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using UberDashboard.App.Panels;
 using UberDashboard.Contracts.Panels;
 using UberDashboard.Core.Layout;
@@ -23,7 +24,7 @@ public sealed class NotesPanelDescriptor : IPanelDescriptor
     string IPanelDescriptor.TypeId => TypeId;
 
     /// <inheritdoc />
-    public string DisplayName => "Notatnik";
+    public string DisplayName => UiText.Get("Notepad");
 
     /// <inheritdoc />
     public string? IconKey => "panel.notes";

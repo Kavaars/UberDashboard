@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -32,17 +33,17 @@ public sealed class ColorWheel : UserControl
     {
         var stack = new StackPanel();
         _wheel = new Wheel(Choose) { Width = 150, Height = 150, Focusable = true, HorizontalAlignment = System.Windows.HorizontalAlignment.Left };
-        System.Windows.Automation.AutomationProperties.SetName(_wheel, "Koło kolorów — strzałki zmieniają odcień i nasycenie");
+        System.Windows.Automation.AutomationProperties.SetName(_wheel, UiText.Get("ColorWheelUseTheArrowKeysTo"));
         stack.Children.Add(_wheel);
         stack.Children.Add(_sample);
-        AddSlider(stack, "Jasność", _brightness);
-        AddSlider(stack, "Krycie", _alpha);
+        AddSlider(stack, UiText.Get("Brightness"), _brightness);
+        AddSlider(stack, UiText.Get("Opacity"), _alpha);
         var hex = new TextBox();
         hex.SetResourceReference(StyleProperty, "ThemedTextBox");
         hex.SetBinding(TextBox.TextProperty, new System.Windows.Data.Binding(nameof(SelectedColor)) { Source = this, Mode = System.Windows.Data.BindingMode.TwoWay, UpdateSourceTrigger = System.Windows.Data.UpdateSourceTrigger.LostFocus });
-        System.Windows.Automation.AutomationProperties.SetName(hex, "Wartość koloru HEX RGB lub ARGB");
-        stack.Children.Add(new Expander { Header = "Wpisz wartość koloru", Content = hex, IsExpanded = false });
-        var reset = new Button { Content = "Kolor z motywu", ToolTip = "Usuwa własny kolor i przywraca kolor bieżącego motywu." };
+        System.Windows.Automation.AutomationProperties.SetName(hex, UiText.Get("RgbOrArgbHexColorValue"));
+        stack.Children.Add(new Expander { Header = UiText.Get("EnterAColorValue"), Content = hex, IsExpanded = false });
+        var reset = new Button { Content = UiText.Get("ThemeColor"), ToolTip = UiText.Get("ClearsTheCustomColorAndRestoresThe") };
         reset.SetResourceReference(StyleProperty, "PanelActionButton");
         reset.Click += (_, _) => SetCurrentValue(SelectedColorProperty, null);
         stack.Children.Add(reset);
@@ -54,7 +55,7 @@ public sealed class ColorWheel : UserControl
     private static void AddSlider(StackPanel stack, string label, Slider slider)
     {
         stack.Children.Add(new TextBlock { Text = label });
-        System.Windows.Automation.AutomationProperties.SetName(slider, label + " koloru");
+        System.Windows.Automation.AutomationProperties.SetName(slider, UiText.Format("ColorSliderLabel", label));
         stack.Children.Add(slider);
     }
     private static void Changed(DependencyObject d, DependencyPropertyChangedEventArgs e) => ((ColorWheel)d).ReadColor();
@@ -141,7 +142,7 @@ public sealed class ColorWheel : UserControl
         }
         private sealed class WheelPeer(Wheel owner) : System.Windows.Automation.Peers.FrameworkElementAutomationPeer(owner)
         {
-            protected override string GetClassNameCore() => "Koło kolorów";
+            protected override string GetClassNameCore() => UiText.Get("ColorWheel");
             protected override System.Windows.Automation.Peers.AutomationControlType GetAutomationControlTypeCore() => System.Windows.Automation.Peers.AutomationControlType.Custom;
         }
     }

@@ -10,7 +10,7 @@ namespace UberDashboard.App.Tests.Panels;
 public sealed class WeatherPanelRegistrationTests
 {
     [Fact]
-    public async Task Built_in_catalog_contains_weather_panel()
+    public async Task Built_in_catalog_contains_expected_panels()
     {
         var services = new ServiceCollection();
         services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Debug));
@@ -23,7 +23,10 @@ public sealed class WeatherPanelRegistrationTests
         var catalog = provider.GetRequiredService<PanelCatalog>();
 
         Assert.NotNull(catalog.DescriptorOf("weather"));
-        Assert.Equal(5, catalog.Registrations.Count);
+        Assert.Equal(8, catalog.Registrations.Count);
+        Assert.NotNull(catalog.DescriptorOf("shortcuts"));
+        Assert.NotNull(catalog.DescriptorOf("calendar"));
+        Assert.NotNull(catalog.DescriptorOf("system-resources"));
         Assert.NotNull(catalog.DescriptorOf("affirmations"));
         Assert.NotNull(catalog.DescriptorOf(UberDashboard.App.Features.Space.SpacePanelDescriptor.Id));
     }

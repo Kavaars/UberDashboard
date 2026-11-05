@@ -1,5 +1,16 @@
 # Rejestr problemów
 
+## 2026-11-05T07:46:00+01:00 | źródła 1.8.0 / b1512b0 + zmiany robocze | odtwarzanie okna po autostarcie
+
+- Moduły: Shell/MainWindowModeCoordinator, MainWindow, ustawienia uruchamiania. Windows, WPF/.NET 10; dwa monitory, dokładne DPI, wersja Windows i numer uruchomionej kompilacji nieznane.
+- Zgłoszenie i odtworzenie: włączyć autostart, pozostawić aplikację jako pasek na drugim monitorze, wyłączyć i uruchomić komputer. Według użytkownika aplikacja wraca jako okno na pierwszym monitorze. Oczekiwane: poprzedni tryb i położenie. Komunikatów błędów nie podano.
+- Analiza zmian: ostatni commit b1512b0 dotyczy widoczności przycisku na pasku zadań, nie zapisu trybu. Koordynator odczytuje LaunchMode, ale przełączanie go nie utrwala; monitor automatyczny pozostaje null. Brak zapisu geometrii zwykłego okna. Istniejące wpisy dotyczą przeskakiwania przy zmianie konfiguracji paska, bez testu restartu.
+- Potwierdzone przyczyny w kodzie: brak utrwalania udanych przełączeń, brak utrwalania automatycznie wybranego monitora paska i brak magazynu położenia zwykłego okna. Nie potwierdzono dokładnej zapisanej konfiguracji użytkownika ani związku z b1512b0.
+- Poprawka 1.8.1: udane jawne przełączenia zapisują tryb i monitor, inicjalizacja/fallback i tymczasowe oddokowanie do zasobnika nie zmieniają preferencji. Osobny autozapis geometrii w pikselach, rozmiaru i maksymalizacji; zapis jest asynchroniczny, scalany po 300 ms i opróżniany przed zwykłym zamknięciem. Geometria paska nie zastępuje zwykłego okna; pozycja spoza dostępnych ekranów jest dopasowywana do obszaru roboczego. Ustawienia grubości zachowują aktualnie zapamiętany tryb.
+- Regresje: restart koordynatora z zapamiętanym DISPLAY2 i oknem startującym na DISPLAY1, brak monitora, nieudane dokowanie, tymczasowy tryb zasobnika, jawny powrót do okna, nieaktualny tryb w otwartych ustawieniach, ujemne współrzędne i ograniczanie obszaru. Kontrola WPF na osobnym profilu potwierdza zapis/odtworzenie rzeczywistej geometrii, izolację geometrii paska i maksymalizację.
+- Weryfikacja 2026-11-05T07:54:00+01:00: build Release 0 ostrzeżeń/błędów, 372 testy PASS, VisualChecks PASS, PluginChecks PASS, publish win-x64 self-contained PASS. Początkowe uruchomienia .NET blokowały ograniczenia dostępu do usług Windows; sprawdzenia wykonano skutecznie z zatwierdzonym szerszym dostępem. Błędy kompilacji testu i składni poprawiono przed końcowymi kontrolami.
+- Kompilacja: Release/Dev/v1.8.1_autostart-20261105-075255-447. Nie wykonano pełnego restartu Windows, testu fizycznych dwóch monitorów ani opóźnionego pojawienia się drugiego monitora przy logowaniu. Istniejący wpis autostartu wskazuje dotychczasowy plik: po przejściu do nowego folderu kompilacji trzeba wyłączyć i ponownie włączyć autostart w nowej aplikacji.
+
 ## 2026-11-04T21:41:46+01:00 | źródła 1.8.0 / c7ee972 | przycisk zadokowanego okna na pasku zadań
 
 - Moduły: okno główne, tryb paska, zasobnik. Środowisko: Windows 11, WPF/.NET 10. Numer kompilacji użytkownika nieznany.

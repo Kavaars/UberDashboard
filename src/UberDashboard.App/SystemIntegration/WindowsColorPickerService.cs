@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Windows;
 using System.Windows.Controls;
 using UberDashboard.App.Controls;
@@ -13,13 +14,13 @@ public sealed class WindowsColorPickerService : IColorPickerService
         var picker = new ColorWheel { SelectedColor = initialColor };
         var stack = new StackPanel { Margin = new Thickness(16) };
         stack.Children.Add(picker);
-        var window = new Window { Title = "Wybierz kolor", Content = stack, SizeToContent = SizeToContent.WidthAndHeight, ResizeMode = ResizeMode.NoResize, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+        var window = new Window { Title = UiText.Get("ChooseAColor"), Content = stack, SizeToContent = SizeToContent.WidthAndHeight, ResizeMode = ResizeMode.NoResize, WindowStartupLocation = WindowStartupLocation.CenterOwner };
         if (System.Windows.Application.Current?.MainWindow is { IsVisible: true } owner) window.Owner = owner;
         window.SetResourceReference(FrameworkElement.StyleProperty, "ThemedWindow");
         window.SetResourceReference(Window.BackgroundProperty, "Brush.Surface");
         var buttons = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal };
-        var accept = new Button { Content = "Wybierz", IsDefault = true };
-        var cancel = new Button { Content = "Anuluj", IsCancel = true };
+        var accept = new Button { Content = UiText.Get("Choose"), IsDefault = true };
+        var cancel = new Button { Content = UiText.Get("Cancel"), IsCancel = true };
         accept.SetResourceReference(FrameworkElement.StyleProperty, "PanelActionButton");
         cancel.SetResourceReference(FrameworkElement.StyleProperty, "PanelActionButton");
         accept.Click += (_, _) => window.DialogResult = true;

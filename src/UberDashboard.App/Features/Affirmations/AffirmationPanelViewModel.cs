@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 using CommunityToolkit.Mvvm.Input;
@@ -85,22 +86,22 @@ public sealed class AffirmationPanelViewModel : ObservableObject, IPanelOptionsP
 
     public int TotalSets => _history.Sum(x => x.Sets);
 
-    public string HistoryText => _history.Count == 0 ? "Brak historii." : string.Join("\n", _history.OrderByDescending(x => x.Date).Select(x => $"{x.Date:yyyy-MM-dd} — afirmacje: {x.Affirmations}, zestawy: {x.Sets}"));
+    public string HistoryText => _history.Count == 0 ? UiText.Get("NoHistory") : string.Join("\n", _history.OrderByDescending(x => x.Date).Select(x => UiText.Format("AffirmationsSets", x.Date, x.Affirmations, x.Sets)));
 
     public string StreakHistory
     {
         get
         {
             var days = _history.Where(x => x.Sets > 0).Select(x => x.Date).Distinct().Order().ToArray();
-            if (days.Length == 0) return "Brak ukończonych serii.";
+            if (days.Length == 0) return UiText.Get("NoCompletedStreaks");
             var ranges = new List<string>();
             var start = days[0]; var end = start;
             foreach (var day in days.Skip(1))
             {
                 if (day.DayNumber == end.DayNumber + 1) end = day;
-                else { ranges.Add($"{start:yyyy-MM-dd} – {end:yyyy-MM-dd}: {end.DayNumber - start.DayNumber + 1} dni"); start = end = day; }
+                else { ranges.Add(UiText.Format("Days", start, end, end.DayNumber - start.DayNumber + 1)); start = end = day; }
             }
-            ranges.Add($"{start:yyyy-MM-dd} – {end:yyyy-MM-dd}: {end.DayNumber - start.DayNumber + 1} dni");
+            ranges.Add(UiText.Format("Days", start, end, end.DayNumber - start.DayNumber + 1));
             ranges.Reverse(); return string.Join("\n", ranges);
         }
     }
@@ -188,7 +189,7 @@ public sealed class AffirmationPanelViewModel : ObservableObject, IPanelOptionsP
 
     public bool HasCurrent => _index < Lines.Length;
 
-    public string Status => Lines.Length == 0 ? "Dodaj afirmacje w opcjach panelu." : HasCurrent ? $"Afirmacja {_index + 1} z {Lines.Length}" : "Wszystkie afirmacje ukończone.";
+    public string Status => Lines.Length == 0 ? UiText.Get("AddAffirmationsInThePanelOptions") : HasCurrent ? UiText.Format("AffirmationOf", _index + 1, Lines.Length) : UiText.Get("AllAffirmationsCompleted");
 
     public void Accept(string input)
 

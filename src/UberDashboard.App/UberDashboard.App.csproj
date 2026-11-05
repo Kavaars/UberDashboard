@@ -12,6 +12,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Google.Apis.Auth" />
+    <PackageReference Include="LibreHardwareMonitorLib" />
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="Microsoft.Identity.Client" />
     <PackageReference Include="Microsoft.Identity.Client.Extensions.Msal" />

@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Interop;
@@ -30,6 +31,7 @@ public partial class MainWindow : Window
 
     private readonly UberDashboard.App.Plugins.PluginManager _plugins;
     private readonly AppBarController _appBar;
+    private readonly WindowPlacementTracker _placement;
     private readonly ShellViewModel _viewModel;
     private readonly ThemeService _theme;
     private readonly IWindowModeCoordinator _windowModeCoordinator;
@@ -55,7 +57,8 @@ public partial class MainWindow : Window
         AppBarController appBar,
         UberDashboard.App.Plugins.PluginManager plugins,
         UberDashboard.App.Plugins.PluginSettingsViewModel pluginSettings,
-        IToastService toasts)
+        IToastService toasts,
+        WindowPlacementTracker placement)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         ArgumentNullException.ThrowIfNull(theme);
@@ -64,6 +67,7 @@ public partial class MainWindow : Window
         ArgumentNullException.ThrowIfNull(trayIconService);
 
         _plugins = plugins;
+        _placement = placement;
         _toasts = toasts;
         _appBar = appBar;
         _viewModel = viewModel;
@@ -102,10 +106,10 @@ public partial class MainWindow : Window
             if (!applied)
             {
                 DesktopBackdrop.Apply(source.Handle, false, false);
-                _toasts.Show("Nie można włączyć przezroczystości lub rozmycia. Przywrócono zwykłe tło okna.", ToastSeverity.Warning);
+                _toasts.Show(UiText.Get("TransparencyOrBlurCouldNotBeEnabled"), ToastSeverity.Warning);
             }
             else if (backdropRequest.DesktopBlur && !blurApplied)
-                _toasts.Show("Rozmycie wymaga Windows 11 22H2; tło pozostaje przezroczyste bez rozmycia.", ToastSeverity.Warning);
+                _toasts.Show(UiText.Get("BlurRequiresWindows1122H2The"), ToastSeverity.Warning);
             if (applied && (backdropRequest.TransparentDesktopBackground || backdropRequest.DesktopBlur))
             {
                 Background = System.Windows.Media.Brushes.Transparent;
@@ -140,7 +144,7 @@ public partial class MainWindow : Window
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException or FormatException)
                 {
                     System.Diagnostics.Trace.TraceWarning("Nie można odczytać tapety aplikacji ({0}).", ex.GetType().Name);
-                    if (revision == _wallpaperRevision) _toasts.Show("Nie można odczytać tapety aplikacji. Wybierz dostępny obraz.", ToastSeverity.Warning);
+                    if (revision == _wallpaperRevision) _toasts.Show(UiText.Get("CouldNotReadTheAppWallpaperChoose"), ToastSeverity.Warning);
                 }
             }
             if (revision != _wallpaperRevision) return;
@@ -182,12 +186,16 @@ public partial class MainWindow : Window
         _initialized = true;
         Loaded -= OnLoaded;
 
+        await _placement.RestoreAsync(this).ConfigureAwait(true);
+
         await _theme.LoadAndApplyAsync(CancellationToken.None).ConfigureAwait(true);
         await _plugins.InitializeAsync();
         _viewModel.RefreshPanelTypes();
         await _viewModel.InitializeAsync().ConfigureAwait(true);
         var result = await _windowModeCoordinator.InitializeAsync().ConfigureAwait(true);
         _viewModel.SyncWindowMode(result.ActiveMode);
+        if (!result.IsSuccess && result.Message is { } message) _toasts.Show(message, ToastSeverity.Warning);
+        _placement.Start(this);
 
         var settings = (await _applicationSettingsService.LoadAsync(CancellationToken.None).ConfigureAwait(true)).Normalize();
         _trayIconService.Initialize(RestoreFromTray, ExitFromTray);
@@ -205,7 +213,7 @@ public partial class MainWindow : Window
         if (!_exitRequested && settings.EnableTrayIcon && settings.CloseBehavior == CloseBehavior.MinimizeToTray)
         {
             e.Cancel = true;
-            var result = await _windowModeCoordinator.SwitchAsync(WindowMode.Normal).ConfigureAwait(true);
+            var result = await _windowModeCoordinator.SwitchTemporarilyAsync(WindowMode.Normal).ConfigureAwait(true);
             _viewModel.SyncWindowMode(result.ActiveMode);
             Hide();
             ShowInTaskbar = false;
@@ -227,7 +235,7 @@ public partial class MainWindow : Window
             {
                 _shutdownPending = false;
                 IsEnabled = true;
-                UberDashboard.App.Controls.ThemedMessageBox.Show(this, "Nie potwierdzono zapisu danych. Okno pozostaje otwarte. Spróbuj zamknąć je ponownie po usunięciu błędu zapisu.", "Nie udało się zapisać danych", MessageBoxButton.OK, MessageBoxImage.Error);
+                UberDashboard.App.Controls.ThemedMessageBox.Show(this, UiText.Get("SavingCouldNotBeConfirmedTheWindow"), UiText.Get("CouldNotSaveData"), MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }
@@ -235,7 +243,10 @@ public partial class MainWindow : Window
     private void OnShellPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(ShellViewModel.IsDockedBar))
+        {
             _trayIconService.SetRequired(_viewModel.IsDockedBar);
+            _placement.Capture();
+        }
     }
 
     private void RestoreFromTray()

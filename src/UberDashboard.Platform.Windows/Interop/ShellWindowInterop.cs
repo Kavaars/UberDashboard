@@ -12,6 +12,23 @@ public static class ShellWindowInterop
     public static bool ApplyBounds(IntPtr handle, PixelRect rect) =>
         SetWindowPos(handle, IntPtr.Zero, rect.Left, rect.Top, rect.Width, rect.Height, 0x0014);
 
+    public static PixelRect? ReadBounds(IntPtr handle) => GetWindowRect(handle, out var rect)
+        ? new PixelRect(rect.Left, rect.Top, rect.Right, rect.Bottom) : null;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct Rect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetWindowRect(IntPtr handle, out Rect rect);
+
     public static void SetFullScreenOrder(IntPtr handle, bool fullScreen) =>
         SetWindowPos(handle, fullScreen ? new IntPtr(1) : IntPtr.Zero, 0, 0, 0, 0, 0x0013);
 

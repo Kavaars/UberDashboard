@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -216,7 +217,7 @@ public sealed class TodoPanelViewModel : ObservableObject, IPanelOptionsPresente
 
         MarkChanged();
         _notifier.Publish(
-            $"Usunięto wykonane zadania: {removedCount}.",
+            UiText.Format("RemovedCompletedTasks", removedCount),
             PanelNotificationSeverity.Information);
     }
 

@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 namespace UberDashboard.Core.Layout;
 
 /// <summary>
@@ -19,7 +20,7 @@ public static class LayoutOperations
     {
         if (tree.Root is null)
         {
-            return LayoutOperationResult.Fail(tree, LayoutErrorCode.MissingRoot, "Nie można dzielić pustego układu.");
+            return LayoutOperationResult.Fail(tree, LayoutErrorCode.MissingRoot, UiText.Get("AnEmptyLayoutCannotBeSplit"));
         }
 
         if (LayoutWalker.FindLeaf(tree.Root, target) is null)
@@ -29,7 +30,7 @@ public static class LayoutOperations
 
         if (LayoutWalker.Contains(tree.Root, newInstance))
         {
-            return LayoutOperationResult.Fail(tree, LayoutErrorCode.DuplicateInstance, $"Instancja {newInstance} już występuje w układzie.");
+            return LayoutOperationResult.Fail(tree, LayoutErrorCode.DuplicateInstance, UiText.Format("InstanceIsAlreadyInTheLayout", newInstance));
         }
 
         var found = false;
@@ -54,12 +55,12 @@ public static class LayoutOperations
     {
         if (tree.Root is null)
         {
-            return LayoutOperationResult.Fail(tree, LayoutErrorCode.MissingRoot, "Nie można przenosić w pustym układzie.");
+            return LayoutOperationResult.Fail(tree, LayoutErrorCode.MissingRoot, UiText.Get("PanelsCannotBeMovedInAnEmpty"));
         }
 
         if (instance == target)
         {
-            return LayoutOperationResult.Fail(tree, LayoutErrorCode.SelfMove, "Panel nie może być przeniesiony na samego siebie.");
+            return LayoutOperationResult.Fail(tree, LayoutErrorCode.SelfMove, UiText.Get("APanelCannotBeMovedOntoItself"));
         }
 
         var (axis, side) = AxisAndSideFor(dropZone);
@@ -73,7 +74,7 @@ public static class LayoutOperations
 
         if (afterRemoval is null)
         {
-            return LayoutOperationResult.Fail(tree, LayoutErrorCode.InvalidOperation, "Po usunięciu panelu układ jest pusty.");
+            return LayoutOperationResult.Fail(tree, LayoutErrorCode.InvalidOperation, UiText.Get("RemovingThePanelLeavesAnEmptyLayout"));
         }
 
         if (LayoutWalker.FindLeaf(afterRemoval, target) is null)
@@ -99,12 +100,12 @@ public static class LayoutOperations
     {
         if (tree.Root is null)
         {
-            return LayoutOperationResult.Fail(tree, LayoutErrorCode.MissingRoot, "Nie można zamieniać w pustym układzie.");
+            return LayoutOperationResult.Fail(tree, LayoutErrorCode.MissingRoot, UiText.Get("PanelsCannotBeSwappedInAnEmpty"));
         }
 
         if (first == second)
         {
-            return LayoutOperationResult.Fail(tree, LayoutErrorCode.SelfMove, "Zamiana wymaga dwóch różnych instancji.");
+            return LayoutOperationResult.Fail(tree, LayoutErrorCode.SelfMove, UiText.Get("SwappingRequiresTwoDifferentInstances"));
         }
 
         var hits = 0;
@@ -112,7 +113,7 @@ public static class LayoutOperations
 
         return hits == 2
             ? LayoutOperationResult.Ok(tree.WithRoot(newRoot))
-            : LayoutOperationResult.Fail(tree, LayoutErrorCode.LeafNotFound, "Obie instancje muszą występować w układzie.");
+            : LayoutOperationResult.Fail(tree, LayoutErrorCode.LeafNotFound, UiText.Get("BothInstancesMustBeInTheLayout"));
     }
 
     /// <summary>
@@ -123,12 +124,12 @@ public static class LayoutOperations
     {
         if (tree.Root is null)
         {
-            return LayoutOperationResult.Fail(tree, LayoutErrorCode.MissingRoot, "Nie można zamieniać zawartości pustego układu.");
+            return LayoutOperationResult.Fail(tree, LayoutErrorCode.MissingRoot, UiText.Get("AnEmptyLayoutHasNoContentsTo"));
         }
 
         if (LayoutWalker.Contains(tree.Root, replacement))
         {
-            return LayoutOperationResult.Fail(tree, LayoutErrorCode.DuplicateInstance, $"Instancja {replacement} już występuje w układzie.");
+            return LayoutOperationResult.Fail(tree, LayoutErrorCode.DuplicateInstance, UiText.Format("InstanceIsAlreadyInTheLayout", replacement));
         }
 
         var found = false;
@@ -147,7 +148,7 @@ public static class LayoutOperations
     {
         if (tree.Root is null)
         {
-            return LayoutOperationResult.Fail(tree, LayoutErrorCode.MissingRoot, "Układ jest już pusty.");
+            return LayoutOperationResult.Fail(tree, LayoutErrorCode.MissingRoot, UiText.Get("TheLayoutIsAlreadyEmpty"));
         }
 
         var removed = false;
@@ -163,7 +164,7 @@ public static class LayoutOperations
     {
         if (tree.Root is null)
         {
-            return LayoutOperationResult.Fail(tree, LayoutErrorCode.MissingRoot, "Układ jest pusty.");
+            return LayoutOperationResult.Fail(tree, LayoutErrorCode.MissingRoot, UiText.Get("TheLayoutIsEmpty"));
         }
 
         var found = false;
@@ -174,7 +175,7 @@ public static class LayoutOperations
 
         return found
             ? LayoutOperationResult.Ok(tree.WithRoot(newRoot))
-            : LayoutOperationResult.Fail(tree, LayoutErrorCode.SplitNotFound, $"Nie znaleziono podziału {splitId}.");
+            : LayoutOperationResult.Fail(tree, LayoutErrorCode.SplitNotFound, UiText.Format("SplitWasNotFound", splitId));
     }
 
     /// <summary>
@@ -192,13 +193,13 @@ public static class LayoutOperations
     {
         if (tree.Root is null)
         {
-            return LayoutOperationResult.Fail(tree, LayoutErrorCode.MissingRoot, "Układ jest pusty.");
+            return LayoutOperationResult.Fail(tree, LayoutErrorCode.MissingRoot, UiText.Get("TheLayoutIsEmpty"));
         }
 
         var split = LayoutWalker.FindSplit(tree.Root, splitId);
         if (split is null)
         {
-            return LayoutOperationResult.Fail(tree, LayoutErrorCode.SplitNotFound, $"Nie znaleziono podziału {splitId}.");
+            return LayoutOperationResult.Fail(tree, LayoutErrorCode.SplitNotFound, UiText.Format("SplitWasNotFound", splitId));
         }
 
         var axisAvailable = regionLength - metrics.SplitterThickness;
@@ -212,8 +213,8 @@ public static class LayoutOperations
                 tree,
                 axisAvailable <= 0d ? LayoutErrorCode.InsufficientSpace : LayoutErrorCode.InvalidRatio,
                 axisAvailable <= 0d
-                    ? "Obszar podziału jest zbyt mały, aby zapisać proporcję."
-                    : "Nie można zapisać proporcji niezgodnej z minimalnymi rozmiarami paneli.");
+                    ? UiText.Get("TheSplitAreaIsTooSmallTo")
+                    : UiText.Get("TheRatioConflictsWithTheMinimumPanel"));
         }
 
         var found = false;
@@ -221,7 +222,7 @@ public static class LayoutOperations
 
         return found
             ? LayoutOperationResult.Ok(tree.WithRoot(newRoot))
-            : LayoutOperationResult.Fail(tree, LayoutErrorCode.SplitNotFound, $"Nie znaleziono podziału {splitId}.");
+            : LayoutOperationResult.Fail(tree, LayoutErrorCode.SplitNotFound, UiText.Format("SplitWasNotFound", splitId));
     }
 
     /// <summary>
@@ -232,7 +233,7 @@ public static class LayoutOperations
     {
         if (LayoutWalker.Contains(tree.Root, instance))
         {
-            return LayoutOperationResult.Fail(tree, LayoutErrorCode.DuplicateInstance, $"Instancja {instance} już występuje w układzie.");
+            return LayoutOperationResult.Fail(tree, LayoutErrorCode.DuplicateInstance, UiText.Format("InstanceIsAlreadyInTheLayout", instance));
         }
 
         if (tree.Root is null)

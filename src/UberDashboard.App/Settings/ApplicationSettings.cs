@@ -1,3 +1,5 @@
+using UberDashboard.Core.Localization;
+
 namespace UberDashboard.App.Settings;
 
 /// <summary>Trwałe ustawienia personalizacji i ogólnych preferencji aplikacji.</summary>
@@ -47,6 +49,8 @@ public sealed record ApplicationSettings
     /// <summary>Domyślny interwał odświeżania danych pogodowych w minutach.</summary>
     public int? WeatherRefreshMinutes { get; init; }
 
+    public string Language { get; init; } = UiText.Polish;
+
     public string? WallpaperPath { get; init; }
     public double WallpaperBlur { get; init; }
     public double BackgroundSurfaceOpacity { get; init; } = 0.7;
@@ -67,6 +71,7 @@ public sealed record ApplicationSettings
     public ApplicationSettings Normalize() =>
         this with
         {
+            Language = UiText.NormalizeLanguage(Language),
             AccentColor = NormalizeHex(AccentColor),
             WindowBackgroundColor = NormalizeHex(WindowBackgroundColor),
             SurfaceColor = NormalizeHex(SurfaceColor),

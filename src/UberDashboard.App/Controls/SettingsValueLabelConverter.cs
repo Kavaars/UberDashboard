@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Globalization;
 using System.Windows.Data;
 using UberDashboard.Application.Platform;
@@ -8,20 +9,22 @@ namespace UberDashboard.App.Controls;
 
 public sealed class SettingsValueLabelConverter : IValueConverter
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => value switch
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => Label(value);
+
+    internal static string Label(object? value) => value switch
     {
-        ThemeKind.Light => "Jasny",
-        ThemeKind.Dark => "Ciemny",
-        ThemeKind.System => "Systemowy",
-        WindowMode.Normal => "Zwykłe okno",
-        WindowMode.DockedBar => "Pasek pulpitu",
-        WindowMode.DesktopWidget => "Widget (eksperymentalny)",
-        AppBarEdge.Left => "Lewa",
-        AppBarEdge.Top => "Górna",
-        AppBarEdge.Right => "Prawa",
-        AppBarEdge.Bottom => "Dolna",
-        CloseBehavior.ExitApplication => "Zakończ aplikację",
-        CloseBehavior.MinimizeToTray => "Ukryj w zasobniku",
+        ThemeKind.Light => UiText.Get("Light"),
+        ThemeKind.Dark => UiText.Get("Dark"),
+        ThemeKind.System => UiText.Get("System"),
+        WindowMode.Normal => UiText.Get("NormalWindow"),
+        WindowMode.DockedBar => UiText.Get("DockedBar2"),
+        WindowMode.DesktopWidget => UiText.Get("WidgetExperimental"),
+        AppBarEdge.Left => UiText.Get("Left"),
+        AppBarEdge.Top => UiText.Get("Top"),
+        AppBarEdge.Right => UiText.Get("Right"),
+        AppBarEdge.Bottom => UiText.Get("Bottom"),
+        CloseBehavior.ExitApplication => UiText.Get("QuitTheApp"),
+        CloseBehavior.MinimizeToTray => UiText.Get("HideInSystemTray"),
         _ => value?.ToString() ?? string.Empty,
     };
 

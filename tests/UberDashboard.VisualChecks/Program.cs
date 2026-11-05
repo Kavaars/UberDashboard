@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using UberDashboard.App.Hosting;
 using UberDashboard.App.Shell;
 using UberDashboard.App.Theming;
+using UberDashboard.Core.Localization;
 
 internal static class Program
 {
@@ -52,6 +53,8 @@ internal static class Program
     {
         var output = Path.GetFullPath(args.Length > 0 ? args[0] : "Release/VisualChecks");
         Directory.CreateDirectory(output);
+        var english = args.Contains("--english");
+        UiText.Configure(english ? UiText.English : UiText.Polish);
         var app = new System.Windows.Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
         foreach (var resource in new[] { "Theme.Light", "VisualTokens", "Controls", "WindowFrame", "PanelTemplates" })
             app.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri($"pack://application:,,,/UberDashboard;component/Theming/{resource}.xaml") });
@@ -71,6 +74,7 @@ internal static class Program
                 await using var provider = services.BuildServiceProvider();
                 var window = provider.GetRequiredService<UberDashboard.App.MainWindow>();
                 DockedBarChecks.Run(provider);
+                await WindowPlacementChecks.RunAsync(provider);
                 window.ApplyTemplate();
                 if (window.Template.FindName("Caption", window) is not Border caption ||
                     System.Windows.Shell.WindowChrome.GetWindowChrome(window) is null)
@@ -243,6 +247,9 @@ internal static class Program
                 }
                 var settingsWindow = provider.GetRequiredService<UberDashboard.App.Settings.SettingsWindow>();
                 await ((UberDashboard.App.Settings.SettingsViewModel)settingsWindow.DataContext).LoadAsync();
+                if (settingsWindow.Title != (english ? "Settings" : "Ustawienia") ||
+                    !string.Equals(window.Language.IetfLanguageTag, english ? "en-US" : "pl-PL", StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException($"Window localization did not apply: {settingsWindow.Title}, {window.Language.IetfLanguageTag}.");
                 var settingsRoot = (FrameworkElement)settingsWindow.Content;
                 foreach (var kind in new[] { ThemeKind.Light, ThemeKind.Dark, ThemeKind.System })
                 {
@@ -318,6 +325,31 @@ internal static class Program
                     throw new InvalidOperationException("Panel font override did not reach the editor");
                 await shell.FlushAppearancesAsync();
                 Console.WriteLine("LIVE PREVIEW AND PANEL FONT PASS");
+                foreach (var panelId in new[] { "calendar", "system-resources", "shortcuts" })
+                {
+                    if (!Leaves(shell.Root).Any(leaf => leaf.PanelTypeId == panelId))
+                        await shell.AddPanelCommand.ExecuteAsync(panelId);
+                    if (!Leaves(shell.Root).Any(leaf => leaf.PanelTypeId == panelId))
+                        throw new InvalidOperationException($"Cannot add {panelId} through the shell.");
+                }
+
+                var shortcuts = (UberDashboard.App.Features.Shortcuts.ShortcutsPanel)
+                    Leaves(shell.Root).Single(leaf => leaf.PanelTypeId == "shortcuts").ViewModel;
+                await ShortcutsChecks.RunAsync(shortcuts, theme, output);
+
+                var calendar = (UberDashboard.App.Features.Calendar.CalendarPanel)
+                    Leaves(shell.Root).Single(leaf => leaf.PanelTypeId == "calendar").ViewModel;
+                await calendar.RefreshCommand.ExecuteAsync(null);
+                if (calendar.Modes[0].Label != (english ? "Month" : "Miesiąc"))
+                    throw new InvalidOperationException("Calendar localization did not apply.");
+                if (calendar.Columns != 7 || calendar.VisibleDays.Count is < 28 or > 42)
+                    throw new InvalidOperationException("Calendar month range is invalid.");
+
+                var resources = (UberDashboard.App.Features.Resources.ResourcePanel)
+                    Leaves(shell.Root).Single(leaf => leaf.PanelTypeId == "system-resources").ViewModel;
+                if (resources.SampleCommand.ExecutionTask is { } sampling)
+                    await sampling;
+                Console.WriteLine($"RESOURCE CHECK: {resources.Status} ({resources.Readings.Count} readings)");
                 foreach (var kind in new[] { ThemeKind.Light, ThemeKind.Dark, ThemeKind.System })
                 {
                     await theme.ApplyAsync(kind, CancellationToken.None);
@@ -328,6 +360,9 @@ internal static class Program
                         card.Measure(size); card.Arrange(new Rect(size)); card.UpdateLayout();
                         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
                         var bitmap = new RenderTargetBitmap((int)size.Width, (int)size.Height, 96, 96, PixelFormats.Pbgra32);
+                        if (leaf.PanelTypeId == "calendar" &&
+                            !Descendants(card).OfType<System.Windows.Controls.Primitives.UniformGrid>().Any(grid => grid.Columns == 7))
+                            throw new InvalidOperationException("Calendar grid was not rendered.");
                         DrawBackground(bitmap, app, size); bitmap.Render(card);
                         var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
                         var filename = $"{kind}-{leaf.PanelTypeId}-{size.Width}x{size.Height}.png";

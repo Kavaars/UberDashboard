@@ -1,8 +1,12 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>UberDashboard.Core</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Localization/Messages.json" />
+  </ItemGroup>
 
 </Project>

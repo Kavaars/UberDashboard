@@ -18,7 +18,7 @@ public sealed class PhotoFrameModule : IPluginModule
 public sealed class PhotoFrameDescriptor : IPanelDescriptor, IPanelFactory
 {
     public string TypeId => "pl.uberdashboard.photoframe.frame";
-    public string DisplayName => "Ramka na zdjęcia";
+    public string DisplayName => PhotoText.Get("Ramka na zdjęcia", "Photo frame");
     public string? IconKey => "panel.photos";
     public MinSize MinSize => new(220, 180);
     public int StateSchemaVersion => 1;
@@ -46,7 +46,7 @@ public sealed class PhotoFrameInstance : IPanelInstance, IPanelStateNotification
     public async ValueTask RestoreStateAsync(ReadOnlyMemory<byte> state, CancellationToken cancellationToken)
     {
         var document = JsonSerializer.Deserialize<PhotoFrameDocument>(state.Span) ?? new();
-        if (document.SchemaVersion != 1) throw new InvalidOperationException("Nieobsługiwana wersja danych ramki. Zachowano oryginalny stan.");
+        if (document.SchemaVersion != 1) throw new InvalidOperationException(PhotoText.Get("Nieobsługiwana wersja danych ramki. Zachowano oryginalny stan.", "Unsupported photo frame data version. The original state was kept."));
         await _model.LoadAsync(document, cancellationToken);
     }
     public ValueTask<ReadOnlyMemory<byte>> CaptureStateAsync(CancellationToken cancellationToken)

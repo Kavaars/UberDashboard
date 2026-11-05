@@ -10,7 +10,7 @@
     <AnalysisLevel>latest</AnalysisLevel>
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
-    <Version>1.8.0</Version>
+    <Version>1.9.0</Version>
     <Product>UberDashboard</Product>
     <NeutralLanguage>pl-PL</NeutralLanguage>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>

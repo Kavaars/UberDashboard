@@ -1,4 +1,12 @@
+2026-11-05T08:18:37+01:00 | Dodano panel Skróty: aplikacje, foldery i WWW, cztery widoki, ikony, kolory, tapeta i autozapis.
+
+2026-11-05T07:54:00+01:00 | 1.8.1: zapamiętywanie aktywnego trybu, monitora paska oraz pozycji, rozmiaru i maksymalizacji okna przy ponownym uruchomieniu.
+
 2026-11-04T21:41:46+01:00 | Ukryto przycisk zadokowanego okna na pasku zadań Windows i zapewniono ikonę w zasobniku.
+
+2026-11-04T21:34:48+01:00 | Dodano angielski interfejs i zapis wyboru języka. Polski pozostaje domyślny.
+
+2026-11-04T21:19:03+01:00 | Dodano Kalendarz Google i Monitor zasobów.
 
 2026-11-04T11:31:34+01:00 | Naprawiono kwadraty zamiast ikon przycisków na paskach tytułu.
 
