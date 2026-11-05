@@ -2,6 +2,10 @@
 
 Lokalna aplikacja desktopowa dla Windows 11 do budowy własnych pulpitów z paneli. Projekt jest rozwijany w .NET 10, WPF i architekturze modularnego monolitu z wyraźnym podziałem na warstwy domeny, aplikacji, infrastruktury, integracji Windows i hosta UI.
 
+## Zasady tworzenia paneli
+
+Przed projektowaniem lub tworzeniem nowego panelu AI musi przeczytać w całości [zasady projektu](ZASADY_PROJEKTU.md) oraz [wytyczne paneli](docs/WYTYCZNE_PANELI.md) i przestrzegać ich podczas implementacji i weryfikacji. Wytyczne obejmują wspólne funkcje, zakładki, zapis, wygląd, dostępność i listę odbioru. Obowiązek zapisano również w [AGENTS.md](AGENTS.md).
+
 ## Stan zgodności
 
 Aktualny audyt i lista otwartych wymagań: [raport z 2026-11-02](docs/AUDYT_ZALOZEN_2026-11-02.md). Panele wbudowane i host instalowanych pluginów są dostępne. Wersja 1.2.0 dodaje paczki .udplugin i ramkę na zdjęcia; instrukcja i API: [Pluginy](docs/PLUGINY.md). Rzeczywista warstwa widgetów i pełny restore pozostają do wdrożenia. AppBar wymaga odbioru na żywej powłoce Windows. Nie wykonano protokołu KPI.
