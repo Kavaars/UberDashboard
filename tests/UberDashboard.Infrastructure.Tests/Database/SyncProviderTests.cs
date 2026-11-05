@@ -9,6 +9,70 @@ namespace UberDashboard.Infrastructure.Tests.Database;
 
 public sealed class SyncProviderTests
 {
+    [Theory]
+    [InlineData(408)]
+    [InlineData(429)]
+    [InlineData(503)]
+    public async Task Read_failures_preserve_retry_after_instead_of_becoming_an_uncertain_write(int code)
+    {
+        using var transport = new Transport((_, _) =>
+        {
+            var response = new HttpResponseMessage((HttpStatusCode)code) { Content = new StringContent("{}") };
+            response.Headers.RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.FromSeconds(90)); return response;
+        }); using var http = new HttpClient(transport);
+        var failure = await Assert.ThrowsAsync<SyncReadException>(() => new MicrosoftTodoProvider(http, new Accounts())
+            .ReadPageAsync(Binding(SyncProviderKind.MicrosoftTodo), null, null, default));
+        Assert.Equal(TimeSpan.FromSeconds(90), failure.RetryAfter);
+    }
+
+    [Fact]
+    public async Task Related_collections_follow_pages_and_keep_their_own_ids_and_timestamp_fields()
+    {
+        var parent = new SyncEntity(Guid.NewGuid(), "task", null, null);
+        var binding = Binding(SyncProviderKind.MicrosoftTodo);
+        using var transport = new Transport((request, _) =>
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            if (path.EndsWith("/linkedResources", StringComparison.Ordinal))
+                return Json("""{"value":[{"id":"same","applicationName":"Source","displayName":"Link","webUrl":"custom:source"}]}""");
+            Assert.EndsWith("/tasks/task/checklistItems", path, StringComparison.Ordinal);
+            return request.RequestUri.Query.Length == 0
+                ? Json("""{"value":[{"id":"first","displayName":"Step","isChecked":true,"checkedDateTime":"2030-01-01T12:00:00Z"}],"@odata.nextLink":"https://graph.microsoft.com/v1.0/me/todo/lists/a/tasks/task/checklistItems?$skiptoken=x"}""")
+                : Json("""{"value":[{"id":"second","displayName":"Next","createdDateTime":"2030-01-01T11:00:00Z"}]}""");
+        });
+        using var http = new HttpClient(transport);
+        var collections = await new MicrosoftTodoProvider(http, new Accounts()).ReadRelationsAsync(binding, [parent], default);
+        Assert.Equal(2, collections.Count); Assert.Equal(2, collections[0].Items.Count);
+        Assert.Equal("2030-01-01T12:00:00Z", collections[0].Items[0].Fields!["checkedDateTime"]!.GetValue<string>());
+        Assert.Equal("custom:source", Assert.Single(collections[1].Items).Fields!["webUrl"]!.GetValue<string>());
+        Assert.All(collections, c => Assert.Equal(parent.LocalId, c.ParentId));
+    }
+
+    [Fact]
+    public async Task Related_continuation_cannot_switch_parent_collection_or_forward_credentials()
+    {
+        using var transport = new Transport((_, _) => throw new InvalidOperationException("No HTTP expected.")); using var http = new HttpClient(transport);
+        var scope = Binding(SyncProviderKind.MicrosoftTodo) with { ResourcePath = "lists/a/tasks/task/checklistItems" };
+        await Assert.ThrowsAsync<InvalidDataException>(() => new MicrosoftTodoProvider(http, new Accounts()).ReadPageAsync(scope, null,
+            "https://graph.microsoft.com/v1.0/me/todo/lists/a/tasks/other/checklistItems?$skiptoken=x", default));
+    }
+
+    [Theory]
+    [InlineData("checklistItems", """{"displayName":"Step","isChecked":true,"createdDateTime":"2030-01-01T12:00:00Z"}""")]
+    [InlineData("linkedResources", """{"displayName":"Link","webUrl":"https://example.invalid","applicationName":"Source","externalId":"ticket-1"}""")]
+    public async Task Related_creates_use_the_collection_endpoint_and_preserve_server_id(string collection, string payload)
+    {
+        using var transport = new Transport((request, body) =>
+        {
+            if (request.Method == HttpMethod.Post) { Assert.EndsWith('/' + collection, request.RequestUri!.AbsolutePath, StringComparison.Ordinal); Assert.True(JsonNode.DeepEquals(JsonNode.Parse(payload), JsonNode.Parse(body!))); }
+            var fields = JsonNode.Parse(payload)!.AsObject(); fields["id"] = "server-id"; return Json(fields.ToJsonString());
+        }); using var http = new HttpClient(transport);
+        var scope = Binding(SyncProviderKind.MicrosoftTodo) with { ResourcePath = "lists/a/tasks/task/" + collection };
+        var result = await new MicrosoftTodoProvider(http, new Accounts()).WriteAsync(scope,
+            new(Guid.NewGuid(), Guid.NewGuid(), 1, SyncOperationKind.Create, JsonNode.Parse(payload)!.AsObject(), null, null), default);
+        Assert.Equal(SyncWriteStatus.Success, result.Status); Assert.Equal("server-id", result.Entity!.Id);
+    }
+
     [Fact]
     public async Task Graph_extended_task_edit_sends_only_dirty_fields_and_preserves_server_status()
     {

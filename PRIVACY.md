@@ -17,7 +17,7 @@ UberDashboard jest aplikacją desktopową dla Windows, rozwijaną przez Kavaars.
 ### 2. Dane i cele
 
 - **Pulpity i panele:** notatki, zadania, ustawienia wyglądu, układ, skróty, wybrane lokalizacje, odwołania do plików i inne treści podane przez użytkownika służą do działania wybranych funkcji. Są zapisywane lokalnie, gdy dana funkcja wymaga trwałości. Zdjęcia i dokumenty wskazane z dysku mogą pozostawać w wybranym folderze zamiast być kopiowane do profilu aplikacji.
-- **Microsoft To Do:** po połączeniu konta aplikacja korzysta z logowania Microsoft i Microsoft Graph. Przetwarza identyfikatory konta/list, dane wybranych zadań oraz poświadczenia sesji. W aktualnym interfejsie pobiera listy i zadania; lokalne kopie mogą pozostać po odłączeniu konta. W wydaniach z włączonym zapisem zmiany użytkownika są przesyłane z powrotem do Microsoft wyłącznie w ramach udzielonych uprawnień i wybranej synchronizacji.
+- **Microsoft To Do:** po połączeniu konta aplikacja korzysta z logowania Microsoft i Microsoft Graph. Przetwarza identyfikatory konta/list, dane wybranych zadań, checklisty, metadane powiązań z innymi aplikacjami oraz poświadczenia sesji. Dane obejmują nazwy, stany, daty i podane adresy powiązań. Lokalne kopie mogą pozostać po odłączeniu konta. Po świadomym włączeniu zapisu zmiany użytkownika są przesyłane z powrotem do Microsoft wyłącznie w ramach udzielonych uprawnień i wybranej synchronizacji.
 - **Google Calendar:** po połączeniu konta aplikacja komunikuje się z Google OAuth i Calendar API, przetwarzając poświadczenia sesji, identyfikator konta i kalendarza oraz dane wydarzeń. Identyfikator konta służy do bezpiecznego przypisania synchronizacji do właściwej osoby i jest uzyskiwany przez Google OpenID Connect. Widok kalendarza pobiera wydarzenia. W wydaniach z włączonym zapisem zatwierdzone zmiany są przesyłane do Google. Operacje dotyczące uczestników mogą powodować wysłanie zaproszeń lub odwołań przez Google, zgodnie z zatwierdzoną akcją.
 - **Pogoda:** wyszukiwana nazwa miejsca jest przesyłana do `geocoding-api.open-meteo.com`, a współrzędne wybranej lokalizacji do `api.open-meteo.com`. Wyniki i konfiguracja mogą być zapisane lokalnie. Aplikacja nie potrzebuje do tego treści notatek ani zadań i nie wysyła ich do Open-Meteo.
 - **Monitor zasobów:** odczyty sprzętu służą do wyświetlania lokalnych pomiarów CPU, GPU, pamięci i dostępnych czujników. Wbudowany monitor nie wysyła ich do autora.
@@ -36,6 +36,8 @@ Autor nie sprzedaje danych użytkownika ani nie przekazuje ich reklamodawcom. Po
 Korzystanie z repozytorium, pobieranie aplikacji i kontakt przez GitHub podlega także [polityce prywatności GitHub](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement). Treści opublikowane w publicznym zgłoszeniu są publiczne — nie należy tam zamieszczać tokenów, haseł, prywatnych wydarzeń, zadań, logów bez sprawdzenia ani plików konta OAuth.
 
 Otwieranie skrótów WWW lub plików z folderów sieciowych korzysta z odpowiedniej przeglądarki, programu lub zasobu wybranego przez użytkownika. Zainstalowane pluginy są kodem wykonywanym w procesie aplikacji i nie mają izolacji systemowej. Pluginy osób trzecich mogą mieć własne połączenia i zasady prywatności; niniejszy opis nie gwarantuje ich zachowania.
+
+Adresy powiązań zadań są przechowywane jako dane i synchronizowane z Microsoft. Nie są otwierane automatycznie. Wybranie **Otwórz w przeglądarce** dla adresu HTTP/HTTPS powoduje kontakt przeglądarki z docelową stroną na zasadach tej strony. Odnośniki aplikacji natywnych mogą być zachowane, ale ten przycisk ich nie uruchamia.
 
 ### 4. Przechowywanie i zabezpieczenia
 
@@ -74,7 +76,7 @@ UberDashboard is a Windows desktop application maintained by Kavaars. Dashboard 
 ### 2. Data and purposes
 
 - **Dashboards and panels:** notes, tasks, appearance settings, layouts, shortcuts, selected locations, file references, and user-entered content support the features you use. They are stored locally where persistence is required. Referenced photos/documents may remain in their selected folders.
-- **Microsoft To Do:** account connection uses Microsoft sign-in and Microsoft Graph. The app processes account/list identifiers, selected task data, and session credentials. The current interface reads lists and tasks; local copies may remain after disconnecting. In releases with enabled write functionality, user changes are sent back to Microsoft only within the granted permissions and selected synchronization.
+- **Microsoft To Do:** account connection uses Microsoft sign-in and Microsoft Graph. The app processes account/list identifiers, selected task data, checklists, linked-resource metadata, and session credentials. Data includes names, states, dates, and provided resource URLs. Local copies may remain after disconnecting. After explicitly enabling write access, user changes are sent back to Microsoft only within the granted permissions and selected synchronization.
 - **Google Calendar:** connection uses Google OAuth and Calendar API, processing session credentials, account/calendar identifiers, and event data. The account identifier is obtained through Google OpenID Connect and prevents synchronization from being assigned to the wrong account. The calendar view reads events. In releases with enabled write functionality, approved changes are sent to Google. Participant-related actions can cause Google to send invitations or cancellations according to the approved action.
 - **Weather:** place search text is sent to `geocoding-api.open-meteo.com`; coordinates of the selected location are sent to `api.open-meteo.com`. Results and configuration may be cached locally. Notes and tasks are not required for weather and are not sent to Open-Meteo.
 - **Resource monitor:** hardware readings display local CPU, GPU, memory, and available sensor information. The built-in monitor does not send them to the developer.
@@ -89,6 +91,8 @@ The developer does not sell user data or supply it to advertisers. Microsoft, Go
 Visiting the repository, downloading releases, and contacting the project through GitHub is also subject to [GitHub's Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement). Public issue contents are public. Do not post credentials, OAuth account files, private tasks/events, or unreviewed logs.
 
 Opening web shortcuts or network files uses the browser, application, or network resource you selected. Installed plugins execute in the host process without system-level isolation. Third-party plugins may have their own connections and privacy practices; this policy does not guarantee their behavior.
+
+Task resource URLs are stored as data and synchronized with Microsoft; they are not opened automatically. Selecting **Open in browser** for an HTTP/HTTPS address contacts the destination website through your browser under that site's policies. Native-app deep links can be retained, but that button does not launch them.
 
 ### 4. Storage and protection
 

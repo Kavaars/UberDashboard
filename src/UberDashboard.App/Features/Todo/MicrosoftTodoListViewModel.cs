@@ -55,7 +55,7 @@ public sealed class MicrosoftTodoListViewModel : ObservableObject
             if (await FindBindingAsync() is not { } id || _sync is null) return;
             var state = await _sync.Store.ReadAsync(id, _closeToken);
             if (state is null) return;
-            _localItems = state.Items.Where(e => e.Local is not null).Select(e => new TodoItemState(
+            _localItems = state.Items.Where(e => e.Kind == UberDashboard.Core.Synchronization.SyncEntityKind.Item && e.Local is not null).Select(e => new TodoItemState(
                 e.Local!["title"]?.GetValue<string>() ?? "", e.Local["status"]?.GetValue<string>() == "completed", e.LocalId)).ToArray();
             Status = UiText.Format("SyncQueueSummary", _localItems.Count, state.Queue.Count,
                 state.Binding.Enabled ? UiText.Get("SyncEnabled") : UiText.Get("SyncPaused"));

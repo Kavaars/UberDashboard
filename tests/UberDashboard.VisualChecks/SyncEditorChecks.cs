@@ -119,9 +119,10 @@ internal static class SyncEditorChecks
             }
         }
         Console.WriteLine("SYNC EDITORS: validation / advanced task fields / localized controls / preservation / 12 renders PASS");
+        await RelatedEditorChecks.RunAsync(owner, theme, output);
     }
 
-    private static void Capture(Window window, string path)
+    internal static void Capture(Window window, string path)
     {
         var bitmap = new RenderTargetBitmap((int)window.ActualWidth, (int)window.ActualHeight, 96, 96, PixelFormats.Pbgra32);
         bitmap.Render(window);
@@ -129,7 +130,7 @@ internal static class SyncEditorChecks
         using var stream = File.Create(path); encoder.Save(stream);
     }
 
-    private static IEnumerable<DependencyObject> Descendants(DependencyObject root)
+    internal static IEnumerable<DependencyObject> Descendants(DependencyObject root)
     {
         yield return root;
         for (var index = 0; index < VisualTreeHelper.GetChildrenCount(root); index++)

@@ -39,7 +39,7 @@ internal static class SqliteMigrator
 
             if (migration.Version == 3 && applied.Count > 0)
                 backupBeforeTodoMigration?.Invoke();
-            if (migration.Version is 4 or 5 or 6 && applied.Count > 0)
+            if (migration.Version is 4 or 5 or 6 or 7 && applied.Count > 0)
                 backupBeforeSyncMigration?.Invoke();
             ApplyMigration(connection, migration, clock.UtcNow);
         }

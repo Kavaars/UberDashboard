@@ -135,7 +135,8 @@ public abstract partial class SyncHttpProvider(HttpClient http, IIntegrationAcco
         if (!response.IsSuccessStatusCode)
         {
             var failure = await FailureAsync(response, CancellationToken.None).ConfigureAwait(false);
-            if (failure.Status == SyncWriteStatus.Retry) throw new SyncReadException(failure.RetryAfter);
+            if (failure.Status == SyncWriteStatus.Retry || response.StatusCode == HttpStatusCode.RequestTimeout || (int)response.StatusCode >= 500)
+                throw new SyncReadException(failure.RetryAfter);
         }
         response.EnsureSuccessStatusCode();
     }

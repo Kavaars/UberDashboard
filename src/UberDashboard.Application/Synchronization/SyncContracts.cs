@@ -21,6 +21,10 @@ public interface ISyncProvider
 
 public interface IMicrosoftTodoProvider : ISyncProvider;
 public interface IGoogleCalendarProvider : ISyncProvider;
+public interface ISyncRelationProvider
+{
+    Task<IReadOnlyList<SyncRelationSnapshot>> ReadRelationsAsync(SyncBinding binding, IReadOnlyList<SyncEntity> parents, CancellationToken token);
+}
 
 /// <summary>Silent only. Interactive consent is initiated by the user interface.</summary>
 public interface IIntegrationAccountService
@@ -36,6 +40,7 @@ public interface ISyncCoordinator
 
 public sealed class SyncCursorExpiredException : Exception;
 public sealed class SyncAuthenticationException : Exception;
+public sealed class SyncDependentChangesException : Exception;
 public sealed class SyncReadException(TimeSpan? retryAfter) : Exception
 {
     public TimeSpan? RetryAfter { get; } = retryAfter;

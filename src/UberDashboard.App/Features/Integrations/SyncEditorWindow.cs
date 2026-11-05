@@ -14,7 +14,7 @@ using ListBox = System.Windows.Controls.ListBox;
 namespace UberDashboard.App.Features.Integrations;
 
 /// <summary>A modeless editor of the durable document. An offline edit never depends on a successful HTTP call.</summary>
-internal static class SyncEditorWindow
+internal static partial class SyncEditorWindow
 {
     private static readonly DependencyProperty InvalidDateInputProperty = DependencyProperty.RegisterAttached(
         "InvalidDateInput", typeof(bool), typeof(SyncEditorWindow), new PropertyMetadata(false));
@@ -50,7 +50,8 @@ internal static class SyncEditorWindow
         window.Show();
     }
 
-    internal static void Open(Window owner, IntegrationSyncService service, Guid bindingId, CancellationToken closeToken, Func<Task<bool>>? reconnect = null)
+    internal static Window Open(Window owner, IntegrationSyncService service, Guid bindingId, CancellationToken closeToken, Func<Task<bool>>? reconnect = null,
+        SyncEntityKind itemKind = SyncEntityKind.Item, Guid? parentId = null)
     {
         var window = WindowFrame.Create(owner, UiText.Get("SyncEditorTitle"), 780, 650);
         window.MinWidth = 480; window.MinHeight = 400;
@@ -67,6 +68,13 @@ internal static class SyncEditorWindow
         var remove = ActionButton("SyncDelete", toolbar);
         var review = ActionButton("SyncReview", toolbar);
         var pause = ActionButton("SyncPauseResume", toolbar);
+        var checklist = itemKind == SyncEntityKind.Item ? ActionButton("SyncChecklist", toolbar) : null;
+        var links = itemKind == SyncEntityKind.Item ? ActionButton("SyncLinkedResources", toolbar) : null;
+        if (checklist is not null) checklist.Visibility = Visibility.Collapsed;
+        if (links is not null) links.Visibility = Visibility.Collapsed;
+        var toggle = itemKind == SyncEntityKind.ChecklistItem ? ActionButton("SyncToggleChecked", toolbar) : null;
+        var browser = itemKind == SyncEntityKind.LinkedResource ? ActionButton("SyncOpenRelatedLink", toolbar) : null;
+        if (itemKind != SyncEntityKind.Item) { pause.ToolTip = UiText.Get("SyncRelatedPauseHelp"); review.ToolTip = UiText.Get("SyncRelatedQueueHelp"); }
         var reconnectButton = reconnect is null ? null : ActionButton("SyncReconnect", toolbar);
         var body = new Grid { Margin = new Thickness(14) };
         body.RowDefinitions.Add(new() { Height = GridLength.Auto });
@@ -83,14 +91,23 @@ internal static class SyncEditorWindow
             state = await service.Store.ReadAsync(bindingId, token);
             if (state is null) { status.Text = UiText.Get("SyncBindingMissing"); return; }
             window.Title = state.Binding.DisplayName + " · " + UiText.Get("SyncEditorTitle");
-            var rows = state.Items.Where(e => e.Local is not null || e.Conflicts is { Length: > 0 })
-                .Select(e => new Row(e, Title(e.Local ?? e.Remote) + " · " + StateLabel(state, e))).ToArray();
+            if (itemKind != SyncEntityKind.Item)
+                window.Title = UiText.Get(itemKind == SyncEntityKind.ChecklistItem ? "SyncChecklist" : "SyncLinkedResources") + " · " + Title(state.Items.FirstOrDefault(e => e.LocalId == parentId)?.Local);
+            var rows = state.Items.Where(e => e.Kind == itemKind && e.ParentId == parentId && (e.Local is not null || e.Conflicts is { Length: > 0 }))
+                .Select(e => new Row(e, Title(e.Local ?? e.Remote) + (itemKind == SyncEntityKind.ChecklistItem
+                    ? " · " + UiText.Get(e.Local?["isChecked"]?.GetValue<bool>() == true ? "SyncStepDone" : "SyncStepOpen") : "") + " · " + StateLabel(state, e))).ToArray();
             list.ItemsSource = rows;
             list.SelectedItem = rows.FirstOrDefault(r => r.Entity.LocalId == selected);
             status.Text = UiText.Format("SyncQueueSummary", rows.Length, state.Queue.Count,
                 state.Binding.Enabled ? UiText.Get("SyncEnabled") : UiText.Get("SyncPaused"));
             if (state.ConnectionStatus is not (SyncConnectionStatus.Idle or SyncConnectionStatus.Synchronizing))
                 status.Text += " · " + ConnectionLabel(state.ConnectionStatus);
+            if (checklist is not null) checklist.Visibility = state.Binding.Provider == SyncProviderKind.MicrosoftTodo ? Visibility.Visible : Visibility.Collapsed;
+            if (links is not null) links.Visibility = state.Binding.Provider == SyncProviderKind.MicrosoftTodo ? Visibility.Visible : Visibility.Collapsed;
+            var parentAvailable = itemKind == SyncEntityKind.Item || state.Items.Any(e => e.LocalId == parentId && e.Local is not null && e.Conflicts is not { Length: > 0 });
+            add.IsEnabled = edit.IsEnabled = remove.IsEnabled = parentAvailable;
+            if (toggle is not null) toggle.IsEnabled = parentAvailable;
+            if (!parentAvailable) status.Text += " · " + UiText.Get("SyncRelatedParentUnavailable");
         }
 
         async Task RunAsync(Func<Task> action)
@@ -102,8 +119,12 @@ internal static class SyncEditorWindow
             catch (OperationCanceledException) when (token.IsCancellationRequested) { }
             catch (Exception error)
             {
-                errorText = error is UberDashboard.Application.Synchronization.SyncAuthenticationException
-                    ? UiText.Get("SyncReconnectRequired") : UiText.Get("SyncFailedCachedDataAvailable");
+                errorText = UiText.Get(error switch
+                {
+                    UberDashboard.Application.Synchronization.SyncAuthenticationException => "SyncReconnectRequired",
+                    UberDashboard.Application.Synchronization.SyncDependentChangesException => "SyncFinishChildChanges",
+                    _ => "SyncFailedCachedDataAvailable",
+                });
             }
             finally
             {
@@ -127,14 +148,20 @@ internal static class SyncEditorWindow
         add.Click += async (_, _) => await RunAsync(async () =>
         {
             if (state is null) return;
-            if (Edit(window, state.Binding.Provider, null) is { } fields)
-            { await service.Coordinator.EditAsync(bindingId, Guid.NewGuid(), fields, token); service.Request(bindingId); }
+            var fields = itemKind == SyncEntityKind.Item ? Edit(window, state.Binding.Provider, null) : EditRelated(window, itemKind, null);
+            if (fields is not null)
+            {
+                if (parentId is { } parent) await service.Coordinator.EditChildAsync(bindingId, parent, Guid.NewGuid(), itemKind, fields, token);
+                else await service.Coordinator.EditAsync(bindingId, Guid.NewGuid(), fields, token);
+                service.Request(bindingId);
+            }
         });
         edit.Click += async (_, _) => await RunAsync(async () =>
         {
             if (state is null || list.SelectedItem is not Row row) return;
-            if (row.Entity.Conflicts is { Length: > 0 }) { Resolve(window, service, bindingId, row.Entity, token); return; }
-            if (Edit(window, state.Binding.Provider, row.Entity.Local) is { } fields)
+            if (row.Entity.Conflicts is { Length: > 0 }) { Resolve(window, service, bindingId, row.Entity, token, state.Items.Count(e => e.ParentId == row.Entity.LocalId)); return; }
+            var fields = itemKind == SyncEntityKind.Item ? Edit(window, state.Binding.Provider, row.Entity.Local) : EditRelated(window, itemKind, row.Entity.Local);
+            if (fields is not null)
             { await service.Coordinator.EditFromSnapshotAsync(bindingId, row.Entity.LocalId, row.Entity.Local, row.Entity.Revision, fields, token); service.Request(bindingId); }
         });
         remove.Click += async (_, _) => await RunAsync(async () =>
@@ -145,23 +172,48 @@ internal static class SyncEditorWindow
             await service.Coordinator.EditFromSnapshotAsync(bindingId, row.Entity.LocalId, row.Entity.Local, row.Entity.Revision, null, token); service.Request(bindingId);
         });
         review.Click += (_, _) => { if (state is not null) Review(window, service, state, token); };
+        if (checklist is not null) checklist.Click += (_, _) =>
+        { if (list.SelectedItem is Row row) Open(window, service, bindingId, token, reconnect, SyncEntityKind.ChecklistItem, row.Entity.LocalId); };
+        if (links is not null) links.Click += (_, _) =>
+        { if (list.SelectedItem is Row row) Open(window, service, bindingId, token, reconnect, SyncEntityKind.LinkedResource, row.Entity.LocalId); };
+        if (toggle is not null) toggle.Click += async (_, _) => await RunAsync(async () =>
+        {
+            if (list.SelectedItem is not Row { Entity.Local: { } original } row || row.Entity.Conflicts is { Length: > 0 }) return;
+            var desired = (JsonObject)original.DeepClone(); desired["isChecked"] = !(desired["isChecked"]?.GetValue<bool>() ?? false);
+            await service.Coordinator.EditFromSnapshotAsync(bindingId, row.Entity.LocalId, original, row.Entity.Revision, desired, token); service.Request(bindingId);
+        });
+        if (browser is not null) browser.Click += (_, _) =>
+        {
+            var url = (list.SelectedItem as Row)?.Entity.Local?["webUrl"]?.GetValue<string>();
+            if (!MicrosoftRelatedDraft.IsBrowserUrl(url)) { status.Text = UiText.Get("SyncBrowserLinkUnavailable"); return; }
+            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(new Uri(url!, UriKind.Absolute).AbsoluteUri) { UseShellExecute = true }); }
+            catch (Exception) { status.Text = UiText.Get("CouldNotOpenProjectLink"); }
+        };
         pause.Click += async (_, _) => await RunAsync(async () =>
         {
-            if (state is not null) await service.Coordinator.SetEnabledAsync(bindingId, !state.Binding.Enabled, token);
+            if (state is not null)
+            {
+                var enable = !state.Binding.Enabled;
+                await service.Coordinator.SetEnabledAsync(bindingId, enable, token);
+                if (enable) service.Request(bindingId);
+            }
         });
         list.MouseDoubleClick += (_, _) => { if (edit.IsEnabled) edit.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); };
         window.Loaded += async (_, _) => await RunAsync(async () => { await ReloadAsync(); await service.Coordinator.SynchronizeAsync(bindingId, token); });
         var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
         timer.Tick += async (_, _) => { if (!busy) await RunAsync(() => Task.CompletedTask); };
         timer.Start();
-        window.Closed += (_, _) => { timer.Stop(); cancellation.Cancel(); cancellation.Dispose(); };
+        var registration = token.Register(() => window.Dispatcher.BeginInvoke(new Action(() => { if (window.IsVisible) window.Close(); })));
+        window.Closed += (_, _) => { registration.Dispose(); timer.Stop(); cancellation.Cancel(); cancellation.Dispose(); };
         window.Show();
+        return window;
     }
 
     private static string StateLabel(SyncState state, SyncEntity entity)
     {
         if (state.ConnectionStatus == SyncConnectionStatus.AuthenticationRequired) return UiText.Get("SyncReconnectRequired");
-        var operation = state.Queue.FirstOrDefault(o => o.EntityId == entity.LocalId);
+        var operation = state.Queue.FirstOrDefault(o => o.EntityId == entity.LocalId) ??
+            state.Queue.FirstOrDefault(o => state.Items.Any(e => e.LocalId == o.EntityId && e.ParentId == entity.LocalId));
         return UiText.Get(operation?.State switch
         {
             SyncOperationState.Conflict => "SyncConflict",
@@ -192,7 +244,7 @@ internal static class SyncEditorWindow
         AutomationProperties.SetName(button, UiText.Get(key)); parent.Children.Add(button); return button;
     }
 
-    private static string Title(JsonObject? fields) => fields?["title"]?.GetValue<string>() ?? fields?["summary"]?.GetValue<string>() ?? UiText.Get("UntitledEvent");
+    private static string Title(JsonObject? fields) => fields?["title"]?.GetValue<string>() ?? fields?["summary"]?.GetValue<string>() ?? fields?["displayName"]?.GetValue<string>() ?? UiText.Get("UntitledEvent");
 
     internal static JsonObject? Edit(Window owner, SyncProviderKind provider, JsonObject? original, Action<Window>? onLoaded = null)
     {
@@ -333,9 +385,11 @@ internal static class SyncEditorWindow
     internal static bool HasDateError(DatePicker field) => (bool)field.GetValue(InvalidDateInputProperty);
     internal static DateTime? DateValue(DatePicker field) => HasDateError(field) ? null : field.SelectedDate;
 
-    private static void Resolve(Window owner, IntegrationSyncService service, Guid bindingId, SyncEntity entity, CancellationToken token)
+    private static void Resolve(Window owner, IntegrationSyncService service, Guid bindingId, SyncEntity entity, CancellationToken token, int relatedCount = 0)
     {
-        var answer = ThemedMessageBox.Show(owner, UiText.Format("SyncConflictChoice", Describe(entity.Local), Describe(entity.Remote)),
+        var message = UiText.Format("SyncConflictChoice", Describe(entity.Local), Describe(entity.Remote));
+        if (relatedCount > 0 && entity.Conflicts?.Contains("$deleted") == true) message += "\n\n" + UiText.Format("SyncRelatedConflictNotice", relatedCount);
+        var answer = ThemedMessageBox.Show(owner, message,
             UiText.Get("SyncConflict"), MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
         if (answer is not (MessageBoxResult.Yes or MessageBoxResult.No)) return;
         var window = WindowFrame.Create(owner, UiText.Get("SyncConflict"), 500, 260);
@@ -343,6 +397,8 @@ internal static class SyncEditorWindow
         window.Loaded += async (_, _) =>
         {
             try { await service.Coordinator.ResolveAsync(bindingId, entity.LocalId, answer == MessageBoxResult.Yes ? entity.Local : entity.Remote, token, entity); service.Request(bindingId); status.Text = UiText.Get("SyncSavedLocally"); }
+            catch (UberDashboard.Application.Synchronization.SyncAuthenticationException) { status.Text = UiText.Get("SyncReconnectRequired"); }
+            catch (UberDashboard.Application.Synchronization.SyncReadException) { status.Text = UiText.Get("SyncThrottled"); }
             catch (Exception) { status.Text = UiText.Get("SyncConflictChanged"); }
         };
         window.Show();
@@ -370,10 +426,18 @@ internal static class SyncEditorWindow
             }
             else if (operation.State == SyncOperationState.Conflict)
             {
-                var resolve = ActionButton("SyncResolve", body); resolve.Click += (_, _) => Resolve(window, service, state.Binding.Id, entity, token);
+                var resolve = ActionButton("SyncResolve", body); resolve.Click += (_, _) => Resolve(window, service, state.Binding.Id, entity, token, state.Items.Count(e => e.ParentId == entity.LocalId));
             }
             else if (operation.State is SyncOperationState.UnknownOutcome or SyncOperationState.Sending)
+            {
                 body.Children.Add(new TextBlock { Text = UiText.Get("SyncUnknownOutcomeHelp"), TextWrapping = TextWrapping.Wrap });
+                if (state.Binding.Provider == SyncProviderKind.MicrosoftTodo && operation.State == SyncOperationState.UnknownOutcome &&
+                    operation.Kind == SyncOperationKind.Create && operation.RemoteId is null)
+                {
+                    var link = ActionButton("SyncSelectExisting", body);
+                    link.Click += (_, _) => OpenUnknownLink(window, service, state, operation, token);
+                }
+            }
             else
             {
                 var retry = ActionButton("SyncRetry", body); retry.Click += async (_, _) =>
@@ -400,7 +464,9 @@ internal static class SyncEditorWindow
             var label = pair.Key switch
             {
                 "title" or "summary" => "SyncTitle", "description" or "body" => "SyncDescription", "location" => "SyncLocation",
-                "start" => "SyncStart", "end" => "SyncEnd", "status" => "SyncTaskStatus", _ => "SyncOtherDetails",
+                "start" => "SyncStart", "end" => "SyncEnd", "status" => "SyncTaskStatus", "displayName" => "SyncRelatedName",
+                "isChecked" => "SyncStepChecked", "checkedDateTime" => "SyncStepCheckedAt", "createdDateTime" => "SyncStepCreatedAt",
+                "webUrl" => "SyncRelatedUrl", "applicationName" => "SyncRelatedApplication", "externalId" => "SyncRelatedExternalId", _ => "SyncOtherDetails",
             };
             text.Append(UiText.Get(label)).Append(": ").AppendLine(DescribeValue(pair.Value));
         }
