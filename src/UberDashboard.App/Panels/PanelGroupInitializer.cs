@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using UberDashboard.Application.Abstractions;
 using UberDashboard.App.Features.Notes;
 using UberDashboard.Core.Layout;
@@ -44,7 +45,7 @@ public sealed class PanelGroupInitializer(IPanelTabGroupStore groups, IPanelInst
         foreach (var tab in group.Tabs)
         {
             var record = await instances.GetAsync(tab.InstanceId, cancellationToken).ConfigureAwait(false);
-            if (record is null) throw new InvalidOperationException("Brakuje stanu zakładki; grupa nie została zmieniona.");
+            if (record is null) throw new InvalidOperationException(UiText.Get("TabStateIsMissingTheGroupWas"));
             records.Add(record);
         }
         return records;

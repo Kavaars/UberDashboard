@@ -11,6 +11,27 @@ namespace UberDashboard.App.Tests.Settings;
 public sealed class LiveSettingsTests
 {
     [Fact]
+    public async Task Open_settings_do_not_restore_stale_launch_mode_when_editing_bar_thickness()
+    {
+        var store = new FakeAppSettingsStore(); var clock = new FakeClock();
+        var settings = new ApplicationSettingsService(store, clock);
+        using var theme = new ThemeService(store, settings, clock, NullLogger<ThemeService>.Instance);
+        var windowSettings = new FakeWindowModeSettingsService
+        {
+            Settings = new WindowModeSettings { LaunchMode = WindowMode.Normal },
+        };
+        var integration = new Integration();
+        var vm = new SettingsViewModel(settings, windowSettings, new Coordinator { ActiveMode = WindowMode.DockedBar },
+            new FakeMonitorProvider { Monitors = [] }, theme, new ToastService(NullLogger<ToastService>.Instance),
+            integration, integration, new Picker());
+        await vm.LoadAsync();
+        windowSettings.Settings = windowSettings.Settings with { LaunchMode = WindowMode.DockedBar };
+        vm.DockThickness = 340;
+        await vm.FlushAsync();
+        Assert.Equal(WindowMode.DockedBar, windowSettings.Settings.LaunchMode);
+    }
+
+    [Fact]
     public async Task Changes_save_without_apply_and_font_does_not_switch_window()
     {
         var store = new FakeAppSettingsStore(); var clock = new FakeClock();
@@ -20,9 +41,12 @@ public sealed class LiveSettingsTests
         var vm = new SettingsViewModel(settings, new FakeWindowModeSettingsService(), coordinator,
             new FakeMonitorProvider { Monitors = [] }, theme, new ToastService(NullLogger<ToastService>.Instance), integration, integration, new Picker());
         await vm.LoadAsync();
+        Assert.Equal("pl", vm.SelectedLanguage);
+        vm.SelectedLanguage = "en";
         vm.FontSize = 18; vm.FontSize = 21; vm.AccentColor = "#123456";
         await vm.FlushAsync();
         Assert.Equal(21, (await settings.LoadAsync()).FontSize);
+        Assert.Equal("en", (await settings.LoadAsync()).Language);
         Assert.Equal("#123456", (await settings.LoadAsync()).AccentColor);
         Assert.Equal(0, coordinator.Calls);
         Assert.Equal(0, integration.Calls);
@@ -51,7 +75,7 @@ public sealed class LiveSettingsTests
             CornerRadius = 22, DensityScale = 1.2, WallpaperPath = "wallpaper.png", WallpaperBlur = 12,
             TransparentDesktopBackground = true, BackgroundSurfaceOpacity = .4, WindowOpacity = .8,
             DesktopBlur = true, EnableTrayIcon = true, CloseBehavior = CloseBehavior.MinimizeToTray,
-            WeatherRefreshMinutes = 55,
+            WeatherRefreshMinutes = 55, Language = "en",
         };
         await settings.SaveAsync(original);
         using var theme = new ThemeService(store, settings, clock, NullLogger<ThemeService>.Instance);
@@ -64,6 +88,7 @@ public sealed class LiveSettingsTests
         Assert.Equal(original with { PanelSpacing = 24, DividerThickness = 0 }, await settings.LoadAsync());
         await vm.LoadAsync();
         Assert.Equal(24, vm.PanelSpacing); Assert.Equal(0, vm.DividerThickness);
+        Assert.Equal("en", vm.SelectedLanguage);
         Assert.Equal(0, coordinator.Calls); Assert.Equal(0, integration.Calls);
     }
 

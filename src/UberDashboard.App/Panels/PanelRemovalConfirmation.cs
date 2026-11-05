@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Windows;
 
 namespace UberDashboard.App.Panels;
@@ -11,7 +12,7 @@ public interface IPanelRemovalConfirmation
 public sealed class PanelRemovalConfirmation : IPanelRemovalConfirmation
 {
     public bool Confirm(string displayName) => UberDashboard.App.Controls.ThemedMessageBox.Show(
-        $"Usunąć panel „{displayName}”?\n\nZostaną usunięte zadania lub notatka oraz zapisana konfiguracja tej instancji. Inne panele pozostaną bez zmian. Tej operacji nie można cofnąć bez kopii bezpieczeństwa.\n\nAby zachować dane, wybierz Anuluj i użyj Ukryj panel.",
-        "Usuwanie panelu", MessageBoxButton.OKCancel, MessageBoxImage.Warning,
+        UiText.Format("DeleteThePanelThisPermanentlyDeletesThe", displayName),
+        UiText.Get("DeletePanel2"), MessageBoxButton.OKCancel, MessageBoxImage.Warning,
         MessageBoxResult.Cancel) == MessageBoxResult.OK;
 }

@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using UberDashboard.Application.Abstractions;
 using UberDashboard.Core.Layout;
 
@@ -81,7 +82,7 @@ public sealed class AppPaths : IAppPaths
     {
         if (string.IsNullOrWhiteSpace(value))
         {
-            throw new ArgumentException("Segment ścieżki nie może być pusty.", parameterName);
+            throw new ArgumentException(UiText.Get("APathSegmentCannotBeEmpty"), parameterName);
         }
 
         if (value.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0
@@ -89,7 +90,7 @@ public sealed class AppPaths : IAppPaths
             || value.Contains(Path.DirectorySeparatorChar)
             || value.Contains(Path.AltDirectorySeparatorChar))
         {
-            throw new ArgumentException($"Segment ścieżki '{value}' zawiera niedozwolone znaki.", parameterName);
+            throw new ArgumentException(UiText.Format("PathSegmentContainsInvalidCharacters", value), parameterName);
         }
 
         return value;

@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using UberDashboard.Application.Weather;
@@ -33,7 +34,7 @@ public sealed class OpenMeteoLocationSearchService : IWeatherLocationSearchServi
         var count = Math.Clamp(maxResults, 1, 20);
 
         using var response = await _client
-            .GetAsync($"/v1/search?name={safeQuery}&count={count}&language=pl&format=json", cancellationToken)
+            .GetAsync($"/v1/search?name={safeQuery}&count={count}&language={UiText.Language}&format=json", cancellationToken)
             .ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 

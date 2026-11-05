@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Text;
 
 namespace UberDashboard.Application.Import;
@@ -16,7 +17,7 @@ public static class ImportFileReader
         IReadOnlyList<string> paths, Encoding encoding, CancellationToken cancellationToken)
     {
         if (paths.Count > MaxFiles)
-            throw new InvalidDataException($"Można wczytać do {MaxFiles} plików naraz.");
+            throw new InvalidDataException(UiText.Format("YouCanLoadUpToFilesAt", MaxFiles));
 
         var fallbackEncoding = (Encoding)encoding.Clone();
         fallbackEncoding.DecoderFallback = DecoderFallback.ExceptionFallback;
@@ -29,12 +30,12 @@ public static class ImportFileReader
                 bufferSize: 4096, useAsync: true);
             var length = stream.Length;
             if (length > MaxFileBytes || total + length > MaxBatchBytes)
-                throw new InvalidDataException($"Przekroczono limit rozmiaru importu: {Path.GetFileName(path)}.");
+                throw new InvalidDataException(UiText.Format("ImportSizeLimitExceeded", Path.GetFileName(path)));
 
             var bytes = new byte[(int)length];
             await stream.ReadExactlyAsync(bytes, cancellationToken).ConfigureAwait(false);
             if (await stream.ReadAsync(new byte[1], cancellationToken).ConfigureAwait(false) != 0)
-                throw new IOException($"Rozmiar pliku zmienił się podczas odczytu: {Path.GetFileName(path)}.");
+                throw new IOException(UiText.Format("FileSizeChangedWhileReading", Path.GetFileName(path)));
 
             total += length;
             sources.Add(new ImportSource(Path.GetFileName(path), Decode(bytes, fallbackEncoding)));

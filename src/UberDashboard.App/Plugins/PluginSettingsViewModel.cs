@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -15,7 +16,7 @@ public sealed class PluginSettingsViewModel : ObservableObject
     private readonly ILogger<PluginSettingsViewModel> _logger;
     private CancellationTokenSource? _operation;
     private Task _pending = Task.CompletedTask;
-    private string _status = "Wybierz paczkę .udplugin lub przeciągnij ją na okno aplikacji.";
+    private string _status = UiText.Get("ChooseAUdpluginPackageOrDragIt");
     public PluginSettingsViewModel(PluginManager manager, IToastService toasts, ILogger<PluginSettingsViewModel> logger)
     {
         _manager = manager; _toasts = toasts; _logger = logger;
@@ -31,18 +32,18 @@ public sealed class PluginSettingsViewModel : ObservableObject
     public IRelayCommand CancelCommand { get; }
     private async Task ChooseAsync()
     {
-        var dialog = new UberDashboard.App.Controls.ThemedFileDialog { Filter = "Plugin UberDashboard (*.udplugin)|*.udplugin", Title = "Zainstaluj plugin", Multiselect = false };
+        var dialog = new UberDashboard.App.Controls.ThemedFileDialog { Filter = UiText.Get("UberdashboardPluginUdpluginUdplugin"), Title = UiText.Get("InstallPlugin"), Multiselect = false };
         if (dialog.ShowDialog() == true) await InstallFileAsync(dialog.FileName);
     }
-    public Task InstallFileAsync(string file) => StartAsync("Sprawdzanie i instalowanie pluginu…", async token =>
+    public Task InstallFileAsync(string file) => StartAsync(UiText.Get("CheckingAndInstallingPlugin"), async token =>
     {
         await _manager.InstallAsync(file, token);
-        return "Plugin zainstalowany. Panel jest dostępny w menu Dodaj panel.";
+        return UiText.Get("PluginInstalledItsPanelIsAvailableUnder");
     });
-    private Task RemoveAsync(InstalledPlugin? plugin) => plugin is null ? Task.CompletedTask : StartAsync("Usuwanie pluginu…", async token =>
+    private Task RemoveAsync(InstalledPlugin? plugin) => plugin is null ? Task.CompletedTask : StartAsync(UiText.Get("RemovingPlugin"), async token =>
     {
         await _manager.RemoveAsync(plugin, token);
-        return "Plugin usunięty. Zachowano dane i miejsca paneli; ponowna instalacja je przywróci.";
+        return UiText.Get("PluginRemovedReinstallingItWillRestoreIts");
     });
     public async Task StopAsync()
     {
@@ -51,13 +52,13 @@ public sealed class PluginSettingsViewModel : ObservableObject
     }
     private Task StartAsync(string status, Func<CancellationToken, Task<string>> action)
     {
-        if (IsBusy) { _toasts.Show("Trwa inna operacja pluginów.", ToastSeverity.Information); return Task.CompletedTask; }
+        if (IsBusy) { _toasts.Show(UiText.Get("AnotherPluginOperationIsInProgress"), ToastSeverity.Information); return Task.CompletedTask; }
         _pending = RunAsync(status, action);
         return _pending;
     }
     private async Task RunAsync(string status, Func<CancellationToken, Task<string>> action)
     {
-        if (IsBusy) { _toasts.Show("Trwa inna operacja pluginów.", ToastSeverity.Information); return; }
+        if (IsBusy) { _toasts.Show(UiText.Get("AnotherPluginOperationIsInProgress"), ToastSeverity.Information); return; }
         using var operation = new CancellationTokenSource();
         _operation = operation; NotifyBusy(); Status = status;
         try
@@ -65,11 +66,11 @@ public sealed class PluginSettingsViewModel : ObservableObject
             Status = await action(operation.Token);
             _toasts.Show(Status, ToastSeverity.Success);
         }
-        catch (OperationCanceledException) { Status = "Operacja anulowana."; _toasts.Show(Status); }
+        catch (OperationCanceledException) { Status = UiText.Get("OperationCanceled"); _toasts.Show(Status); }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Operacja pluginu nie powiodła się.");
-            Status = ex is System.IO.InvalidDataException ? ex.Message : "Operacja pluginu nie powiodła się. Sprawdź logi i spróbuj ponownie.";
+            Status = ex is System.IO.InvalidDataException ? ex.Message : UiText.Get("ThePluginOperationFailedCheckTheLogs");
             _toasts.Show(Status, ToastSeverity.Error);
         }
         finally { _operation = null; NotifyBusy(); }

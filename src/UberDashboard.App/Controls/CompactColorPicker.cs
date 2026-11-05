@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -37,7 +38,7 @@ public sealed class CompactColorPicker : UserControl
         content.Children.Add(_sample);
         content.Children.Add(_label);
         _sample.SetResourceReference(Border.BorderBrushProperty, "Brush.Border");
-        _button = new Button { Content = content, Margin = new Thickness(0), ToolTip = "Otwiera koło kolorów z jasnością, kryciem, wartością HEX i powrotem do koloru motywu." };
+        _button = new Button { Content = content, Margin = new Thickness(0), ToolTip = UiText.Get("OpensTheColorWheelWithBrightnessOpacity") };
         _button.SetResourceReference(StyleProperty, "ToolbarButton");
         _button.SetBinding(System.Windows.Automation.AutomationProperties.NameProperty,
             new Binding { Path = new PropertyPath(System.Windows.Automation.AutomationProperties.NameProperty), Source = this });
@@ -60,7 +61,7 @@ public sealed class CompactColorPicker : UserControl
             picker.SetBinding(ColorWheel.SelectedColorProperty, new Binding(nameof(SelectedColor)) { Source = this, Mode = BindingMode.TwoWay });
             var stack = new StackPanel();
             stack.Children.Add(picker);
-            var close = new Button { Content = "Gotowe", Margin = new Thickness(0, 8, 0, 0), ToolTip = "Zamyka edytor; wybrany kolor jest już widoczny i zapisywany automatycznie." };
+            var close = new Button { Content = UiText.Get("Done"), Margin = new Thickness(0, 8, 0, 0), ToolTip = UiText.Get("ClosesTheEditorTheChosenColorIs") };
             close.SetResourceReference(StyleProperty, "ToolbarButton");
             close.Click += (_, _) => _popup.IsOpen = false;
             stack.Children.Add(close);
@@ -79,6 +80,6 @@ public sealed class CompactColorPicker : UserControl
         var color = new Settings.ApplicationSettings { SurfaceColor = SelectedColor }.Normalize().SurfaceColor;
         if (color is null) _sample.SetResourceReference(Border.BackgroundProperty, DefaultBrushKey);
         else _sample.Background = new SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(color));
-        _label.Text = color is null ? "Z motywu" : "Własny kolor";
+        _label.Text = color is null ? UiText.Get("FromTheme") : UiText.Get("CustomColor");
     }
 }

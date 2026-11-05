@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using UberDashboard.Contracts.Panels;
 using UberDashboard.Core.Layout;
 
@@ -8,7 +9,7 @@ public sealed class SpacePanelDescriptor : IPanelDescriptor, IPanelFactory
 {
     public const string Id = "builtin.layout-space";
     public string TypeId => Id;
-    public string DisplayName => "Wolne miejsce";
+    public string DisplayName => UiText.Get("EmptySpace");
     public string? IconKey => null;
     public MinSize MinSize => new(48, 48);
     public int StateSchemaVersion => 1;

@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.IO;
 using System.IO.Enumeration;
 using System.Windows;
@@ -51,18 +52,18 @@ internal sealed class ThemedFileDialog
         path.SetResourceReference(FrameworkElement.StyleProperty, "ThemedTextBox");
         filename.SetResourceReference(FrameworkElement.StyleProperty, "ThemedTextBox");
         filter.SetResourceReference(FrameworkElement.StyleProperty, "ThemedComboBox");
-        AutomationProperties.SetName(path, "Ścieżka folderu");
-        AutomationProperties.SetName(filename, "Nazwa lub pełna ścieżka pliku");
-        AutomationProperties.SetName(filter, "Typ plików");
-        AutomationProperties.SetName(list, "Foldery i pliki");
+        AutomationProperties.SetName(path, UiText.Get("FolderPath"));
+        AutomationProperties.SetName(filename, UiText.Get("FileNameOrFullPath"));
+        AutomationProperties.SetName(filter, UiText.Get("FileType"));
+        AutomationProperties.SetName(list, UiText.Get("FoldersAndFiles"));
 
         var root = new DockPanel { Margin = new Thickness(14) };
         var top = new StackPanel();
         DockPanel.SetDock(top, Dock.Top);
         var navigation = new DockPanel { Margin = new Thickness(0, 0, 0, 6) };
-        var go = MakeButton("Przejdź");
-        var up = MakeButton("W górę");
-        var drives = MakeButton("Dyski");
+        var go = MakeButton(UiText.Get("Go"));
+        var up = MakeButton(UiText.Get("Up"));
+        var drives = MakeButton(UiText.Get("Drives"));
         foreach (var button in new[] { go, up, drives })
         {
             DockPanel.SetDock(button, Dock.Right);
@@ -77,8 +78,8 @@ internal sealed class ThemedFileDialog
         DockPanel.SetDock(bottom, Dock.Bottom);
         var status = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 4) };
         var buttons = new WrapPanel { HorizontalAlignment = System.Windows.HorizontalAlignment.Right, Margin = new Thickness(0, 6, 0, 0) };
-        var accept = MakeButton(SaveFile ? "Zapisz" : "Otwórz");
-        var close = MakeButton("Anuluj");
+        var accept = MakeButton(SaveFile ? UiText.Get("Save") : UiText.Get("Open"));
+        var close = MakeButton(UiText.Get("Cancel"));
         close.IsCancel = true;
         buttons.Children.Add(accept);
         buttons.Children.Add(close);
@@ -96,7 +97,7 @@ internal sealed class ThemedFileDialog
             var current = ++revision;
             list.ItemsSource = null;
             accept.IsEnabled = false;
-            status.Text = "Odczytywanie folderu…";
+            status.Text = UiText.Get("ReadingFolder");
             var pattern = (FileFilter)filter.SelectedItem;
             try
             {
@@ -107,14 +108,14 @@ internal sealed class ThemedFileDialog
                 path.Text = resolved ?? "";
                 list.ItemsSource = entries;
                 accept.IsEnabled = true;
-                status.Text = resolved is null ? "Wybierz dysk." : $"{entries.Length} elementów. Możesz wpisać pełną ścieżkę pliku.";
+                status.Text = resolved is null ? UiText.Get("ChooseADrive") : UiText.Format("ItemsYouCanEnterAFullFile", entries.Length);
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
             {
                 if (token.IsCancellationRequested || current != revision) return;
                 accept.IsEnabled = true;
-                status.Text = "Nie można otworzyć folderu. Sprawdź ścieżkę i uprawnienia.";
+                status.Text = UiText.Get("CouldNotOpenTheFolderCheckIts");
             }
         }
 
@@ -133,14 +134,14 @@ internal sealed class ThemedFileDialog
                 if (SaveFile || selection.Length == 0)
                 {
                     var name = filename.Text.Trim();
-                    if (name.Length == 0) { status.Text = "Wybierz plik lub wpisz jego nazwę."; return; }
+                    if (name.Length == 0) { status.Text = UiText.Get("ChooseAFileOrEnterItsName"); return; }
                     if (SaveFile && !Path.HasExtension(name)) name += DefaultExt;
                     selection = [Path.GetFullPath(name, folder)];
                 }
                 var exists = await Task.Run(() => selection.All(File.Exists), token);
                 if (token.IsCancellationRequested) return;
-                if (!SaveFile && !exists) { status.Text = "Wskazany plik jest niedostępny."; return; }
-                if (SaveFile && exists && ThemedMessageBox.Show(window, "Zastąpić istniejący plik?", "Zapis pliku",
+                if (!SaveFile && !exists) { status.Text = UiText.Get("TheSelectedFileIsUnavailable"); return; }
+                if (SaveFile && exists && ThemedMessageBox.Show(window, UiText.Get("ReplaceTheExistingFile"), UiText.Get("SaveFile"),
                     MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) != MessageBoxResult.Yes) return;
                 FileNames = selection;
                 FileName = selection[0];
@@ -148,7 +149,7 @@ internal sealed class ThemedFileDialog
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { }
             catch (Exception error) when (error is IOException or ArgumentException or NotSupportedException)
-            { status.Text = "Podana ścieżka pliku jest nieprawidłowa."; }
+            { status.Text = UiText.Get("TheFilePathIsInvalid"); }
             finally { confirming = false; }
         }
 

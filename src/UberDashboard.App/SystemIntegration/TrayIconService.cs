@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Drawing;
 using System.Windows.Forms;
 using UberDashboard.App.Settings;
@@ -37,9 +38,9 @@ public sealed class TrayIconService : ITrayIconService
             contextMenu.Renderer = new ToolStripProfessionalRenderer(new TrayColors(surface, alternate, border)) { RoundedEdges = false };
         };
         _menu = contextMenu;
-        contextMenu.Items.Add("Pokaż UberDashboard", null, (_, _) => restoreMainWindow());
+        contextMenu.Items.Add(UiText.Get("ShowUberdashboard"), null, (_, _) => restoreMainWindow());
         contextMenu.Items.Add(new ToolStripSeparator());
-        contextMenu.Items.Add("Zakończ", null, (_, _) => exitApplication());
+        contextMenu.Items.Add(UiText.Get("Quit"), null, (_, _) => exitApplication());
 
         _notifyIcon = new NotifyIcon
         {

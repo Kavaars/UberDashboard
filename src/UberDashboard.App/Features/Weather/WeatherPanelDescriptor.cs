@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using UberDashboard.Contracts.Panels;
 using UberDashboard.Core.Layout;
 
@@ -21,7 +22,7 @@ public sealed class WeatherPanelDescriptor : IPanelDescriptor
     string IPanelDescriptor.TypeId => TypeId;
 
     /// <inheritdoc />
-    public string DisplayName => "Pogoda";
+    public string DisplayName => UiText.Get("Weather");
 
     /// <inheritdoc />
     public string? IconKey => "panel.weather";

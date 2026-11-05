@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using UberDashboard.Application.Abstractions;
 
 namespace UberDashboard.Infrastructure.Database.Stores;
@@ -74,7 +75,7 @@ public sealed class AppSettingsStore : IAppSettingsStore
     {
         if (string.IsNullOrWhiteSpace(key))
         {
-            throw new ArgumentException("Klucz ustawienia nie może być pusty.", nameof(key));
+            throw new ArgumentException(UiText.Get("TheSettingKeyCannotBeEmpty"), nameof(key));
         }
 
         return key;

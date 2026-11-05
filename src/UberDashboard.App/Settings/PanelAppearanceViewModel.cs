@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.IO;
 using System.Text.Json;
 using System.Windows.Media;
@@ -75,7 +76,7 @@ public sealed partial class PanelAppearanceViewModel : ObservableObject
             var raw = await _store.GetAsync(_key).ConfigureAwait(true);
             Apply(raw is null ? new() : JsonSerializer.Deserialize<PanelAppearanceSettings>(raw) ?? new());
         }
-        catch (Exception) { Status = "Nie odczytano wyglądu panelu."; }
+        catch (Exception) { Status = UiText.Get("CouldNotLoadThePanelAppearance"); }
         finally { _loading = false; IsReady = true; }
     }
     private void Apply(PanelAppearanceSettings settings)
@@ -113,25 +114,25 @@ public sealed partial class PanelAppearanceViewModel : ObservableObject
             do
             {
                 revision = _saveRevision;
-                Status = "Zapisywanie…";
+                Status = UiText.Get("Saving");
                 await Task.Delay(150).ConfigureAwait(true);
                 if (revision != _saveRevision) continue;
                 await _store.SetAsync(_key, JsonSerializer.Serialize(Snapshot), _clock.UtcNow).ConfigureAwait(true);
             } while (revision != _saveRevision);
             HasSaveError = false;
-            Status = "Zapisano automatycznie";
+            Status = UiText.Get("SavedAutomatically");
         }
         catch (Exception)
         {
             HasSaveError = true;
-            Status = "Błąd zapisu — ponów zapis.";
-            _toasts.Show("Nie zapisano wyglądu panelu. Użyj Ponów zapis w jego personalizacji.", ToastSeverity.Error);
+            Status = UiText.Get("SaveFailedTryAgain");
+            _toasts.Show(UiText.Get("ThePanelAppearanceWasNotSavedUse"), ToastSeverity.Error);
         }
         finally { _saving = false; }
     }
     private void ChooseWallpaper()
     {
-        var dialog = new UberDashboard.App.Controls.ThemedFileDialog { Filter = "Obrazy|*.png;*.jpg;*.jpeg;*.bmp", Title = "Tapeta tego panelu" };
+        var dialog = new UberDashboard.App.Controls.ThemedFileDialog { Filter = UiText.Get("ImagesPngJpgJpegBmp"), Title = UiText.Get("PanelWallpaper") };
         if (dialog.ShowDialog() == true) WallpaperPath = dialog.FileName;
     }
     private async Task LoadWallpaperAsync()
@@ -151,7 +152,7 @@ public sealed partial class PanelAppearanceViewModel : ObservableObject
         }
         catch (Exception)
         {
-            if (revision == _imageRevision) { Wallpaper = null; Status = "Nie można odczytać tapety. Wybierz inny obraz."; }
+            if (revision == _imageRevision) { Wallpaper = null; Status = UiText.Get("CouldNotReadTheWallpaperChooseAnother"); }
         }
     }
 }

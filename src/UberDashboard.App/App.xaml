@@ -13,9 +13,6 @@
         -->
         <ResourceDictionary Source="Theming/Theme.Light.xaml" />
         <ResourceDictionary Source="Theming/VisualTokens.xaml" />
-        <ResourceDictionary Source="Theming/Controls.xaml" />
-        <ResourceDictionary Source="Theming/WindowFrame.xaml" />
-        <ResourceDictionary Source="Theming/PanelTemplates.xaml" />
       </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
   </Application.Resources>

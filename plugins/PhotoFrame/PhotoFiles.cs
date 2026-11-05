@@ -12,8 +12,8 @@ public static class PhotoFiles
         token.ThrowIfCancellationRequested();
         if (!folder)
         {
-            if (!File.Exists(source)) throw new FileNotFoundException("Wybrany obraz jest niedostępny.");
-            if (!IsSupported(source)) throw new InvalidDataException("Nieobsługiwany format obrazu.");
+            if (!File.Exists(source)) throw new FileNotFoundException(PhotoText.Get("Wybrany obraz jest niedostępny.", "The selected image is unavailable."));
+            if (!IsSupported(source)) throw new InvalidDataException(PhotoText.Get("Nieobsługiwany format obrazu.", "Unsupported image format."));
             return [source];
         }
         var files = new List<string>();
@@ -22,7 +22,7 @@ public static class PhotoFiles
             token.ThrowIfCancellationRequested();
             if (!IsSupported(file)) continue;
             files.Add(file);
-            if (files.Count > MaxImages) throw new InvalidDataException("Folder zawiera ponad 10 000 zdjęć. Wybierz mniejszy folder.");
+            if (files.Count > MaxImages) throw new InvalidDataException(PhotoText.Get("Folder zawiera ponad 10 000 zdjęć. Wybierz mniejszy folder.", "The folder has more than 10,000 photos. Choose a smaller folder."));
         }
         files.Sort(StringComparer.OrdinalIgnoreCase);
         return files.ToArray();
@@ -31,10 +31,10 @@ public static class PhotoFiles
     {
         token.ThrowIfCancellationRequested();
         using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-        if (file.Length > 50 * 1024 * 1024) throw new InvalidDataException("Obraz przekracza 50 MiB.");
+        if (file.Length > 50 * 1024 * 1024) throw new InvalidDataException(PhotoText.Get("Obraz przekracza 50 MiB.", "The image exceeds 50 MiB."));
         var metadata = BitmapDecoder.Create(file, BitmapCreateOptions.DelayCreation, BitmapCacheOption.None);
         var frame = metadata.Frames[0];
-        if ((long)frame.PixelWidth * frame.PixelHeight > 100_000_000) throw new InvalidDataException("Obraz przekracza 100 megapikseli.");
+        if ((long)frame.PixelWidth * frame.PixelHeight > 100_000_000) throw new InvalidDataException(PhotoText.Get("Obraz przekracza 100 megapikseli.", "The image exceeds 100 megapixels."));
         var width = frame.PixelWidth; var height = frame.PixelHeight;
         file.Position = 0;
         var image = new BitmapImage();

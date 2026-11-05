@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Text.Json;
 using System.Windows.Threading;
 using UberDashboard.App.Panels;
@@ -10,7 +11,7 @@ namespace UberDashboard.App.Features.Affirmations;
 public sealed class AffirmationPanelDescriptor(IPanelFactory factory) : IPanelDescriptor
 {
     public string TypeId => "affirmations";
-    public string DisplayName => "Afirmacje";
+    public string DisplayName => UiText.Get("Affirmations");
     public string? IconKey => null;
     public MinSize MinSize => new(280, 150);
     public int StateSchemaVersion => 1;

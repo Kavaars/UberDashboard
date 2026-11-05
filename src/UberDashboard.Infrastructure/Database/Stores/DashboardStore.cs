@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using Microsoft.Data.Sqlite;
 using UberDashboard.Application.Abstractions;
 
@@ -143,7 +144,7 @@ public sealed class DashboardStore : IDashboardStore
                 using var command = _database.Connection.CreateCommand();
                 command.CommandText = "DELETE FROM Dashboard WHERE DashboardId = $id AND (SELECT COUNT(*) FROM Dashboard) > 1 AND IsActive = 0;";
                 command.Parameters.AddWithValue("$id", dashboardId.ToString("D"));
-                if (command.ExecuteNonQuery() != 1) throw new InvalidOperationException("Nie można usunąć ostatniego ani aktywnego pulpitu.");
+                if (command.ExecuteNonQuery() != 1) throw new InvalidOperationException(UiText.Get("TheLastOrActiveDashboardCannotBe"));
             },
             cancellationToken);
 
@@ -202,7 +203,7 @@ public sealed class DashboardStore : IDashboardStore
     {
         if (string.IsNullOrWhiteSpace(name))
         {
-            throw new ArgumentException("Nazwa pulpitu nie może być pusta.", nameof(name));
+            throw new ArgumentException(UiText.Get("TheDashboardNameCannotBeEmpty"), nameof(name));
         }
 
         return name.Trim();

@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using Microsoft.Data.Sqlite;
 using UberDashboard.Application.Abstractions;
 using UberDashboard.Core.Layout;
@@ -154,7 +155,7 @@ public sealed class PanelInstanceStore : IPanelInstanceStore
             command.Parameters.AddWithValue("$state", stateJson);
             command.Parameters.AddWithValue("$updated", SqliteText.ToIso(nowUtc));
             command.Parameters.AddWithValue("$id", instanceId.ToString());
-            if (command.ExecuteNonQuery() != 1) throw new InvalidOperationException("Instancja nie istnieje; nie zapisano treści panelu.");
+            if (command.ExecuteNonQuery() != 1) throw new InvalidOperationException(UiText.Get("TheInstanceDoesNotExistPanelContent"));
         }, cancellationToken);
 
     public Task DeleteAsync(PanelInstanceId instanceId, CancellationToken cancellationToken = default) =>

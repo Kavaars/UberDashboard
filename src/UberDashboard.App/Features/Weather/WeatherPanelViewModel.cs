@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -48,7 +49,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         ClearSearchResults();
         IsSearching = false;
         ScheduleAutoRefresh();
-        StatusText = value ? "Połączenia włączone. Wybierz lokalizację lub odśwież dane." : "Pogoda offline. Włącz połączenia w opcjach panelu, aby pobierać dane.";
+        StatusText = value ? UiText.Get("ConnectionsEnabledChooseALocationOrRefresh") : UiText.Get("WeatherIsOfflineAllowConnectionsInThe");
         Changed?.Invoke(this, EventArgs.Empty);
     }
     private bool _suppressSearch;
@@ -80,8 +81,8 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         ToggleOptionsCommand = new RelayCommand(() => IsOptionsOpen = !IsOptionsOpen);
 
         OpenSourceCommand = new RelayCommand<string>(OpenSource);
-        StatusText = "Wybierz lokalizację, aby pobrać pogodę.";
-        Title = "Pogoda";
+        StatusText = UiText.Get("ChooseALocationToFetchWeather");
+        Title = UiText.Get("Weather");
     }
 
     /// <summary>Podnoszone, gdy zmieni się konfiguracja wymagająca zapisu.</summary>
@@ -108,7 +109,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
     private string statusText;
 
     [ObservableProperty]
-    private string conditionText = "Brak danych";
+    private string conditionText = UiText.Get("NoData");
 
     [ObservableProperty]
     private string conditionGlyph = "•";
@@ -184,7 +185,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
 
     partial void OnSelectedLocationChanged(WeatherLocationOption? value)
     {
-        Title = value is null ? "Pogoda" : $"Pogoda · {value.Name}";
+        Title = value is null ? UiText.Get("Weather") : UiText.Format("Weather2", value.Name);
         OnPropertyChanged(nameof(HasLocation));
         ScheduleAutoRefresh();
     }
@@ -235,8 +236,8 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         ClearSearchResults();
         ResetSnapshot();
         StatusText = document.SelectedLocation is null
-            ? "Wybierz lokalizację, aby pobrać pogodę."
-            : "Odświeżam dane pogodowe…";
+            ? UiText.Get("ChooseALocationToFetchWeather")
+            : UiText.Get("RefreshingWeather");
     }
 
     /// <summary>Zwraca stan wymagający zapisu.</summary>
@@ -296,7 +297,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         };
         if (url is null) return;
         try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); }
-        catch (Exception) { _notifier.Publish("Nie udało się otworzyć strony źródła danych.", PanelNotificationSeverity.Warning); }
+        catch (Exception) { _notifier.Publish(UiText.Get("CouldNotOpenTheDataProviderS"), PanelNotificationSeverity.Warning); }
     }
 
     private bool CanRefresh() => IsNetworkEnabled && SelectedLocation is not null && !IsLoading;
@@ -333,7 +334,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         ResetSnapshot();
         IsStale = false;
 
-        StatusText = "Wybierz lokalizację, aby pobrać pogodę.";
+        StatusText = UiText.Get("ChooseALocationToFetchWeather");
         ScheduleAutoRefresh();
         Changed?.Invoke(this, EventArgs.Empty);
     }
@@ -367,8 +368,8 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
 
             ReplaceSearchResults(results);
             StatusText = results.Count == 0
-                ? "Nie znaleziono lokalizacji."
-                : "Wybierz lokalizację z listy wyników.";
+                ? UiText.Get("NoLocationsFound")
+                : UiText.Get("ChooseALocationFromTheResults");
         }
         catch (OperationCanceledException)
         {
@@ -376,8 +377,8 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         catch (Exception)
         {
             ClearSearchResults();
-            StatusText = "Nie udało się wyszukać lokalizacji.";
-            _notifier.Publish($"Wyszukiwanie lokalizacji nie powiodło się", PanelNotificationSeverity.Warning);
+            StatusText = UiText.Get("CouldNotSearchForLocations");
+            _notifier.Publish(UiText.Get("LocationSearchFailed"), PanelNotificationSeverity.Warning);
         }
         finally
         {
@@ -407,7 +408,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         if (IsLoading) return;
         IsLoading = true;
         IsStale = false;
-        StatusText = "Pobieram bieżące warunki…";
+        StatusText = UiText.Get("FetchingCurrentConditions");
         RefreshCommand.NotifyCanExecuteChanged();
 
         try
@@ -424,11 +425,11 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
                 .UpsertAsync(location.CacheKey, snapshot, snapshot.FetchedAtUtc.Add(DefaultCacheLifetime), cancellationToken)
                 .ConfigureAwait(true);
 
-            StatusText = $"Zaktualizowano dla {location.DisplayName}.";
+            StatusText = UiText.Format("UpdatedFor", location.DisplayName);
         }
         catch (OperationCanceledException)
         {
-            StatusText = "Pobieranie pogody anulowano.";
+            StatusText = UiText.Get("WeatherRequestCanceled");
         }
         catch (Exception)
         {
@@ -437,14 +438,14 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
             {
                 ApplySnapshot(cached.Snapshot with { IsFromCache = true });
                 IsStale = true;
-                StatusText = $"Brak świeżych danych. Pokazuję ostatni cache dla {location.DisplayName}.";
-                _notifier.Publish($"Odświeżenie pogody nie powiodło się, używam cache", PanelNotificationSeverity.Warning);
+                StatusText = UiText.Format("NoNewDataShowingTheLatestCached", location.DisplayName);
+                _notifier.Publish(UiText.Get("WeatherRefreshFailedShowingCachedData"), PanelNotificationSeverity.Warning);
             }
             else
             {
                 ResetSnapshot();
-                StatusText = $"Nie udało się pobrać pogody dla {location.DisplayName}.";
-                _notifier.Publish($"Pobranie pogody nie powiodło się", PanelNotificationSeverity.Error);
+                StatusText = UiText.Format("CouldNotFetchWeatherFor", location.DisplayName);
+                _notifier.Publish(UiText.Get("WeatherRequestFailed"), PanelNotificationSeverity.Error);
             }
         }
         finally
@@ -462,7 +463,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         WindText = $"{snapshot.WindSpeedKph:0.#} km/h";
         UpdatedText = snapshot.SourceTime.ToString("yyyy-MM-dd HH:mm zzz");
         DailyRangeText = snapshot.DailyHighCelsius.HasValue || snapshot.DailyLowCelsius.HasValue
-            ? $"Max: {FormatTemperature(snapshot.DailyHighCelsius)} | Min: {FormatTemperature(snapshot.DailyLowCelsius)}"
+            ? UiText.Format("HighLow2", FormatTemperature(snapshot.DailyHighCelsius), FormatTemperature(snapshot.DailyLowCelsius))
             : "—";
         SunriseText = snapshot.Sunrise?.ToString("HH:mm") ?? "—";
         SunsetText = snapshot.Sunset?.ToString("HH:mm") ?? "—";
@@ -475,7 +476,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
     private void ResetSnapshot()
     {
         TemperatureCelsius = null;
-        ConditionText = "Brak danych";
+        ConditionText = UiText.Get("NoData");
         ConditionGlyph = "•";
         WindText = "—";
         UpdatedText = "—";

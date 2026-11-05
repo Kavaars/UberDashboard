@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using Microsoft.VisualBasic.FileIO;
 
 namespace UberDashboard.Application.Import;
@@ -26,7 +27,7 @@ public static class TodoCsvImport
             var line = checked((int)parser.LineNumber);
             var fields = parser.ReadFields() ?? [];
             if (textColumn >= fields.Length || statusColumn >= fields.Length)
-                throw new FormatException($"Brakuje wskazanej kolumny w wierszu {line}.");
+                throw new FormatException(UiText.Format("TheSpecifiedColumnIsMissingInRow", line));
 
             var text = fields[textColumn].Trim();
             if (text.Length == 0)

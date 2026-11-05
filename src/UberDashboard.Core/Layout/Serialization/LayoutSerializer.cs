@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -54,7 +55,7 @@ public static class LayoutSerializer
 
         if (string.IsNullOrWhiteSpace(json))
         {
-            return LayoutDeserializeResult.Fail(LayoutErrorCode.MalformedDocument, 0, "Dokument układu jest pusty.");
+            return LayoutDeserializeResult.Fail(LayoutErrorCode.MalformedDocument, 0, UiText.Get("TheLayoutDocumentIsEmpty"));
         }
 
         JsonNode? parsed;
@@ -77,7 +78,7 @@ public static class LayoutSerializer
 
         if (parsed is not JsonObject document)
         {
-            return LayoutDeserializeResult.Fail(LayoutErrorCode.MalformedDocument, 0, "Dokument układu musi być obiektem JSON.");
+            return LayoutDeserializeResult.Fail(LayoutErrorCode.MalformedDocument, 0, UiText.Get("TheLayoutDocumentMustBeAJson"));
         }
 
         if (!TryReadInt(document, "schemaVersion", out var version) || version <= 0)
@@ -90,7 +91,7 @@ public static class LayoutSerializer
             return LayoutDeserializeResult.Fail(
                 LayoutErrorCode.UnknownSchemaVersion,
                 version,
-                $"Wersja schematu {version} jest nowsza niż obsługiwana ({targetSchemaVersion}).");
+                UiText.Format("SchemaVersionIsNewerThanTheSupported", version, targetSchemaVersion));
         }
 
         var migrated = document;
@@ -113,7 +114,7 @@ public static class LayoutSerializer
                 return LayoutDeserializeResult.Fail(
                     LayoutErrorCode.MalformedDocument,
                     version,
-                    $"Migracja z wersji {version} nie powiodła się: {ex.Message}");
+                    UiText.Format("MigrationFromVersionFailed", version, ex.Message));
             }
 
             version = migration.ToVersion;
@@ -134,7 +135,7 @@ public static class LayoutSerializer
                 return LayoutDeserializeResult.Fail(
                     context.HasError ? context.ErrorCode : LayoutErrorCode.MalformedDocument,
                     version,
-                    context.ErrorMessage ?? "Nie udało się odczytać korzenia układu.");
+                    context.ErrorMessage ?? UiText.Get("CouldNotReadTheLayoutRoot"));
             }
 
             return LayoutDeserializeResult.Ok(new LayoutTree(root), version);
@@ -149,7 +150,7 @@ public static class LayoutSerializer
     {
         if (depth > limits.MaxDepth)
         {
-            throw new InvalidOperationException("Układ przekracza limit głębokości i nie może zostać zapisany.");
+            throw new InvalidOperationException(UiText.Get("TheLayoutExceedsTheDepthLimitAnd"));
         }
 
         switch (node)
@@ -173,7 +174,7 @@ public static class LayoutSerializer
                 };
 
             default:
-                throw new InvalidOperationException($"Nieznany typ węzła: {node.GetType().Name}.");
+                throw new InvalidOperationException(UiText.Format("UnknownNodeType", node.GetType().Name));
         }
     }
 
@@ -186,20 +187,20 @@ public static class LayoutSerializer
 
         if (depth > limits.MaxDepth)
         {
-            context.Fail(LayoutErrorCode.DepthLimitExceeded, $"Przekroczono limit głębokości dokumentu ({limits.MaxDepth}).");
+            context.Fail(LayoutErrorCode.DepthLimitExceeded, UiText.Format("TheDocumentDepthLimitWasExceeded", limits.MaxDepth));
             return null;
         }
 
         context.NodeCount++;
         if (context.NodeCount > limits.MaxNodes)
         {
-            context.Fail(LayoutErrorCode.NodeLimitExceeded, $"Przekroczono limit liczby węzłów ({limits.MaxNodes}).");
+            context.Fail(LayoutErrorCode.NodeLimitExceeded, UiText.Format("TheNodeCountLimitWasExceeded", limits.MaxNodes));
             return null;
         }
 
         if (node is not JsonObject obj)
         {
-            context.Fail(LayoutErrorCode.MalformedDocument, "Węzeł układu musi być obiektem JSON.");
+            context.Fail(LayoutErrorCode.MalformedDocument, UiText.Get("TheLayoutNodeMustBeAJson"));
             return null;
         }
 
@@ -210,7 +211,7 @@ public static class LayoutSerializer
             {
                 if (!TryReadGuid(obj, "instanceId", out var instanceId) || instanceId == Guid.Empty)
                 {
-                    context.Fail(LayoutErrorCode.MalformedDocument, "Liść nie ma poprawnego identyfikatora instancji.");
+                    context.Fail(LayoutErrorCode.MalformedDocument, UiText.Get("TheLeafHasNoValidInstanceId"));
                     return null;
                 }
 
@@ -221,7 +222,7 @@ public static class LayoutSerializer
             {
                 if (!TryReadGuid(obj, "splitId", out var splitId) || splitId == Guid.Empty)
                 {
-                    context.Fail(LayoutErrorCode.MalformedDocument, "Podział nie ma poprawnego identyfikatora.");
+                    context.Fail(LayoutErrorCode.MalformedDocument, UiText.Get("TheSplitHasNoValidId"));
                     return null;
                 }
 
@@ -234,13 +235,13 @@ public static class LayoutSerializer
 
                 if (axis is null)
                 {
-                    context.Fail(LayoutErrorCode.MalformedDocument, "Podział ma nieznaną oś.");
+                    context.Fail(LayoutErrorCode.MalformedDocument, UiText.Get("TheSplitHasAnUnknownAxis"));
                     return null;
                 }
 
                 if (!TryReadDouble(obj, "ratio", out var ratio) || !double.IsFinite(ratio) || ratio <= 0d || ratio >= 1d)
                 {
-                    context.Fail(LayoutErrorCode.InvalidRatio, "Podział ma niepoprawną proporcję.");
+                    context.Fail(LayoutErrorCode.InvalidRatio, UiText.Get("TheSplitHasAnInvalidRatio"));
                     return null;
                 }
 
@@ -248,7 +249,7 @@ public static class LayoutSerializer
                 var secondNode = obj["second"];
                 if (firstNode is null || secondNode is null)
                 {
-                    context.Fail(LayoutErrorCode.MissingChild, "Podział nie ma dwójki dzieci.");
+                    context.Fail(LayoutErrorCode.MissingChild, UiText.Get("TheSplitDoesNotHaveTwoChildren"));
                     return null;
                 }
 
@@ -264,7 +265,7 @@ public static class LayoutSerializer
             }
 
             default:
-                context.Fail(LayoutErrorCode.MalformedDocument, $"Nieznany rodzaj węzła: {kind ?? "(brak)"}.");
+                context.Fail(LayoutErrorCode.MalformedDocument, UiText.Format("UnknownNodeKind", kind ?? "(brak)"));
                 return null;
         }
     }

@@ -17,6 +17,10 @@ public interface IWindowModeCoordinator
 
     /// <summary>Przełącza aplikację do wskazanego trybu.</summary>
     Task<WindowModeTransitionResult> SwitchAsync(WindowMode mode, CancellationToken cancellationToken = default);
+
+    /// <summary>Tymczasowo zmienia tryb bez nadpisania stanu następnego uruchomienia (np. zasobnik).</summary>
+    Task<WindowModeTransitionResult> SwitchTemporarilyAsync(WindowMode mode, CancellationToken cancellationToken = default) =>
+        SwitchAsync(mode, cancellationToken);
 }
 
 /// <summary>Wynik przejścia między trybami okna.</summary>

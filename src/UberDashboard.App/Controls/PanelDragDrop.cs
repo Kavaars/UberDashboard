@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Windows;
 using System.Windows.Input;
 using UberDashboard.App.Shell;
@@ -68,7 +69,7 @@ public static class PanelDragDrop
         {
             var point = e.GetPosition(element);
             var zone = ZoneAt(point.X, point.Y, element.ActualWidth, element.ActualHeight);
-            leaf.DropHint = zone switch { DropZone.Left => "Puść: po lewej", DropZone.Right => "Puść: po prawej", DropZone.Top => "Puść: powyżej", _ => "Puść: poniżej" };
+            leaf.DropHint = zone switch { DropZone.Left => UiText.Get("DropOnTheLeft"), DropZone.Right => UiText.Get("DropOnTheRight"), DropZone.Top => UiText.Get("DropAbove"), _ => UiText.Get("DropBelow") };
             e.Effects = System.Windows.DragDropEffects.Move;
         }
         e.Handled = e.Data.GetDataPresent(Format);

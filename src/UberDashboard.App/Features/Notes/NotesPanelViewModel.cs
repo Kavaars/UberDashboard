@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Text;
@@ -102,7 +103,7 @@ public sealed class NotesPanelViewModel : ObservableObject, IPanelOptionsPresent
         ArgumentNullException.ThrowIfNull(notifier);
         _notifier = notifier;
 
-        AddTabCommand = new RelayCommand(() => { var tab = new NotesTab(new NotesDocument { Title = $"Notatka {Tabs.Count + 1}" }); Tabs.Add(tab); SelectedTab = tab; });
+        AddTabCommand = new RelayCommand(() => { var tab = new NotesTab(new NotesDocument { Title = UiText.Format("Note", Tabs.Count + 1) }); Tabs.Add(tab); SelectedTab = tab; });
         var initial = new NotesTab(new NotesDocument());
         Tabs.Add(initial);
         _selectedTab = initial;
@@ -124,7 +125,7 @@ public sealed class NotesPanelViewModel : ObservableObject, IPanelOptionsPresent
         {
             if (SetProperty(ref _title, value))
             {
-                if (_selectedTab is not null) _selectedTab.Title = string.IsNullOrWhiteSpace(value) ? "Notatka" : value;
+                if (_selectedTab is not null) _selectedTab.Title = string.IsNullOrWhiteSpace(value) ? UiText.Get("Note2") : value;
                 MarkChanged();
             }
         }
@@ -286,8 +287,8 @@ public sealed class NotesPanelViewModel : ObservableObject, IPanelOptionsPresent
     {
         var dialog = new UberDashboard.App.Controls.ThemedFileDialog
         {
-            Title = "Eksport notatki",
-            Filter = "Tekst i Markdown (*.txt;*.md)|*.txt;*.md|Wszystkie pliki (*.*)|*.*",
+            Title = UiText.Get("ExportNote"),
+            Filter = UiText.Get("TextAndMarkdownTxtMdTxtMd"),
             DefaultExt = ".txt",
             SaveFile = true,
             FileName = BuildExportFileName(),
@@ -302,11 +303,11 @@ public sealed class NotesPanelViewModel : ObservableObject, IPanelOptionsPresent
         {
             var payload = BuildExportText();
             await File.WriteAllTextAsync(dialog.FileName, payload).ConfigureAwait(true);
-            _notifier.Publish($"Notatkę zapisano w pliku {Path.GetFileName(dialog.FileName)}.", PanelNotificationSeverity.Success);
+            _notifier.Publish(UiText.Format("SavedTheNoteTo", Path.GetFileName(dialog.FileName)), PanelNotificationSeverity.Success);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            _notifier.Publish($"Nie udało się zapisać notatki: {ex.Message}", PanelNotificationSeverity.Error);
+            _notifier.Publish(UiText.Format("CouldNotSaveTheNote", ex.Message), PanelNotificationSeverity.Error);
         }
     }
 
@@ -314,8 +315,8 @@ public sealed class NotesPanelViewModel : ObservableObject, IPanelOptionsPresent
     {
         var dialog = new UberDashboard.App.Controls.ThemedFileDialog
         {
-            Title = "Import notatki",
-            Filter = "Tekst i Markdown (*.txt;*.md)|*.txt;*.md|Wszystkie pliki (*.*)|*.*",
+            Title = UiText.Get("ImportNote"),
+            Filter = UiText.Get("TextAndMarkdownTxtMdTxtMd"),
             Multiselect = false,
         };
 
@@ -325,8 +326,8 @@ public sealed class NotesPanelViewModel : ObservableObject, IPanelOptionsPresent
         }
 
         if (!IsEmpty && UberDashboard.App.Controls.ThemedMessageBox.Show(
-            "Import zastąpi tytuł, tekst i obrazy w tej notatce. Kontynuować?",
-            "Zastąpienie notatki", System.Windows.MessageBoxButton.OKCancel,
+            UiText.Get("ImportingReplacesTheNoteSTitleText"),
+            UiText.Get("ReplaceNote"), System.Windows.MessageBoxButton.OKCancel,
             System.Windows.MessageBoxImage.Warning, System.Windows.MessageBoxResult.Cancel) != System.Windows.MessageBoxResult.OK)
         {
             return;
@@ -355,11 +356,11 @@ public sealed class NotesPanelViewModel : ObservableObject, IPanelOptionsPresent
             ExportCommand.NotifyCanExecuteChanged();
             Changed?.Invoke(this, EventArgs.Empty);
 
-            _notifier.Publish($"Zaimportowano notatkę z pliku {Path.GetFileName(dialog.FileName)}.", PanelNotificationSeverity.Success);
+            _notifier.Publish(UiText.Format("ImportedTheNoteFrom", Path.GetFileName(dialog.FileName)), PanelNotificationSeverity.Success);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or DecoderFallbackException)
         {
-            _notifier.Publish($"Nie udało się wczytać notatki: {ex.Message}", PanelNotificationSeverity.Error);
+            _notifier.Publish(UiText.Format("CouldNotLoadTheNote", ex.Message), PanelNotificationSeverity.Error);
         }
     }
 
@@ -409,7 +410,7 @@ public sealed class NotesPanelViewModel : ObservableObject, IPanelOptionsPresent
 public sealed class NotesTab : ObservableObject
 {
     private string _title;
-    public NotesTab(NotesDocument document) { Document = document with { Tabs = null }; _title = string.IsNullOrWhiteSpace(document.Title) ? "Notatka" : document.Title; }
+    public NotesTab(NotesDocument document) { Document = document with { Tabs = null }; _title = string.IsNullOrWhiteSpace(document.Title) ? UiText.Get("Note2") : document.Title; }
     public NotesDocument Document { get; set; }
     public string Title { get => _title; set => SetProperty(ref _title, value); }
 }

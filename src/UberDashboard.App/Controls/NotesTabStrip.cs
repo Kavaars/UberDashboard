@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using Orientation = System.Windows.Controls.Orientation;
 using Binding = System.Windows.Data.Binding;
 using DragDropEffects = System.Windows.DragDropEffects;
@@ -50,12 +51,12 @@ public sealed class NotesTabStrip : ScrollViewer
         if (_model is not { } model) return;
         foreach (var tab in model.Tabs)
         {
-            var button = new Button { Padding = new Thickness(10, 5, 10, 5), Margin = new Thickness(0, 0, 3, 0), DataContext = tab, AllowDrop = true, ToolTip = "Kliknij, aby wybrać notatkę. Dwuklik lub F2 zmienia nazwę; przeciągnij, aby zmienić kolejność." };
+            var button = new Button { Padding = new Thickness(10, 5, 10, 5), Margin = new Thickness(0, 0, 3, 0), DataContext = tab, AllowDrop = true, ToolTip = UiText.Get("ClickToSelectANoteDoubleClick") };
             button.SetResourceReference(Control.ForegroundProperty, "Brush.Text");
             button.SetResourceReference(Control.BackgroundProperty, ReferenceEquals(tab, model.SelectedTab) ? "Brush.Surface.Alt" : "Brush.Surface");
             var title = new TextBlock(); title.SetBinding(TextBlock.TextProperty, new Binding(nameof(NotesTab.Title)));
             button.Content = title;
-            System.Windows.Automation.AutomationProperties.SetName(button, "Zakładka notatki");
+            System.Windows.Automation.AutomationProperties.SetName(button, UiText.Get("NoteTab"));
             button.Click += (_, _) => model.SelectedTab = tab;
             button.MouseDoubleClick += (_, e) => { Rename(button, tab, model); e.Handled = true; };
             button.KeyDown += (_, e) => { if (e.Key == Key.F2) { Rename(button, tab, model); e.Handled = true; } };
@@ -63,13 +64,13 @@ public sealed class NotesTabStrip : ScrollViewer
             button.PreviewMouseMove += (_, e) => { var p = e.GetPosition(button); if (e.LeftButton == MouseButtonState.Pressed && (Math.Abs(p.X - _start.X) >= SystemParameters.MinimumHorizontalDragDistance || Math.Abs(p.Y - _start.Y) >= SystemParameters.MinimumVerticalDragDistance)) DragDrop.DoDragDrop(button, tab, DragDropEffects.Move); };
             button.Drop += (_, e) => { if (e.Data.GetData(typeof(NotesTab)) is NotesTab moving) model.MoveTab(moving, model.Tabs.IndexOf(tab)); e.Handled = true; };
             var menu = new ContextMenu();
-            var remove = new MenuItem { Header = "Usuń notatkę", IsEnabled = model.Tabs.Count > 1 };
-            remove.Click += (_, _) => model.RemoveTab(tab, !model.TabHasContent(tab) || ThemedMessageBox.Show($"Usunąć notatkę „{tab.Title}” wraz z jej treścią?", "Usuwanie notatki", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes);
+            var remove = new MenuItem { Header = UiText.Get("DeleteNote"), IsEnabled = model.Tabs.Count > 1 };
+            remove.Click += (_, _) => model.RemoveTab(tab, !model.TabHasContent(tab) || ThemedMessageBox.Show(UiText.Format("DeleteTheNoteAndItsContents", tab.Title), UiText.Get("DeleteNote2"), MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes);
             menu.Items.Add(remove); button.ContextMenu = menu;
             _items.Children.Add(button);
         }
-        var add = new Button { Content = "+", Padding = new Thickness(6, 2, 6, 2), Command = model.AddTabCommand, ToolTip = "Dodaje nową notatkę." };
-        System.Windows.Automation.AutomationProperties.SetName(add, "Dodaj notatkę");
+        var add = new Button { Content = "+", Padding = new Thickness(6, 2, 6, 2), Command = model.AddTabCommand, ToolTip = UiText.Get("AddsANewNote") };
+        System.Windows.Automation.AutomationProperties.SetName(add, UiText.Get("AddNote"));
         _items.Children.Add(add);
     }
     private static void Rename(Button button, NotesTab tab, NotesPanelViewModel model)

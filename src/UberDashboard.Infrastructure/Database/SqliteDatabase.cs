@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using Microsoft.Data.Sqlite;
 using UberDashboard.Application.Abstractions;
 
@@ -31,7 +32,7 @@ public sealed class SqliteDatabase : IDisposable
 
     /// <summary>Połączenie; dostępne dopiero po <see cref="EnsureInitialized"/>.</summary>
     public SqliteConnection Connection =>
-        _connection ?? throw new InvalidOperationException("Baza danych nie została zainicjalizowana.");
+        _connection ?? throw new InvalidOperationException(UiText.Get("TheDatabaseHasNotBeenInitialized"));
 
     /// <summary><see langword="true"/>, gdy połączenie zostało otwarte.</summary>
     public bool IsInitialized => _connection is not null;

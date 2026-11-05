@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.IO;
 using System.Net.Http;
 using System.Text.Json;
@@ -22,7 +23,7 @@ internal sealed class MicrosoftTodoWizard(MicrosoftTodoSession session, Microsof
     public void Show(Window owner, IReadOnlyList<PanelGroupSession> groups)
     {
         var reader = MicrosoftTodoRefresh.Reader;
-        var window = WindowFrame.Create(owner, "Integracja z Microsoft To Do", 680, 640);
+        var window = WindowFrame.Create(owner, UiText.Get("MicrosoftToDoIntegration"), 680, 640);
         window.MinWidth = 480;
         window.MinHeight = 400;
         using var cancellation = new CancellationTokenSource();
@@ -37,16 +38,16 @@ internal sealed class MicrosoftTodoWizard(MicrosoftTodoSession session, Microsof
         var status = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 8) };
         AutomationProperties.SetLiveSetting(status, AutomationLiveSetting.Polite);
         var clientId = new TextBox { Margin = new Thickness(0, 4, 0, 6) };
-        AutomationProperties.SetName(clientId, "Identyfikator aplikacji Microsoft Entra");
-        var connect = new Button { Content = "Połącz konto i pobierz listy" };
-        var switchAccount = new Button { Content = "Wybierz inne konto Microsoft" };
-        var disconnect = new Button { Content = "Rozłącz zapisane konto" };
+        AutomationProperties.SetName(clientId, UiText.Get("MicrosoftEntraApplicationId"));
+        var connect = new Button { Content = UiText.Get("ConnectAccountAndFetchLists") };
+        var switchAccount = new Button { Content = UiText.Get("ChooseAnotherMicrosoftAccount") };
+        var disconnect = new Button { Content = UiText.Get("DisconnectSavedAccount") };
         var target = new ComboBox { ItemsSource = groups, DisplayMemberPath = nameof(PanelGroupSession.ImportDisplayName) };
-        AutomationProperties.SetName(target, "Panel listy zadań na aktywnym pulpicie");
+        AutomationProperties.SetName(target, UiText.Get("TaskListPanelOnTheActiveDashboard"));
         var choices = new StackPanel();
-        var apply = new Button { Content = "Zapisz wybór i pobierz zadania" };
+        var apply = new Button { Content = UiText.Get("SaveSelectionAndFetchTasks") };
         var options = new StackPanel { Visibility = Visibility.Collapsed };
-        var cancel = new Button { Content = "Zamknij", IsCancel = true, Margin = new Thickness(0, 12, 0, 0) };
+        var cancel = new Button { Content = UiText.Get("Close"), IsCancel = true, Margin = new Thickness(0, 12, 0, 0) };
 
         clientId.SetResourceReference(FrameworkElement.StyleProperty, "ThemedTextBox");
         target.SetResourceReference(FrameworkElement.StyleProperty, "ThemedComboBox");
@@ -62,16 +63,16 @@ internal sealed class MicrosoftTodoWizard(MicrosoftTodoSession session, Microsof
             Text = text, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 7, 0, 3),
         });
 
-        Describe(body, "1. Połącz konto");
-        Describe(body, "Wpisz identyfikator aplikacji (Client ID) z Microsoft Entra. Rejestracja aplikacji desktopowej wymaga adresu http://localhost i delegowanego uprawnienia Tasks.Read.");
+        Describe(body, UiText.Get("Text1ConnectYourAccount"));
+        Describe(body, UiText.Get("EnterTheApplicationClientIdFromMicrosoft"));
         body.Children.Add(clientId);
         body.Children.Add(connect);
         body.Children.Add(switchAccount);
         body.Children.Add(disconnect);
         body.Children.Add(status);
-        Describe(options, "2. Wybierz listy i panel docelowy");
-        Describe(options, "Import tworzy edytowalną kopię. Synchronizacja tworzy kartę tylko do odczytu i odświeża tytuły oraz stan wykonania z Microsoft To Do. Wybrane listy odświeżają się automatycznie. Tutaj zmienisz wybór lub odświeżysz je ręcznie.");
-        if (groups.Count == 0) Describe(options, "Aby dodać nowe karty, najpierw dodaj panel „Lista zadań” do aktywnego pulpitu. Zapisane listy możesz odświeżyć tutaj.");
+        Describe(options, UiText.Get("Text2ChooseListsAndADestinationPanel"));
+        Describe(options, UiText.Get("ImportCreatesAnEditableCopySyncCreates"));
+        if (groups.Count == 0) Describe(options, UiText.Get("ToCreateNewTabsFirstAddA"));
         options.Children.Add(target);
         options.Children.Add(choices);
         options.Children.Add(apply);
@@ -96,29 +97,29 @@ internal sealed class MicrosoftTodoWizard(MicrosoftTodoSession session, Microsof
             status.Text = loading;
             try { await operation(); }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { }
-            catch (OperationCanceledException) { status.Text = "Anulowano logowanie lub przekroczono czas oczekiwania."; }
-            catch (MsalException) { status.Text = "Nie udało się połączyć konta. Sprawdź konfigurację klienta, zgodę i uprawnienia."; }
-            catch (MsalCachePersistenceException) { status.Text = "Nie można bezpiecznie zapisać sesji Microsoft w profilu Windows."; }
-            catch (UnauthorizedAccessException) { status.Text = "Windows odmówił dostępu do danych sesji Microsoft."; }
+            catch (OperationCanceledException) { status.Text = UiText.Get("SignInWasCanceledOrTimedOut"); }
+            catch (MsalException) { status.Text = UiText.Get("CouldNotConnectTheAccountCheckThe"); }
+            catch (MsalCachePersistenceException) { status.Text = UiText.Get("CouldNotSecurelySaveTheMicrosoftSession"); }
+            catch (UnauthorizedAccessException) { status.Text = UiText.Get("WindowsDeniedAccessToTheMicrosoftSession"); }
             catch (HttpRequestException error)
             {
                 status.Text = error.StatusCode is { } code
-                    ? $"Microsoft To Do zwrócił błąd {(int)code}. Sprawdź dostęp do list i ponów operację."
-                    : "Nie można połączyć się z Microsoft To Do.";
+                    ? UiText.Format("MicrosoftToDoReturnedErrorCheckAccess", (int)code)
+                    : UiText.Get("CouldNotConnectToMicrosoftToDo");
             }
             catch (Exception error) when (error is IOException or JsonException)
             {
-                status.Text = "Nie udało się odczytać lub zapisać danych integracji.";
+                status.Text = UiText.Get("CouldNotReadOrSaveIntegrationData");
             }
             catch (Exception)
             {
-                status.Text = "Nie udało się zakończyć operacji. Sprawdź zapisany wybór i spróbuj ponownie.";
+                status.Text = UiText.Get("CouldNotCompleteTheOperationCheckThe");
             }
             finally { if (!token.IsCancellationRequested) UpdateControls(false); }
         }
 
         clientId.TextChanged += (_, _) => UpdateControls(false);
-        window.Loaded += async (_, _) => await RunAsync("Odczytywanie ustawień…", async () =>
+        window.Loaded += async (_, _) => await RunAsync(UiText.Get("ReadingSettings"), async () =>
         {
             saved = await settings.LoadAsync(token);
             token.ThrowIfCancellationRequested();
@@ -127,12 +128,12 @@ internal sealed class MicrosoftTodoWizard(MicrosoftTodoSession session, Microsof
                 ? groups.FirstOrDefault(group => group.Group.GroupId.Value == targetId)
                 : groups.FirstOrDefault();
             status.Text = saved.LastSync is { } last
-                ? $"Ostatnie odświeżenie: {last.ToLocalTime():g}. Połącz konto, aby zmienić wybór lub odświeżyć listy."
-                : "Połącz konto, aby wybrać listy.";
+                ? UiText.Format("LastRefreshedConnectYourAccountToChange", last.ToLocalTime())
+                : UiText.Get("ConnectYourAccountToChooseLists");
             if (refresh.LastError is { } error) status.Text += $" {error}";
         });
 
-        Task ConnectAsync(bool chooseAccount) => RunAsync("Logowanie i pobieranie list…", async () =>
+        Task ConnectAsync(bool chooseAccount) => RunAsync(UiText.Get("SigningInAndFetchingLists"), async () =>
         {
             var id = Guid.Parse(clientId.Text);
             accountId = null;
@@ -147,12 +148,12 @@ internal sealed class MicrosoftTodoWizard(MicrosoftTodoSession session, Microsof
             var sameAccount = saved!.ClientId == id && saved.AccountId == accountId;
             foreach (var list in lists)
             {
-                var copy = new CheckBox { Content = "Importuj kopię", Margin = new Thickness(0, 3, 12, 3) };
-                var sync = new CheckBox { Content = "Synchronizuj", IsChecked = sameAccount && saved.SelectedLists.Contains(list.Id) };
+                var copy = new CheckBox { Content = UiText.Get("ImportACopy"), Margin = new Thickness(0, 3, 12, 3) };
+                var sync = new CheckBox { Content = UiText.Get("Sync"), IsChecked = sameAccount && saved.SelectedLists.Contains(list.Id) };
                 copy.SetResourceReference(FrameworkElement.StyleProperty, "ThemedCheckBox");
                 sync.SetResourceReference(FrameworkElement.StyleProperty, "ThemedCheckBox");
-                AutomationProperties.SetName(copy, $"Importuj kopię listy {list.DisplayName}");
-                AutomationProperties.SetName(sync, $"Synchronizuj listę {list.DisplayName}");
+                AutomationProperties.SetName(copy, UiText.Format("ImportACopyOf", list.DisplayName));
+                AutomationProperties.SetName(sync, UiText.Format("SyncList", list.DisplayName));
                 var flags = new WrapPanel();
                 flags.Children.Add(copy);
                 flags.Children.Add(sync);
@@ -160,15 +161,15 @@ internal sealed class MicrosoftTodoWizard(MicrosoftTodoSession session, Microsof
                 choices.Children.Add(flags);
                 rows.Add(new(list, copy, sync));
             }
-            status.Text = lists.Count > 0 ? $"Połączono jako {signedIn.Account.Username}." : "Konto nie zawiera dostępnych list To Do.";
+            status.Text = lists.Count > 0 ? UiText.Format("ConnectedAs", signedIn.Account.Username) : UiText.Get("ThisAccountHasNoAvailableToDo");
             if (sameAccount && saved.SelectedLists.Any(id => lists.All(list => list.Id != id)))
-                status.Text += " Brakujące listy zachowają ostatnią kopię. Zapis wyboru wyłączy ich synchronizację.";
+                status.Text += UiText.Get("MissingListsKeepTheirLastCopySaving");
         });
 
         connect.Click += async (_, _) => await ConnectAsync(false);
         switchAccount.Click += async (_, _) => await ConnectAsync(true);
 
-        disconnect.Click += async (_, _) => await RunAsync("Rozłączanie konta…", async () =>
+        disconnect.Click += async (_, _) => await RunAsync(UiText.Get("DisconnectingAccount"), async () =>
         {
             var previous = saved!;
             await session.SignOutAsync(previous.ClientId, previous.AccountId!, token);
@@ -177,10 +178,10 @@ internal sealed class MicrosoftTodoWizard(MicrosoftTodoSession session, Microsof
             saved = disconnected;
             refresh.ClearError();
             accountId = null;
-            status.Text = "Rozłączono konto. Karty zachowują zapisane zadania.";
+            status.Text = UiText.Get("AccountDisconnectedTabsKeepTheirSavedTasks");
         });
 
-        apply.Click += async (_, _) => await RunAsync("Pobieranie wybranych list…", async () =>
+        apply.Click += async (_, _) => await RunAsync(UiText.Get("FetchingSelectedLists"), async () =>
         {
             var selected = rows.Where(row => row.Copy.IsChecked == true || row.Sync.IsChecked == true).ToArray();
             var group = target.SelectedItem as PanelGroupSession;
@@ -190,7 +191,7 @@ internal sealed class MicrosoftTodoWizard(MicrosoftTodoSession session, Microsof
                 !previouslyLinked.Contains(new(connectedClient, connected, row.List.Id)));
             if ((group is null || group.IsClosed) && needsTarget)
             {
-                status.Text = "Wybierz dostępny panel listy zadań.";
+                status.Text = UiText.Get("ChooseAnAvailableTaskListPanel");
                 return;
             }
             var snapshots = new List<MicrosoftTodoSnapshot>();
@@ -201,7 +202,7 @@ internal sealed class MicrosoftTodoWizard(MicrosoftTodoSession session, Microsof
                 if (signedIn.Account.HomeAccountId.Identifier != connected)
                 {
                     accountId = null;
-                    status.Text = "Konto się zmieniło. Pobierz listy ponownie.";
+                    status.Text = UiText.Get("TheAccountChangedFetchTheListsAgain");
                     return;
                 }
                 foreach (var row in selected)
@@ -230,16 +231,16 @@ internal sealed class MicrosoftTodoWizard(MicrosoftTodoSession session, Microsof
             refresh.ClearError();
             if (tabs.Count > 0)
             {
-                status.Text = "Ustawienia zapisano. Dodawanie kart…";
+                status.Text = UiText.Get("SettingsSavedAddingTabs");
                 try { await group!.ImportTabsAsync(tabs, token); }
                 catch (Exception error) when (error is not OperationCanceledException)
                 {
-                    status.Text = "Wybór list zapisano, ale dodawanie kart nie powiodło się. Wybierz dostępny panel i ponów zapis.";
+                    status.Text = UiText.Get("TheListSelectionWasSavedButTabs");
                     return;
                 }
             }
             foreach (var row in selected) row.Copy.IsChecked = false;
-            status.Text = $"Zapisano wybór. Zsynchronizowane listy: {snapshots.Count}.";
+            status.Text = UiText.Format("SelectionSavedSyncedLists", snapshots.Count);
         });
 
         UpdateControls(false);

@@ -22,7 +22,7 @@ public sealed class PhotoFrameModel : INotifyPropertyChanged, IPanelContent, IPa
     private bool _disposed;
     private bool _isOptionsOpen = true;
     private bool _isLoading;
-    private string _status = "Wybierz obraz lub folder w opcjach ramki.";
+    private string _status = PhotoText.Get("Wybierz obraz lub folder w opcjach ramki.", "Choose an image or folder in the frame options.");
     private ImageSource? _currentPhoto;
     public PhotoFrameModel(PanelContext context)
     {
@@ -80,12 +80,12 @@ public sealed class PhotoFrameModel : INotifyPropertyChanged, IPanelContent, IPa
     }
     private async void ChooseFile()
     {
-        var picker = new OpenFileDialog { Title = "Wybierz zdjęcie", Filter = "Obrazy|*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.tif;*.tiff" };
+        var picker = new OpenFileDialog { Title = PhotoText.Get("Wybierz zdjęcie", "Choose a photo"), Filter = PhotoText.Get("Obrazy|*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.tif;*.tiff", "Images|*.jpg;*.jpeg;*.png;*.bmp;*.gif;*.tif;*.tiff") };
         if (picker.ShowDialog() == true) await SelectAsync(picker.FileName, false);
     }
     private async void ChooseFolder()
     {
-        var picker = new OpenFolderDialog { Title = "Wybierz folder ze zdjęciami", Multiselect = false };
+        var picker = new OpenFolderDialog { Title = PhotoText.Get("Wybierz folder ze zdjęciami", "Choose a photo folder"), Multiselect = false };
         if (picker.ShowDialog() == true) await SelectAsync(picker.FolderName, true);
     }
     public async Task ReloadAsync(CancellationToken token = default)
@@ -96,7 +96,7 @@ public sealed class PhotoFrameModel : INotifyPropertyChanged, IPanelContent, IPa
         _load = operation;
         IsLoading = true; CurrentPhoto = null; _files = []; _failed.Clear(); _index = -1;
         Notify(nameof(HasMultipleImages));
-        Status = string.IsNullOrWhiteSpace(SourcePath) ? "Wybierz obraz lub folder w opcjach ramki." : "Wczytywanie zdjęć…";
+        Status = string.IsNullOrWhiteSpace(SourcePath) ? PhotoText.Get("Wybierz obraz lub folder w opcjach ramki.", "Choose an image or folder in the frame options.") : PhotoText.Get("Wczytywanie zdjęć…", "Loading photos…");
         try
         {
             if (string.IsNullOrWhiteSpace(SourcePath)) return;
@@ -118,7 +118,7 @@ public sealed class PhotoFrameModel : INotifyPropertyChanged, IPanelContent, IPa
     }
     private async Task AdvanceAsync(CancellationToken token)
     {
-        if (_files.Length == 0) { Status = "Folder nie zawiera obsługiwanych zdjęć. Wybierz inne źródło lub odśwież."; return; }
+        if (_files.Length == 0) { Status = PhotoText.Get("Folder nie zawiera obsługiwanych zdjęć. Wybierz inne źródło lub odśwież.", "The folder contains no supported images. Choose another source or refresh."); return; }
         for (var attempt = 0; attempt < _files.Length; attempt++)
         {
             token.ThrowIfCancellationRequested();
@@ -142,7 +142,7 @@ public sealed class PhotoFrameModel : INotifyPropertyChanged, IPanelContent, IPa
             }
         }
         _timer.Stop(); CurrentPhoto = null;
-        Status = "Nie można odczytać zdjęć. Sprawdź pliki i uprawnienia, a następnie odśwież.";
+        Status = PhotoText.Get("Nie można odczytać zdjęć. Sprawdź pliki i uprawnienia, a następnie odśwież.", "Could not read the photos. Check the files and permissions, then refresh.");
     }
     private async void Tick(object? sender, EventArgs args)
     {
@@ -163,7 +163,7 @@ public sealed class PhotoFrameModel : INotifyPropertyChanged, IPanelContent, IPa
     private void ReportError(Exception error)
     {
         _context.Logger.Log(PanelLogLevel.Warning, "Nie można wczytać źródła zdjęć.", new Dictionary<string, object?> { ["errorType"] = error.GetType().Name });
-        Status = "Nie można wczytać źródła. Sprawdź, czy plik lub folder istnieje i jest dostępny, a następnie odśwież.";
+        Status = PhotoText.Get("Nie można wczytać źródła. Sprawdź, czy plik lub folder istnieje i jest dostępny, a następnie odśwież.", "Could not load the source. Check that the file or folder exists and is accessible, then refresh.");
         _context.Notifier.Publish(Status, PanelNotificationSeverity.Warning);
     }
     public void Stop() { _timer.Stop(); _load?.Cancel(); }

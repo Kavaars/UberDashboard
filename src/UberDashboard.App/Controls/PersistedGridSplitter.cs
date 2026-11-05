@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
@@ -16,7 +17,7 @@ public sealed class PersistedGridSplitter : GridSplitter
         Focusable = true;
         KeyboardIncrement = 10;
         DragCompleted += (_, e) => { if (!e.Canceled) QueueCommit(); };
-        AutomationProperties.SetName(this, "Zmień rozmiar paneli");
+        AutomationProperties.SetName(this, UiText.Get("ResizePanels"));
     }
 
     protected override void OnKeyDown(System.Windows.Input.KeyEventArgs e)

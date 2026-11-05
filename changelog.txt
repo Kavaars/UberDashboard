@@ -1,5 +1,24 @@
+1.9.0 (2026-11-05T08:18:37+01:00)
+- Nowy panel Skróty do aplikacji, folderów, dokumentów i stron internetowych.
+- Widoki ikon, listy, przycisków i kafelków; własne nazwy, ikony, kolory, kolejność oraz tapeta panelu.
+- Automatyczny zapis i komunikaty o niedostępnych celach; obsługa klawiatury oraz interfejs PL/EN.
+
+1.8.1 (2026-11-05T07:54:00+01:00)
+- Przełączenie trybu zapamiętuje go na kolejne uruchomienie, również przy starcie z Windows. Automatyczny wybór monitora paska zostaje utrwalony.
+- Zwykłe okno odtwarza pozycję, rozmiar i maksymalizację. Po odłączeniu monitora okno pozostaje na dostępnym ekranie.
+- Chowanie do zasobnika i nieudany start trybu nie nadpisują zapamiętanego trybu. Otwarty panel ustawień nie przywraca starego trybu przy edycji grubości paska.
+- Korzystając z kompilacji w nowym folderze, w jej ustawieniach wyłącz i ponownie włącz autostart, aby Windows uruchamiał aktualny plik programu.
+
 Zmiany robocze 1.8.0 (2026-11-04T21:41:46+01:00)
 - Zadokowany pasek nie zajmuje miejsca na pasku zadań Windows. Ikona aplikacji jest dostępna w zasobniku.
+
+Zmiany robocze 1.8.0 (2026-11-04T21:34:48+01:00)
+- Dodano angielską wersję menu, ustawień, dialogów, komunikatów i wbudowanych paneli. Polski jest językiem domyślnym.
+- Język wybiera się w Ustawieniach → Aplikacja. Wybór zapisuje się automatycznie i działa po ponownym uruchomieniu.
+
+Zmiany robocze 1.8.0 (2026-11-04T21:19:03+01:00)
+- Dodano panel Kalendarz z odczytem wydarzeń Google, siatką miesiąca, tygodnia i dwóch tygodni oraz widokiem dnia, własnego zakresu i listy wydarzeń.
+- Dodano Monitor zasobów z użyciem CPU, GPU, RAM i VRAM oraz odczytem temperatur i wentylatorów zależnie od dostępności czujników.
 
 Zmiany robocze 1.8.0 (2026-11-04T11:31:34+01:00)
 - Przyciski na paskach tytułu znów pokazują ikony minimalizacji, maksymalizacji, przywracania i zamknięcia.

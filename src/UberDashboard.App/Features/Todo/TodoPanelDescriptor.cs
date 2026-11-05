@@ -1,3 +1,4 @@
+using UberDashboard.Core.Localization;
 using UberDashboard.Contracts.Panels;
 using UberDashboard.Core.Layout;
 
@@ -22,7 +23,7 @@ public sealed class TodoPanelDescriptor : IPanelDescriptor
     string IPanelDescriptor.TypeId => TypeId;
 
     /// <inheritdoc />
-    public string DisplayName => "Lista zadań";
+    public string DisplayName => UiText.Get("TaskList");
 
     /// <inheritdoc />
     public string? IconKey => "panel.todo";
