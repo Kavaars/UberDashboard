@@ -6,7 +6,9 @@ Otwórz **Menu → Ustawienia → Integracje → Otwórz kreator Microsoft To Do
 2. Wskaż panel **Lista zadań** na aktywnym pulpicie. Jeśli nie ma takiego panelu, dodaj go z menu pulpitu.
 3. Zaznacz przy wybranych listach **Importuj kopię**, **Synchronizuj** lub obie opcje. Wybierz **Zapisz wybór i pobierz zadania**.
 
-Import tworzy nową edytowalną kartę. Synchronizacja aktualizuje tytuły i stan wykonania w karcie tylko do odczytu, w kierunku Microsoft To Do → UberDashboard. Zapisane listy odświeżają się przy starcie i co minutę podczas pracy aplikacji. Aby odświeżyć je ręcznie, otwórz kreator, pobierz listy i zapisz wybór ponownie. Jeżeli sesja wygasła, kreator umożliwia ponowne zalogowanie, a karty pokazują ostatnią kopię. W tym samym miejscu możesz zmienić Client ID, konto, panel docelowy i wybór list. Odznaczenie listy lub rozłączenie konta zatrzymuje aktualizacje powiązanych kart, które zachowują ostatnie pobrane zadania.
+Import tworzy lokalną edytowalną kopię. Powiązana karta domyślnie odczytuje listę Microsoft. W wersji roboczej przycisk **Synchronizacja dwukierunkowa** pozwala osobno udzielić `Tasks.ReadWrite` i otworzyć edytor tworzenia, zmiany tytułu/opisu/statusu i usuwania zadań w tej liście. Lokalne importy nie są automatycznie publikowane. Dokładne statusy Microsoft są zachowywane, również poza prostym wykonane/niewykonane.
+
+Zmiana jest najpierw zapisywana lokalnie wraz z kolejką. Edytor pokazuje oczekujące operacje, konflikty, ponowienie i wstrzymanie. **Centrum synchronizacji** w Integracjach umożliwia powrót do powiązań. Usunięcie samej karty nie wysyła usunięcia zadań do usługi. Powiązanie dwukierunkowe należy wstrzymać w jego edytorze; dotychczasowy kreator wyboru odczytu nie zarządza jeszcze wszystkimi nowymi powiązaniami. Pełny zakres API, odłączenie z kopiami oraz testy kont pozostają opisane jako otwarte w [stanie wdrożenia](SYNCHRONIZACJA_DWUKIERUNKOWA.md).
 
 ## Konfiguracja klienta
 

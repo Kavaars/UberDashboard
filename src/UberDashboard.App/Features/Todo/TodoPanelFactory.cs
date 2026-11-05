@@ -14,6 +14,8 @@ public sealed class TodoPanelFactory : IPanelFactory
     private readonly PanelStateScheduler _scheduler;
     private readonly IPanelInstanceStore? _instances;
     private readonly MicrosoftTodoSettings? _settings;
+    private readonly Features.Integrations.IntegrationSyncService? _sync;
+    private readonly MicrosoftTodoSession? _session;
 
     /// <summary>Tworzy fabrykę z harmonogramem autozapisu.</summary>
     public TodoPanelFactory(PanelStateScheduler scheduler)
@@ -22,10 +24,12 @@ public sealed class TodoPanelFactory : IPanelFactory
         _scheduler = scheduler;
     }
 
-    internal TodoPanelFactory(PanelStateScheduler scheduler, IPanelInstanceStore instances, MicrosoftTodoSettings settings) : this(scheduler)
+    internal TodoPanelFactory(PanelStateScheduler scheduler, IPanelInstanceStore instances, MicrosoftTodoSettings settings,
+        Features.Integrations.IntegrationSyncService? sync = null, MicrosoftTodoSession? session = null) : this(scheduler)
     {
         _instances = instances;
         _settings = settings;
+        _sync = sync; _session = session;
     }
 
     /// <inheritdoc />
@@ -43,7 +47,7 @@ public sealed class TodoPanelFactory : IPanelFactory
             try { link = JsonSerializer.Deserialize<MicrosoftTodoLink>(config); }
             catch (JsonException) { /* Older panel configuration may use a different format. */ }
             if (link is { AccountId.Length: > 0, ListId.Length: > 0 } && link.ClientId != Guid.Empty)
-                instance.AttachLink(link, _settings);
+                instance.AttachLink(link, _settings, _sync, _session);
         }
 
         return instance;

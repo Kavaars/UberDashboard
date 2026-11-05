@@ -33,6 +33,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="UberDashboard.App.Tests" />
+    <InternalsVisibleTo Include="UberDashboard.VisualChecks" />
   </ItemGroup>
 
 </Project>

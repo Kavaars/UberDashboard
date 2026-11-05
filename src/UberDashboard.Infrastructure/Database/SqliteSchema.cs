@@ -11,10 +11,10 @@ internal sealed record SqliteMigration(int Version, string Name, IReadOnlyList<s
 internal static class SqliteSchema
 {
     /// <summary>Wersja schematu obsługiwana przez tę wersję aplikacji.</summary>
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 5;
 
     /// <summary>Migracje w kolejności wykonania.</summary>
-    public static IReadOnlyList<SqliteMigration> Migrations { get; } = [CreateInitialSchema(), CreatePanelTabsSchema(), TodoStorageSchema.Create()];
+    public static IReadOnlyList<SqliteMigration> Migrations { get; } = [CreateInitialSchema(), CreatePanelTabsSchema(), TodoStorageSchema.Create(), SyncStorageSchema.Create(), SyncStorageSchema.CreateBindingMetadata()];
 
     private static SqliteMigration CreatePanelTabsSchema() => new(2, "panel-tab-groups", [
         "CREATE TABLE PanelTabGroup (GroupId TEXT NOT NULL PRIMARY KEY REFERENCES PanelInstance(InstanceId) ON DELETE CASCADE, ActiveInstanceId TEXT NOT NULL, OriginalStateJson TEXT NULL);",

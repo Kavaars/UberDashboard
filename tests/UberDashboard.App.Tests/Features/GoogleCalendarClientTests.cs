@@ -9,6 +9,35 @@ namespace UberDashboard.App.Tests.Features;
 
 public sealed class GoogleCalendarClientTests
 {
+    [Theory]
+    [InlineData("wrong-client", "account", true)]
+    [InlineData("client", "wrong-account", true)]
+    [InlineData("client", "account", true)]
+    public async Task Does_not_supply_a_write_token_for_wrong_identity_or_read_only_consent(string clientId, string accountId, bool write)
+    {
+        var session = $$$"""
+            {"ClientId":"client","ClientSecret":"test","AccountId":"account","GrantedScopes":["https://www.googleapis.com/auth/calendar.events.readonly"],"Token":{"access_token":"test-token","expires_in":3600,"IssuedUtc":"{{{DateTime.UtcNow:O}}}"}}
+            """;
+        var encrypted = ProtectedData.Protect(Encoding.UTF8.GetBytes(session), null, DataProtectionScope.CurrentUser);
+        var client = new GoogleCalendarClient(new SessionStorage(encrypted));
+        Assert.Null(await client.GetAccessTokenAsync(clientId, accountId, write, default));
+    }
+
+    [Fact]
+    public async Task Supplies_only_a_matching_consented_identity_without_exposing_secrets_in_metadata()
+    {
+        var session = $$$"""
+            {"ClientId":"client","ClientSecret":"test","AccountId":"account","GrantedScopes":["https://www.googleapis.com/auth/calendar.events"],"Token":{"access_token":"test-token","expires_in":3600,"IssuedUtc":"{{{DateTime.UtcNow:O}}}"}}
+            """;
+        var encrypted = ProtectedData.Protect(Encoding.UTF8.GetBytes(session), null, DataProtectionScope.CurrentUser);
+        var client = new GoogleCalendarClient(new SessionStorage(encrypted));
+        Assert.Equal("test-token", await client.GetAccessTokenAsync("client", "account", true, default));
+        var info = await client.GetConnectionAsync(default);
+        Assert.Equal("account", info!.AccountId);
+        Assert.DoesNotContain("test-token", System.Text.Json.JsonSerializer.Serialize(info));
+        Assert.DoesNotContain("ClientSecret", System.Text.Json.JsonSerializer.Serialize(info));
+    }
+
     [Fact]
     public async Task Fetch_expands_recurring_events_follows_page_tokens_and_parses_both_date_formats()
     {

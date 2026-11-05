@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using UberDashboard.Application.Abstractions;
+using UberDashboard.Core.Localization;
 
 namespace UberDashboard.Infrastructure.Database;
 
@@ -19,7 +20,7 @@ internal static class SqliteMigrator
         """;
 
     /// <summary>Doprowadza bazę do <see cref="SqliteSchema.CurrentVersion"/>.</summary>
-    public static void Apply(SqliteConnection connection, IClock clock, Action? backupBeforeTodoMigration = null)
+    public static void Apply(SqliteConnection connection, IClock clock, Action? backupBeforeTodoMigration = null, Action? backupBeforeSyncMigration = null)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(clock);
@@ -27,6 +28,8 @@ internal static class SqliteMigrator
         SqliteDatabase.Execute(connection, CreateMigrationTable);
 
         var applied = ReadAppliedVersions(connection);
+        if (applied.Any(version => version > SqliteSchema.CurrentVersion))
+            throw new InvalidDataException(UiText.Get("NewerDatabaseVersion"));
         foreach (var migration in SqliteSchema.Migrations)
         {
             if (applied.Contains(migration.Version))
@@ -36,6 +39,8 @@ internal static class SqliteMigrator
 
             if (migration.Version == 3 && applied.Count > 0)
                 backupBeforeTodoMigration?.Invoke();
+            if (migration.Version is 4 or 5 && applied.Count > 0)
+                backupBeforeSyncMigration?.Invoke();
             ApplyMigration(connection, migration, clock.UtcNow);
         }
     }

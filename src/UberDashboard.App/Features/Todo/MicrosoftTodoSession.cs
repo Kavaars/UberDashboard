@@ -8,16 +8,18 @@ namespace UberDashboard.App.Features.Todo;
 /// <summary>Manages delegated accounts in a Windows-protected token cache per profile.</summary>
 internal sealed class MicrosoftTodoSession(IAppPaths paths)
 {
-    private static readonly string[] Scopes = ["https://graph.microsoft.com/Tasks.Read"];
+    private static readonly string[] ReadScopes = ["https://graph.microsoft.com/Tasks.Read"];
+    private static readonly string[] WriteScopes = ["https://graph.microsoft.com/Tasks.ReadWrite"];
     private readonly SemaphoreSlim _gate = new(1, 1);
     private IPublicClientApplication? _client;
     private Guid _clientId;
 
     public static Guid DefaultClientId => Guid.TryParse(Environment.GetEnvironmentVariable("UBERDASHBOARD_MS_TODO_CLIENT_ID"), out var id)
-        ? id : Guid.Empty;
+        ? id : Guid.Parse("ae96d7dd-21ca-4fd7-adeb-242457b1d351");
 
-    public async Task<AuthenticationResult> SignInAsync(Guid id, CancellationToken token, string? preferredAccountId, bool chooseAccount = false)
+    public async Task<AuthenticationResult> SignInAsync(Guid id, CancellationToken token, string? preferredAccountId, bool chooseAccount = false, bool allowWrite = false)
     {
+        var scopes = allowWrite ? WriteScopes : ReadScopes;
         await _gate.WaitAsync(token).ConfigureAwait(false);
         try
         {
@@ -28,10 +30,10 @@ internal sealed class MicrosoftTodoSession(IAppPaths paths)
                 : accounts.Length == 1 ? accounts[0] : null;
             if (account is not null && !chooseAccount)
             {
-                try { return await client.AcquireTokenSilent(Scopes, account).ExecuteAsync(token).ConfigureAwait(false); }
+                try { return await client.AcquireTokenSilent(scopes, account).ExecuteAsync(token).ConfigureAwait(false); }
                 catch (MsalUiRequiredException) { }
             }
-            var request = client.AcquireTokenInteractive(Scopes).WithUseEmbeddedWebView(false);
+            var request = client.AcquireTokenInteractive(scopes).WithUseEmbeddedWebView(false);
             if (chooseAccount || (account is null && accounts.Length > 1)) request = request.WithPrompt(Prompt.SelectAccount);
             else if (account is not null) request = request.WithAccount(account);
             return await request.ExecuteAsync(token).ConfigureAwait(false);
@@ -39,7 +41,7 @@ internal sealed class MicrosoftTodoSession(IAppPaths paths)
         finally { _gate.Release(); }
     }
 
-    public async Task<AuthenticationResult?> TrySignInSilentlyAsync(Guid id, string accountId, CancellationToken token)
+    public async Task<AuthenticationResult?> TrySignInSilentlyAsync(Guid id, string accountId, CancellationToken token, bool allowWrite = false)
     {
         await _gate.WaitAsync(token).ConfigureAwait(false);
         try
@@ -48,7 +50,14 @@ internal sealed class MicrosoftTodoSession(IAppPaths paths)
             var account = (await client.GetAccountsAsync().ConfigureAwait(false))
                 .FirstOrDefault(account => account.HomeAccountId.Identifier == accountId);
             if (account is null) return null;
-            try { return await client.AcquireTokenSilent(Scopes, account).ExecuteAsync(token).ConfigureAwait(false); }
+            try
+            {
+                var signedIn = await client.AcquireTokenSilent(allowWrite ? WriteScopes : ReadScopes, account).ExecuteAsync(token).ConfigureAwait(false);
+                var required = allowWrite ? "Tasks.ReadWrite" : "Tasks.Read";
+                return signedIn.Account.HomeAccountId.Identifier == accountId && signedIn.Scopes.Any(scope =>
+                    scope.Equals(required, StringComparison.OrdinalIgnoreCase) || scope.EndsWith("/" + required, StringComparison.OrdinalIgnoreCase) ||
+                    !allowWrite && scope.EndsWith("Tasks.ReadWrite", StringComparison.OrdinalIgnoreCase)) ? signedIn : null;
+            }
             catch (MsalUiRequiredException) { return null; }
         }
         finally { _gate.Release(); }

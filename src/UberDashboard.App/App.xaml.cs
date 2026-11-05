@@ -20,6 +20,7 @@ public partial class App : System.Windows.Application
     private IHost? _host;
     private Features.Todo.MicrosoftTodoRefresh? _todoRefresh;
     internal Settings.MicrosoftTodoWizard? MicrosoftTodo => _host?.Services.GetRequiredService<Settings.MicrosoftTodoWizard>();
+    internal Features.Integrations.IntegrationSyncService? Integrations => _host?.Services.GetRequiredService<Features.Integrations.IntegrationSyncService>();
 
     /// <inheritdoc />
     protected override async void OnStartup(StartupEventArgs e)

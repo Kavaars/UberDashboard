@@ -51,7 +51,15 @@ public static class AppServiceCollectionExtensions
         services.AddSingleton<IPanelRemovalConfirmation, PanelRemovalConfirmation>();
         services.AddSingleton<PanelStateScheduler>();
         services.AddSingleton<Features.Todo.MicrosoftTodoSession>();
-        services.AddSingleton<Features.Todo.MicrosoftTodoSettings>();
+        services.AddSingleton(provider => new Features.Todo.MicrosoftTodoSettings(provider.GetRequiredService<IAppSettingsStore>(),
+            provider.GetRequiredService<IClock>(), provider.GetService<UberDashboard.Application.Synchronization.ISyncStore>(),
+            provider.GetService<UberDashboard.Application.Synchronization.ISyncStore>() is null ? null : provider.GetRequiredService<UberDashboard.Application.Synchronization.ISyncCoordinator>()));
+        UberDashboard.Infrastructure.DependencyInjection.SynchronizationServiceCollectionExtensions
+            .AddUberDashboardSynchronization<Features.Integrations.IntegrationAccounts>(services);
+        services.AddSingleton(provider => (Features.Integrations.IntegrationAccounts)provider
+            .GetRequiredService<UberDashboard.Application.Synchronization.IIntegrationAccountService>());
+        services.AddSingleton<Features.Integrations.IntegrationSyncService>();
+        services.AddHostedService<IntegrationSyncWorker>();
         services.AddSingleton<Features.Todo.MicrosoftTodoRefresh>();
         services.AddSingleton<MicrosoftTodoWizard>();
         services.AddSingleton<PanelHostManager>();
@@ -82,7 +90,9 @@ public static class AppServiceCollectionExtensions
             Features.Shortcuts.ShortcutsPanelDescriptor.Id, new Features.Shortcuts.ShortcutsPanelDescriptor(provider.GetRequiredService<PanelStateScheduler>())));
         services.AddSingleton<HardwareSampler>();
         services.AddSingleton<BuiltInPanelRegistration>(provider => new BuiltInPanelRegistration(
-            CalendarPanelDescriptor.Id, new CalendarPanelDescriptor(provider.GetRequiredService<PanelStateScheduler>())));
+            CalendarPanelDescriptor.Id, new CalendarPanelDescriptor(provider.GetRequiredService<PanelStateScheduler>(),
+                provider.GetService<UberDashboard.Application.Synchronization.ISyncStore>() is null ? null : provider.GetRequiredService<Features.Integrations.IntegrationSyncService>(),
+                provider.GetService<UberDashboard.Application.Synchronization.ISyncStore>() is null ? null : provider.GetRequiredService<Features.Integrations.IntegrationAccounts>())));
         services.AddSingleton<BuiltInPanelRegistration>(provider => new BuiltInPanelRegistration(
             ResourcePanelDescriptor.Id, new ResourcePanelDescriptor(provider.GetRequiredService<HardwareSampler>())));
 
@@ -98,7 +108,8 @@ public static class AppServiceCollectionExtensions
         {
             var scheduler = provider.GetRequiredService<PanelStateScheduler>();
             var factory = provider.GetService<IPanelInstanceStore>() is { } instances
-                ? new TodoPanelFactory(scheduler, instances, provider.GetRequiredService<MicrosoftTodoSettings>())
+                ? new TodoPanelFactory(scheduler, instances, provider.GetRequiredService<MicrosoftTodoSettings>(),
+                    provider.GetRequiredService<Features.Integrations.IntegrationSyncService>(), provider.GetRequiredService<Features.Todo.MicrosoftTodoSession>())
                 : new TodoPanelFactory(scheduler);
             return new BuiltInPanelRegistration(TodoPanelDescriptor.TypeId, new TodoPanelDescriptor(factory));
         });

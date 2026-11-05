@@ -11,7 +11,9 @@ Lista nad kalendarzem przełącza widok między pełnym miesiącem, tygodniem, d
 3. W nagłówku panelu otwórz jego opcje i wybierz **Połącz Google**. Wskaż pobrany plik i dokończ logowanie w przeglądarce.
 4. Identyfikator **primary** wskazuje główny kalendarz konta. Aby wybrać inny dostępny kalendarz, wpisz jego identyfikator z ustawień Kalendarza Google.
 
-Panel odczytuje wydarzenia po zmianie zakresu i co pięć minut. **Odśwież** pobiera je od razu. Integracja działa w trybie odczytu. Dane sesji są zaszyfrowane dla bieżącego użytkownika Windows, osobno dla każdej instancji panelu. **Odłącz** usuwa dane sesji z tego panelu. Zgodę aplikacji można odwołać w ustawieniach konta Google.
+Widok kalendarza odczytuje rozwinięte wydarzenia po zmianie zakresu i co pięć minut. **Odśwież** pobiera je od razu. W wersji roboczej przycisk **Synchronizacja dwukierunkowa** osobno prosi o zgodę na zapis i otwiera edytor tworzenia, zmiany podstawowych danych i usuwania wydarzeń. Dane oczekujące na wysłanie są przechowywane w istniejącej lokalnej bazie. Operacje dotyczące uczestników wymagają zatwierdzenia w kolejce edytora. Edycja istniejącej serii wymaga potwierdzenia, że dotyczy całej serii; edycja pojedynczego wystąpienia i podział serii nie są jeszcze ukończone.
+
+Dane sesji są zaszyfrowane dla bieżącego użytkownika Windows, osobno dla instancji panelu. Tożsamość konta jest sprawdzana przed użyciem sesji do wysyłania zmian. **Odłącz** usuwa dane sesji tego panelu; lokalna kolejka i dane nie są w ten sposób usuwane. Zgodę można odwołać w ustawieniach konta Google. Pełny zakres funkcji i testów kont pozostaje otwarty: [stan wdrożenia](SYNCHRONIZACJA_DWUKIERUNKOWA.md).
 
 ## Monitor zasobów
 

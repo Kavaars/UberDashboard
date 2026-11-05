@@ -37,7 +37,25 @@ public partial class SettingsWindow : Window
             app.MicrosoftTodo?.Show(this, TodoTargets());
     }
 
+    private void OpenSyncCenter_Click(object sender, RoutedEventArgs e)
+    {
+        if (System.Windows.Application.Current is App app && app.Integrations is { } integrations)
+            UberDashboard.App.Features.Integrations.SyncEditorWindow.OpenCenter(this, integrations);
+    }
+
     public Task FlushAsync() => _viewModel.FlushAsync();
+
+    private void OpenProjectWebsite_Click(object sender, RoutedEventArgs e) => OpenProjectLink(UberDashboard.Core.ProjectLinks.Website);
+    private void OpenPrivacyPolicy_Click(object sender, RoutedEventArgs e) => OpenProjectLink(UberDashboard.Core.ProjectLinks.Privacy);
+
+    private void OpenProjectLink(string url)
+    {
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); }
+        catch (Exception error) when (error is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            _viewModel.NotifyProjectLinkFailure();
+        }
+    }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {

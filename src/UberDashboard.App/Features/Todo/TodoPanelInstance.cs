@@ -41,11 +41,13 @@ public sealed class TodoPanelInstance : IPanelInstance, IPanelPersistenceObserve
     /// <inheritdoc />
     public object ViewModel => (object?)_linkedViewModel ?? _viewModel;
 
-    internal void AttachLink(MicrosoftTodoLink link, MicrosoftTodoSettings settings)
+    internal void AttachLink(MicrosoftTodoLink link, MicrosoftTodoSettings settings,
+        Features.Integrations.IntegrationSyncService? sync = null, MicrosoftTodoSession? session = null)
     {
         _link = link;
         _settings = settings;
         _linkedViewModel = new();
+        if (sync is not null && session is not null) _linkedViewModel.Configure(sync, session, _context.Notifier, _context.CloseToken);
     }
 
     private void OnIntegrationSaved(object? sender, MicrosoftTodoPreferences preferences) =>
@@ -86,10 +88,10 @@ public sealed class TodoPanelInstance : IPanelInstance, IPanelPersistenceObserve
         ValueTask.FromResult<ReadOnlyMemory<byte>>(JsonSerializer.SerializeToUtf8Bytes(_viewModel.Snapshot()));
 
     /// <inheritdoc />
-    public ValueTask SuspendAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
+    public ValueTask SuspendAsync(CancellationToken cancellationToken) { _linkedViewModel?.Suspend(); return ValueTask.CompletedTask; }
 
     /// <inheritdoc />
-    public ValueTask ResumeAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
+    public ValueTask ResumeAsync(CancellationToken cancellationToken) { _linkedViewModel?.Resume(); return ValueTask.CompletedTask; }
 
     /// <inheritdoc />
     public ValueTask PrepareForRemovalAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
@@ -103,6 +105,7 @@ public sealed class TodoPanelInstance : IPanelInstance, IPanelPersistenceObserve
         if (!_disposed)
         {
             _disposed = true;
+            _linkedViewModel?.Suspend();
             _viewModel.Changed -= OnViewModelChanged;
             if (_settings is not null) _settings.Saved -= OnIntegrationSaved;
         }

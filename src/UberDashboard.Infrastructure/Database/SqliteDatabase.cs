@@ -66,7 +66,7 @@ public sealed class SqliteDatabase : IDisposable
         try
         {
             ApplyPragmas(connection);
-            SqliteMigrator.Apply(connection, _clock, () => BackupBeforeTodoMigration(connection));
+            SqliteMigrator.Apply(connection, _clock, () => BackupBeforeTodoMigration(connection), () => BackupBeforeSyncMigration(connection));
         }
         catch
         {
@@ -85,6 +85,15 @@ public sealed class SqliteDatabase : IDisposable
         {
             DataSource = file, Pooling = false,
         }.ToString());
+        backup.Open();
+        connection.BackupDatabase(backup);
+    }
+
+    private void BackupBeforeSyncMigration(SqliteConnection connection)
+    {
+        Directory.CreateDirectory(_backupsDirectory);
+        var file = Path.Combine(_backupsDirectory, $"pre-sync-v{SqliteSchema.CurrentVersion}-{Guid.NewGuid():N}.db");
+        using var backup = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = file, Pooling = false }.ToString());
         backup.Open();
         connection.BackupDatabase(backup);
     }
