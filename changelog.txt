@@ -1,3 +1,11 @@
+Prace robocze 1.9.0 (2026-11-06T08:56:40+01:00)
+- Konflikty: porównanie wspólnej bazy, wersji lokalnej i wersji usługi oraz ręczna edycja połączonego szkicu przez istniejące formularze.
+- Pełniejsza kontrola aktualności decyzji przed zapisem; zmieniona baza lub element bez konfliktu nie przechodzą ścieżki rozstrzygnięcia. Wszystkie trzy wersje pozostają w historii.
+- Historia odzyskiwania: porównanie starszych kopii z bieżącą treścią, przywracanie offline do zwykłej kolejki i usuwanie wybranej kopii po osobnym potwierdzeniu.
+- Kopie związane z oczekującymi operacjami i konfliktami są chronione przed automatycznym wygasaniem. Usuwanie kopii zachowuje bieżącą treść, kolejkę i osobne backupy.
+- Poprawiony układ małego okna historii PL/EN i czytelne opisy statusów zadań. Przywrócenie uczestników nadal wymaga zatwierdzenia skutków.
+- Uzupełniono README i politykę prywatności. Pełny plan synchronizacji, testy rzeczywistych kont i publiczne weryfikacje dostawców nadal pozostają w przygotowaniu.
+
 Prace robocze 1.9.0 (2026-11-06T08:30:45+01:00)
 - Subskrypcje Google: dodawanie istniejącego kalendarza, osobisty alias, kolory i widoczność. Wypisanie usuwa tylko wpis z własnej listy i zachowuje lokalne kopie.
 - Udostępnianie Google: osoba, grupa, domena lub dostęp publiczny, z osobnym podglądem odbiorców i poziomu dostępu przed wysłaniem. Chronione własne reguły i właściciel danych.

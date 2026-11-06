@@ -4,6 +4,7 @@ Stan: 2026-11-06, baza `acbeb66` i etap `google-access-20261106`. Publiczne API:
 
 | Funkcja | Endpointy używane przez aplikację | Zgoda delegowana aplikacji | Konto i ograniczenia | Odbiór |
 | --- | --- | --- | --- | --- |
+| Konflikty i historia obu usług | Świeży GET elementu przed decyzją; zwykły późniejszy zapis przez istniejącą kolejkę. Historia i jej usuwanie wyłącznie lokalne | Bez nowych zakresów, dotychczasowe uprawnienia wybranego zasobu | Pełny podgląd chroniony przed zmianą; przywrócenie offline, potwierdzenie usunięcia kopii, zachowana kolejka i dodatkowe zatwierdzanie skutków | Testy silnika/SQLite, WPF PL/EN; rzeczywiste konta nadal otwarte |
 | Katalog list Microsoft | `/me/todo/lists/delta`, `/me/todo/lists/{id}` | Tasks.ReadWrite po włączeniu zapisu | Osobiste i organizacyjne; dostęp zależy od zgód i zasad organizacji | Testy HTTP; prawdziwe konta otwarte |
 | Tworzenie/zmiana/usunięcie listy | POST `/me/todo/lists`, PATCH/DELETE `/me/todo/lists/{id}` | Tasks.ReadWrite | Tylko własne listy użytkownika; isOwner i wellknownListName sprawdzane przed zapisem. Listy systemowe zablokowane | HTTP, silnik, SQLite i WPF |
 | Zadania i relacje | `/me/todo/lists/{id}/tasks`, delta, checklistItems, linkedResources | Tasks.ReadWrite | Dokładne statusy i stabilne ID; oddzielne relacje. Niepewny POST bez ID nie jest ponawiany | Automatyczny; ETag/If-Match Microsoft nadal do prób |

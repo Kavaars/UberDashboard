@@ -69,6 +69,8 @@ internal static partial class SyncEditorWindow
         var edit = ActionButton("SyncEdit", toolbar);
         var remove = ActionButton("SyncDelete", toolbar);
         var review = ActionButton("SyncReview", toolbar);
+        var history = ActionButton("SyncHistory", toolbar);
+        history.Click += (_, _) => OpenHistory(window, service, bindingId, token);
         var pause = ActionButton("SyncPauseResume", toolbar);
         var manage = itemKind == SyncEntityKind.Item ? ActionButton("SyncManageContainers", toolbar) : null;
         var contents = itemKind == SyncEntityKind.Item ? ActionButton("SyncContainerContents", toolbar) : null;
@@ -224,7 +226,7 @@ internal static partial class SyncEditorWindow
         edit.Click += async (_, _) => await RunAsync(async () =>
         {
             if (state is null || list.SelectedItem is not Row row) return;
-            if (row.Entity.Conflicts is { Length: > 0 }) { Resolve(window, service, bindingId, row.Entity, token, state.Items.Count(e => e.ParentId == row.Entity.LocalId)); return; }
+            if (row.Entity.Conflicts is { Length: > 0 }) { OpenConflict(window, service, state.Binding, row.Entity, token, state.Items.Count(e => e.ParentId == row.Entity.LocalId)); return; }
             if (SyncContainers.IsCatalog(state.Binding) && row.Entity.RemoteId is not null && !SyncContainers.CanEdit(state.Binding.Provider, row.Entity.Metadata)) return;
             if (GoogleCalendarAccess.IsSharing(state.Binding) && !GoogleCalendarAccess.CanChangeRule(row.Entity.Local, row.Entity.Metadata ?? state.Items.Select(e => e.Metadata).FirstOrDefault(m => m?["actingCalendarId"] is not null))) return;
             var fields = GoogleCalendarAccess.IsAccessDocument(state.Binding) ? EditGoogleAccess(window, GoogleCalendarAccess.IsSharing(state.Binding), row.Entity.Local)
@@ -537,25 +539,6 @@ internal static partial class SyncEditorWindow
     internal static bool HasDateError(DatePicker field) => (bool)field.GetValue(InvalidDateInputProperty);
     internal static DateTime? DateValue(DatePicker field) => HasDateError(field) ? null : field.SelectedDate;
 
-    private static void Resolve(Window owner, IntegrationSyncService service, Guid bindingId, SyncEntity entity, CancellationToken token, int relatedCount = 0)
-    {
-        var message = UiText.Format("SyncConflictChoice", Describe(entity.Local), Describe(entity.Remote));
-        if (relatedCount > 0 && entity.Conflicts?.Contains("$deleted") == true) message += "\n\n" + UiText.Format("SyncRelatedConflictNotice", relatedCount);
-        var answer = ThemedMessageBox.Show(owner, message,
-            UiText.Get("SyncConflict"), MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-        if (answer is not (MessageBoxResult.Yes or MessageBoxResult.No)) return;
-        var window = WindowFrame.Create(owner, UiText.Get("SyncConflict"), 500, 260);
-        var status = new TextBlock { Text = UiText.Get("SyncWorking"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(16) }; window.Content = status;
-        window.Loaded += async (_, _) =>
-        {
-            try { await service.Coordinator.ResolveAsync(bindingId, entity.LocalId, answer == MessageBoxResult.Yes ? entity.Local : entity.Remote, token, entity); service.Request(bindingId); status.Text = UiText.Get("SyncSavedLocally"); }
-            catch (UberDashboard.Application.Synchronization.SyncAuthenticationException) { status.Text = UiText.Get("SyncReconnectRequired"); }
-            catch (UberDashboard.Application.Synchronization.SyncReadException) { status.Text = UiText.Get("SyncThrottled"); }
-            catch (Exception) { status.Text = UiText.Get("SyncConflictChanged"); }
-        };
-        window.Show();
-    }
-
     private static void Review(Window owner, IntegrationSyncService service, SyncState state, CancellationToken token)
     {
         var window = WindowFrame.Create(owner, UiText.Get("SyncReview"), 620, 500);
@@ -577,7 +560,7 @@ internal static partial class SyncEditorWindow
             }
             else if (operation.State == SyncOperationState.Conflict)
             {
-                var resolve = ActionButton("SyncResolve", body); resolve.Click += (_, _) => Resolve(window, service, state.Binding.Id, entity, token, state.Items.Count(e => e.ParentId == entity.LocalId));
+                var resolve = ActionButton("SyncResolve", body); resolve.Click += (_, _) => OpenConflict(window, service, state.Binding, entity, token, state.Items.Count(e => e.ParentId == entity.LocalId));
             }
             else if (operation.State is SyncOperationState.UnknownOutcome or SyncOperationState.Sending)
             {
@@ -638,7 +621,9 @@ internal static partial class SyncEditorWindow
                 "attendees" => "SyncGooglePeople", "reminders" => "SyncGoogleReminders", "visibility" => "SyncGoogleVisibility",
                 "transparency" => "SyncGoogleAvailability", _ => "SyncOtherDetails",
             };
-            text.Append(UiText.Get(label)).Append(": ").AppendLine(DescribeValue(pair.Value));
+            var description = pair.Key == "status" && pair.Value is JsonValue statusValue && statusValue.TryGetValue<string>(out var taskStatus) && MicrosoftTaskDraft.Statuses.Contains(taskStatus)
+                ? UiText.Get("SyncTaskStatus_" + taskStatus) : DescribeValue(pair.Value);
+            text.Append(UiText.Get(label)).Append(": ").AppendLine(description);
         }
         return text.ToString();
     }

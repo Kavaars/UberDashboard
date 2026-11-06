@@ -46,22 +46,24 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
     {
         var state = await RequiredAsync(bindingId, token).ConfigureAwait(false);
         var entity = state.Items.Single(e => e.LocalId == entityId);
-        if (expected is not null && (expected.Revision != entity.Revision || !JsonNode.DeepEquals(expected.Local, entity.Local) ||
-            !JsonNode.DeepEquals(expected.Remote, entity.Remote))) throw new InvalidOperationException("The conflict changed while it was being reviewed.");
+        if (entity.Conflicts is not { Length: > 0 } || expected is not null && !SameReview(expected, entity))
+            throw new InvalidOperationException("The conflict changed while it was being reviewed.");
         var remote = entity.RemoteId is null ? null : await ReadWithQuotaAsync(state.Binding,
             MicrosoftTodoRelations.Scope(state, entity), entity.RemoteId, token).ConfigureAwait(false);
         await GuardedEditAsync(bindingId, entityId, chosen, current =>
         {
             var latest = current.Items.Single(e => e.LocalId == entityId);
-            if (latest.Revision != entity.Revision || !JsonNode.DeepEquals(latest.Local, entity.Local) ||
-                !JsonNode.DeepEquals(remote?.Fields, latest.Remote))
+            if (!SameReview(latest, entity) || !JsonNode.DeepEquals(remote?.Fields, latest.Remote))
                 throw new InvalidOperationException("The remote item changed. Synchronize and review the conflict again.");
             var clean = latest with { Baseline = remote?.Fields, Local = remote?.Fields, ETag = remote?.ETag,
                 RemoteId = remote?.Fields is null ? null : remote.Id, Conflicts = null, Remote = null,
                 Metadata = ContainerMetadata(current.Binding, latest, remote?.Metadata, remote?.Fields is null ? latest.RemoteId : null) };
             var reset = current with { Entities = current.Items.Select(e => e.LocalId == entityId ? clean : e).ToArray(),
                 Operations = current.Queue.Where(o => o.EntityId != entityId).ToArray(),
-                Recovery = current.History.Append(new(entityId, clock.UtcNow, latest.Local, "conflict-resolution")).ToArray() };
+                Recovery = current.History.Concat(new[] {
+                    new SyncRecovery(entityId, clock.UtcNow, latest.Baseline, "conflict-base"),
+                    new SyncRecovery(entityId, clock.UtcNow, latest.Local, "conflict-resolution"),
+                    new SyncRecovery(entityId, clock.UtcNow, latest.Remote, "conflict-service") }).ToArray() };
             reset = SyncEdits.Edit(reset, entityId, chosen, clock.UtcNow);
             return entity.Kind == SyncEntityKind.Item && remote?.Fields is null
                 ? SyncEdits.ResetChildren(reset, entityId, chosen is not null, clock.UtcNow) : reset;
@@ -302,16 +304,14 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
                         ? SyncOperationState.AwaitingApproval : SyncOperationState.Pending, Baseline: remote.Fields));
             }
         }
-        var mergedState = state with { Cursor = cursor, Entities = entities, Operations = queue,
-            Recovery = history.Where(h => h.CreatedAt >= clock.UtcNow.AddDays(-30) ||
-                queue.Any(o => o.EntityId == h.EntityId)).ToArray() };
+        var mergedState = state with { Cursor = cursor, Entities = entities, Operations = queue, Recovery = history };
         if (parentScope is { } parentId && entities.Any(e => e.ParentId == parentId &&
             !JsonNode.DeepEquals(e.Local, state.Items.FirstOrDefault(old => old.LocalId == e.LocalId)?.Local)))
             mergedState = SyncEdits.TouchParent(mergedState, parentId);
         if (kindScope == SyncEntityKind.Item)
             foreach (var parent in mergedState.Items.Where(e => e.Kind == SyncEntityKind.Item && e.Local is null && e.Baseline is null && e.Conflicts is not { Length: > 0 }))
                 mergedState = SyncEdits.ResetChildren(mergedState, parent.LocalId, false, clock.UtcNow);
-        return mergedState;
+        return SyncEdits.PruneHistory(mergedState, clock.UtcNow);
     }
 
     private SyncState Complete(SyncState state, SyncOperation sent, SyncWriteResult result)

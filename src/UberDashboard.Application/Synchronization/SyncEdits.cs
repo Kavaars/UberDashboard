@@ -44,10 +44,17 @@ public static class SyncEdits
         {
             Entities = state.Items.Where(e => e.LocalId != entityId).Append(entity).ToArray(),
             Operations = queue,
-            Recovery = history.Where(h => h.CreatedAt >= now.AddDays(-30) ||
-                queue.Any(o => o.EntityId == h.EntityId)).ToArray(),
+            Recovery = history,
         };
+        changed = PruneHistory(changed, now);
         return entity.ParentId is { } parentId ? TouchParent(changed, parentId) : changed;
+    }
+
+    public static SyncState PruneHistory(SyncState state, DateTimeOffset now)
+    {
+        var protectedIds = state.Queue.Select(o => o.EntityId).Concat(state.Items.Where(e => e.Conflicts is { Length: > 0 }).Select(e => e.LocalId)).ToHashSet();
+        var retained = state.History.Where(h => h.CreatedAt >= now.AddDays(-30) || protectedIds.Contains(h.EntityId)).ToArray();
+        return retained.Length == state.History.Count ? state : state with { Recovery = retained };
     }
 
     internal static SyncState TouchParent(SyncState state, Guid parentId) => state with
