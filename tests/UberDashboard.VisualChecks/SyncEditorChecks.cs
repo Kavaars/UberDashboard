@@ -123,6 +123,7 @@ internal static class SyncEditorChecks
         await GoogleEventEditorChecks.RunAsync(owner, theme, output);
         await ContainerEditorChecks.RunAsync(owner, theme, output);
         await GoogleAccessEditorChecks.RunAsync(owner, theme, output);
+        await SyncRecoveryChecks.RunAsync(owner, theme, output);
     }
 
     internal static void Capture(Window window, string path)

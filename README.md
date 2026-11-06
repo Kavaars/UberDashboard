@@ -51,6 +51,10 @@ Przycisk **Listy i kalendarze** otwiera katalog konta. Można tworzyć własne l
 
 ## Dane i prywatność
 
+W oknie synchronizacji **Historia odzyskiwania** pozwala porównać wcześniejsze kopie z bieżącą treścią. **Przywróć i edytuj** otwiera zwykły formularz; zapis tworzy zmianę w lokalnej kolejce i może później zmienić dane w usłudze. Można też usunąć wybraną kopię po osobnym potwierdzeniu. Historia ma domyślnie 30 dni, a kopie związane z niewysłanymi zmianami i konfliktami są chronione przed automatycznym wygasaniem. Osobne backupy mogą nadal zawierać usuniętą kopię.
+
+Okno konfliktu pokazuje wspólną wersję bazową, wersję lokalną i wersję usługi. Można zachować wybraną wersję albo użyć **Edytuj połączony szkic** i poprawić obsługiwane pola. Przed przyjęciem decyzji aplikacja ponownie sprawdza dane w usłudze; zmiana podglądu wymaga ponownego porównania. Po rozstrzygnięciu wszystkie trzy wersje pozostają w historii zgodnie z jej zasadami.
+
 Notatki, zadania lokalne, ustawienia i kolejka synchronizacji znajdują się na komputerze, domyślnie w `%LOCALAPPDATA%\UberDashboard`. Kopie zapasowe są w podfolderze `Backups`, a logi w `LOGS`. Odinstalowanie programu pozostawia profil użytkownika.
 
 Integracje łączą się bezpośrednio z Microsoft, Google lub Open-Meteo i przekazują dane potrzebne do wybranej funkcji. Nie znaleziono automatycznej analityki autora ani wysyłania raportów awarii. Tokeny są chronione mechanizmami Windows; baza danych i zwykłe kopie zapasowe nie są w całości szyfrowane. Wtyczki działają z uprawnieniami aplikacji — instaluj je z zaufanego źródła. Szczegóły opisuje [polityka prywatności](PRIVACY.md).
@@ -59,6 +63,7 @@ Integracje łączą się bezpośrednio z Microsoft, Google lub Open-Meteo i prze
 
 | Wersja / etap | Zmiany dla użytkownika |
 | --- | --- |
+| Odzyskiwanie zmian, 6 listopada 2026 | Porównanie trzech wersji konfliktu, ręczna edycja połączonego szkicu i historia kopii. Przywracanie przez lokalną kolejkę, osobne potwierdzenie usunięcia kopii i ochrona nowszych zmian. |
 | Dostęp do kalendarzy, 6 listopada 2026 | Subskrypcje, osobiste aliasy i kolory oraz udostępnianie z podglądem skutków i osobnymi zgodami. Usunięcie subskrypcji zachowuje dane kalendarza i lokalne niewysłane zmiany. |
 | Zarządzanie zasobami, 6 listopada 2026 | Własne listy i kalendarze, osobna zgoda Google, ochrona list systemowych i kalendarza głównego. Usuwanie chroni niewysłane zmiany, wymaga zatwierdzenia i nie usuwa samych paneli. Poprawiony kontrast list integracji. |
 | Prace nad synchronizacją, 6 listopada 2026 | Google Calendar: uczestnicy i własna odpowiedź, przypomnienia, widoczność i dostępność. Ochrona niepełnej listy i ograniczeń kopii wydarzenia. Podgląd dodawanych i usuwanych uczestników przed wysłaniem. |

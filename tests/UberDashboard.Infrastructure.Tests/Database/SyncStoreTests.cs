@@ -8,6 +8,27 @@ namespace UberDashboard.Infrastructure.Tests.Database;
 
 public sealed class SyncStoreTests
 {
+    [Fact]
+    public async Task Recovery_restore_and_selected_copy_removal_persist_without_losing_the_outbox()
+    {
+        await using var fixture = new DatabaseFixture(); var store = new SyncStore(fixture.Queue, fixture.Database);
+        var binding = new SyncBinding(Guid.NewGuid(), SyncProviderKind.MicrosoftTodo, "client", "account", "lists/a/tasks", "Test");
+        var fields = new JsonObject { ["title"] = "Current" }; var older = new JsonObject { ["title"] = "Older" };
+        var entity = new SyncEntity(Guid.NewGuid(), "remote", fields, fields, Revision: 1);
+        var history = new SyncRecovery(entity.LocalId, fixture.Clock.UtcNow.AddHours(-1), older, "local-edit");
+        Assert.True(await store.SaveAsync(new(binding, Entities: [entity], Recovery: [history]), -1));
+        var coordinator = new SyncCoordinator(store, [], fixture.Clock);
+        await coordinator.RestoreRecoveryAsync(binding.Id, history, entity, older);
+        using var reopened = new UberDashboard.Infrastructure.Database.SqliteDatabase(fixture.Database.DatabaseFile, fixture.Clock);
+        var restoredStore = new SyncStore(fixture.Queue, reopened); var restored = (await restoredStore.ReadAsync(binding.Id))!;
+        Assert.Equal("Older", restored.Items[0].Local!["title"]!.GetValue<string>()); var operation = Assert.Single(restored.Queue);
+        Assert.Contains(restored.History, h => h.Value?["title"]?.GetValue<string>() == "Current");
+        await new SyncCoordinator(restoredStore, [], fixture.Clock).RemoveRecoveryAsync(binding.Id, history);
+        var saved = (await store.ReadAsync(binding.Id))!;
+        Assert.Equal(operation.Id, Assert.Single(saved.Queue).Id); Assert.Equal("Older", saved.Items[0].Local!["title"]!.GetValue<string>());
+        Assert.DoesNotContain(saved.History, h => h.CreatedAt == history.CreatedAt);
+    }
+
     [Theory]
     [InlineData(SyncProviderKind.MicrosoftTodo)]
     [InlineData(SyncProviderKind.GoogleCalendar)]
