@@ -38,7 +38,7 @@ internal sealed class IntegrationAccounts(MicrosoftTodoSession microsoft, IAppSe
             var selectedJson = await settings.GetAsync(MicrosoftTodoSettings.Key, token).ConfigureAwait(false);
             var selected = selectedJson is null ? null : JsonSerializer.Deserialize<MicrosoftTodoPreferences>(selectedJson);
             if (selected is null || selected.ClientId != clientId || selected.AccountId != binding.AccountId ||
-                !selected.SelectedLists.Any(id => MicrosoftTodoRelations.TaskCollectionPath(binding.ResourcePath) == "lists/" + Uri.EscapeDataString(id) + "/tasks")) return null;
+                binding.ResourcePath != "lists" && !selected.SelectedLists.Any(id => MicrosoftTodoRelations.TaskCollectionPath(binding.ResourcePath) == "lists/" + Uri.EscapeDataString(id) + "/tasks")) return null;
             try { return (await microsoft.TrySignInSilentlyAsync(clientId, binding.AccountId, token, write).ConfigureAwait(false))?.AccessToken; }
             catch (Microsoft.Identity.Client.MsalException) { throw new SyncAuthenticationException(); }
         }
@@ -49,12 +49,32 @@ internal sealed class IntegrationAccounts(MicrosoftTodoSession microsoft, IAppSe
                 new PanelInstanceId(reference.InstanceId)));
             var client = new GoogleCalendarClient(storage);
             string? access;
-            try { access = await client.GetAccessTokenAsync(binding.ClientId, binding.AccountId, write, token).ConfigureAwait(false); }
+            try { access = await client.GetAccessTokenAsync(binding.ClientId, binding.AccountId, write, token,
+                SyncContainers.IsCatalog(binding) ? GoogleCalendarClient.CalendarManagementScopes : null).ConfigureAwait(false); }
             catch (Exception error) when (error is Google.Apis.Auth.OAuth2.Responses.TokenResponseException or System.Security.Cryptography.CryptographicException)
             { throw new SyncAuthenticationException(); }
             if (access is not null) return access;
         }
         return null;
+    }
+
+    internal async Task RequestCalendarManagementAsync(SyncBinding binding, CancellationToken token, bool forceConsent = false)
+    {
+        foreach (var reference in (await ReadReferencesAsync(token).ConfigureAwait(false)).Where(r => r.ClientId == binding.ClientId && r.AccountId == binding.AccountId))
+        {
+            var storage = new PanelStorage(paths.GetPluginInstanceDirectory(AppServiceCollectionExtensions.BuiltInPluginId, new PanelInstanceId(reference.InstanceId)));
+            var client = new GoogleCalendarClient(storage); var connection = await client.GetConnectionAsync(token).ConfigureAwait(false);
+            if (connection?.ClientId != binding.ClientId || connection.AccountId != binding.AccountId) continue;
+            await client.RequestCalendarManagementAsync(binding.ClientId, binding.AccountId, token, forceConsent).ConfigureAwait(false); return;
+        }
+        throw new SyncAuthenticationException();
+    }
+
+    internal async Task<bool> IsMicrosoftListSelectedAsync(SyncBinding binding, string id, CancellationToken token)
+    {
+        var json = await settings.GetAsync(MicrosoftTodoSettings.Key, token).ConfigureAwait(false);
+        var selected = json is null ? null : JsonSerializer.Deserialize<MicrosoftTodoPreferences>(json);
+        return selected?.ClientId.ToString("D") == binding.ClientId && selected.AccountId == binding.AccountId && selected.SelectedLists.Contains(id, StringComparer.Ordinal);
     }
 
     private async Task<GoogleReference[]> ReadReferencesAsync(CancellationToken token)

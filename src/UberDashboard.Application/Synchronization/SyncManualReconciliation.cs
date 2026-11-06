@@ -5,7 +5,7 @@ namespace UberDashboard.Application.Synchronization;
 
 public sealed partial class SyncCoordinator
 {
-    /// <summary>The user explicitly identifies an existing Microsoft object; no POST is repeated or inferred from its title.</summary>
+    /// <summary>The user explicitly identifies an existing object; no POST is repeated or inferred from its title.</summary>
     public async Task LinkUnknownCreateAsync(Guid bindingId, SyncOperation expectedOperation, SyncEntity expectedCandidate, CancellationToken token = default, SyncEntity? expectedTarget = null)
     {
         var identity = (await RequiredAsync(bindingId, token).ConfigureAwait(false)).Binding;
@@ -17,7 +17,7 @@ public sealed partial class SyncCoordinator
             var (operation, target, candidate) = ValidateLink(state, expectedOperation, expectedCandidate, expectedTarget);
             var scope = MicrosoftTodoRelations.Scope(state, target);
             var remote = await ReadWithQuotaAsync(state.Binding, scope, candidate.RemoteId!, token).ConfigureAwait(false);
-            if (remote?.Fields is null || remote.Id != candidate.RemoteId || !JsonNode.DeepEquals(remote.Fields, candidate.Baseline))
+            if (remote?.Fields is null || remote.Id != candidate.RemoteId || !JsonNode.DeepEquals(remote.Fields, candidate.Baseline) || !SyncContainers.CanIdentifyCreated(state.Binding, remote.Metadata))
                 throw new InvalidOperationException("The selected service item changed. Synchronize and review it again.");
             await UpdateAsync(bindingId, current =>
             {
@@ -43,12 +43,12 @@ public sealed partial class SyncCoordinator
         var operation = state.Queue.Single(o => o.Id == expectedOperation.Id);
         var target = state.Items.Single(e => e.LocalId == operation.EntityId);
         var candidate = state.Items.Single(e => e.LocalId == expectedCandidate.LocalId);
-        if (state.Binding.Provider != SyncProviderKind.MicrosoftTodo || operation.State != SyncOperationState.UnknownOutcome ||
+        if (!SyncContainers.CanManuallyLink(state.Binding) || operation.State != SyncOperationState.UnknownOutcome ||
             operation.Kind != SyncOperationKind.Create || operation.RemoteId is not null ||
             operation.Revision != expectedOperation.Revision || !JsonNode.DeepEquals(operation.Desired, expectedOperation.Desired) ||
             expectedTarget is not null && (target.Revision != expectedTarget.Revision || !JsonNode.DeepEquals(target.Local, expectedTarget.Local)) ||
             target.LocalId == candidate.LocalId || target.Kind != candidate.Kind || target.ParentId != candidate.ParentId ||
-            candidate.Local is null || candidate.Baseline is null || string.IsNullOrWhiteSpace(candidate.RemoteId) || candidate.RemoteId != expectedCandidate.RemoteId ||
+            candidate.Local is null || candidate.Baseline is null || !SyncContainers.CanIdentifyCreated(state.Binding, candidate.Metadata) || string.IsNullOrWhiteSpace(candidate.RemoteId) || candidate.RemoteId != expectedCandidate.RemoteId ||
             candidate.Revision != expectedCandidate.Revision || !JsonNode.DeepEquals(candidate.Local, expectedCandidate.Local) ||
             !JsonNode.DeepEquals(candidate.Baseline, expectedCandidate.Baseline) || !MicrosoftTodoRelations.CanSend(state, target))
             throw new InvalidOperationException("The uncertain operation or selected item changed.");

@@ -16,13 +16,13 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
             s.Binding.NotBefore > clock.UtcNow ? SyncConnectionStatus.Throttled : s.ConnectionStatus }, token);
 
     public async Task EditAsync(Guid bindingId, Guid entityId, JsonObject? desired, CancellationToken token = default) =>
-        await UpdateAsync(bindingId, s => SyncEdits.Edit(s, entityId, desired, clock.UtcNow), token).ConfigureAwait(false);
+        await GuardedEditAsync(bindingId, entityId, desired, s => SyncEdits.Edit(s, entityId, desired, clock.UtcNow), token).ConfigureAwait(false);
 
     public Task EditChildAsync(Guid bindingId, Guid parentId, Guid entityId, SyncEntityKind kind, JsonObject? desired, CancellationToken token = default) =>
-        UpdateAsync(bindingId, s => SyncEdits.EditChild(s, parentId, entityId, kind, desired, clock.UtcNow), token);
+        GuardedEditAsync(bindingId, entityId, desired, s => SyncEdits.EditChild(s, parentId, entityId, kind, desired, clock.UtcNow), token);
 
     public Task EditFromSnapshotAsync(Guid bindingId, Guid entityId, JsonObject? expectedLocal, long expectedRevision,
-        JsonObject? desired, CancellationToken token = default) => UpdateAsync(bindingId, state =>
+        JsonObject? desired, CancellationToken token = default) => GuardedEditAsync(bindingId, entityId, desired, state =>
     {
         var current = state.Items.Single(e => e.LocalId == entityId);
         if (current.Revision != expectedRevision || !JsonNode.DeepEquals(current.Local, expectedLocal))
@@ -50,14 +50,15 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
             !JsonNode.DeepEquals(expected.Remote, entity.Remote))) throw new InvalidOperationException("The conflict changed while it was being reviewed.");
         var remote = entity.RemoteId is null ? null : await ReadWithQuotaAsync(state.Binding,
             MicrosoftTodoRelations.Scope(state, entity), entity.RemoteId, token).ConfigureAwait(false);
-        await UpdateAsync(bindingId, current =>
+        await GuardedEditAsync(bindingId, entityId, chosen, current =>
         {
             var latest = current.Items.Single(e => e.LocalId == entityId);
             if (latest.Revision != entity.Revision || !JsonNode.DeepEquals(latest.Local, entity.Local) ||
                 !JsonNode.DeepEquals(remote?.Fields, latest.Remote))
                 throw new InvalidOperationException("The remote item changed. Synchronize and review the conflict again.");
             var clean = latest with { Baseline = remote?.Fields, Local = remote?.Fields, ETag = remote?.ETag,
-                RemoteId = remote?.Fields is null ? null : remote.Id, Conflicts = null, Remote = null };
+                RemoteId = remote?.Fields is null ? null : remote.Id, Conflicts = null, Remote = null,
+                Metadata = ContainerMetadata(current.Binding, latest, remote?.Metadata, remote?.Fields is null ? latest.RemoteId : null) };
             var reset = current with { Entities = current.Items.Select(e => e.LocalId == entityId ? clean : e).ToArray(),
                 Operations = current.Queue.Where(o => o.EntityId != entityId).ToArray(),
                 Recovery = current.History.Append(new(entityId, clock.UtcNow, latest.Local, "conflict-resolution")).ToArray() };
@@ -118,6 +119,19 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
                     state.Items.Single(e => e.LocalId == o.EntityId).Conflicts is not { Length: > 0 } &&
                     MicrosoftTodoRelations.CanSend(state, state.Items.Single(e => e.LocalId == o.EntityId)));
                 if (next is null) break;
+                try { await CheckContainerAsync(state, next.EntityId, next.Desired, token).ConfigureAwait(false); }
+                catch (SyncContainerAccessException)
+                {
+                    await UpdateAsync(bindingId, s => s with { Operations = s.Queue.Select(o => o.Id == next.Id
+                        ? o with { State = SyncOperationState.Forbidden, ErrorCode = "container-read-only" } : o).ToArray() }, token).ConfigureAwait(false);
+                    continue;
+                }
+                catch (SyncContainerChangesException)
+                {
+                    await UpdateAsync(bindingId, s => s with { Operations = s.Queue.Select(o => o.Id == next.Id
+                        ? o with { State = SyncOperationState.Failed, ErrorCode = "container-has-changes-or-is-deleting" } : o).ToArray() }, token).ConfigureAwait(false);
+                    continue;
+                }
                 var claimed = false;
                 await UpdateAsync(bindingId, current =>
                 {
@@ -224,11 +238,13 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
             if (page is null) break;
         }
 
-        await UpdateAsync(binding.Id, state => ApplyRemote(state, changes, full, nextCursor, provider.AtomicGroups), token).ConfigureAwait(false);
+        if (SyncContainers.IsCatalog(binding))
+            await ApplyCatalogPullAsync(binding, (pending, state) => ApplyRemote(state, changes, full, nextCursor, provider.AtomicGroups, pendingContainers: pending), token).ConfigureAwait(false);
+        else await UpdateAsync(binding.Id, state => ApplyRemote(state, changes, full, nextCursor, provider.AtomicGroups), token).ConfigureAwait(false);
     }
 
     private SyncState ApplyRemote(SyncState state, Dictionary<string, SyncRemoteEntity> changes, bool full,
-        string? cursor, IReadOnlyList<string[]> groups, SyncEntityKind kindScope = SyncEntityKind.Item, Guid? parentScope = null)
+        string? cursor, IReadOnlyList<string[]> groups, SyncEntityKind kindScope = SyncEntityKind.Item, Guid? parentScope = null, IReadOnlySet<string>? pendingContainers = null)
     {
         var entities = state.Items.ToList();
         var queue = state.Queue.ToList();
@@ -248,12 +264,14 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
             if (queue.Any(o => o.EntityId == entity.LocalId && o.State is SyncOperationState.Sending or SyncOperationState.UnknownOutcome)) continue;
             // Keep the original base until a conflict has been explicitly resolved.
             var merge = SyncMerge.Merge(entity.Baseline, entity.Local, remote.Fields, groups);
+            if (remote.Fields is null && entity.Baseline is not null && pendingContainers?.Contains(remote.Id) == true)
+                merge = new(entity.Local ?? entity.Baseline, ["$deleted"]);
             if (entity.Kind == SyncEntityKind.Item && remote.Fields is null && entity.Local is not null &&
                 MicrosoftTodoRelations.HasPendingChildren(state, entity.LocalId)) merge = new(entity.Local, ["$deleted"]);
             var conflicted = merge.Conflicts.Count > 0;
             entities[index] = entity with { Baseline = conflicted ? entity.Baseline : remote.Fields,
                 Local = merge.Value, ETag = remote.ETag, Remote = conflicted ? remote.Fields : null,
-                Conflicts = merge.Conflicts.ToArray(), Metadata = remote.Metadata };
+                Conflicts = merge.Conflicts.ToArray(), Metadata = ContainerMetadata(state.Binding, entity, remote.Metadata, remote.Fields is null ? remote.Id : null) };
             if (!JsonNode.DeepEquals(entity.Local, merge.Value)) history.Add(new(entity.LocalId, clock.UtcNow, entity.Local, "remote-merge"));
             var previousOperation = queue.LastOrDefault(o => o.EntityId == entity.LocalId);
             queue.RemoveAll(o => o.EntityId == entity.LocalId);
@@ -310,7 +328,7 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
             SyncMerge.Merge(sent.Desired, old.Local, remote?.Fields, _providers[state.Binding.Provider].AtomicGroups);
         var conflicted = merge.Conflicts.Count > 0;
         var updated = old with { RemoteId = remote?.Id, Baseline = conflicted ? sent.Desired : remote?.Fields,
-            ETag = remote?.ETag, Metadata = remote?.Metadata, Local = merge.Value,
+            ETag = remote?.ETag, Metadata = ContainerMetadata(state.Binding, old, remote?.Metadata, sent.Kind == SyncOperationKind.Delete ? sent.RemoteId : null), Local = merge.Value,
             Remote = conflicted ? remote?.Fields : null, Conflicts = merge.Conflicts.ToArray() };
         var queue = state.Queue.Where(o => o.EntityId != old.LocalId).ToList();
         if (conflicted || !JsonNode.DeepEquals(updated.Local, remote?.Fields))

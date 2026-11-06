@@ -58,7 +58,8 @@ internal sealed class MicrosoftTodoSettings(IAppSettingsStore store, IClock cloc
             var selected = preferences.SelectedLists.Select(id => "lists/" + Uri.EscapeDataString(id) + "/tasks").ToHashSet(StringComparer.Ordinal);
             foreach (var binding in (await syncStore.ListAsync(token)).Where(b => b.Enabled &&
                 b.Provider == UberDashboard.Core.Synchronization.SyncProviderKind.MicrosoftTodo &&
-                (b.ClientId != preferences.ClientId.ToString("D") || b.AccountId != preferences.AccountId || !selected.Contains(b.ResourcePath))))
+                (b.ClientId != preferences.ClientId.ToString("D") || b.AccountId != preferences.AccountId ||
+                    !UberDashboard.Core.Synchronization.SyncContainers.IsCatalog(b) && !selected.Contains(b.ResourcePath))))
                 await coordinator.SetEnabledAsync(binding.Id, false, token);
         }
         Saved?.Invoke(this, preferences);

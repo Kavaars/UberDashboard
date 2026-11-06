@@ -8,6 +8,23 @@ namespace UberDashboard.Infrastructure.Tests.Database;
 
 public sealed class SyncStoreTests
 {
+    [Theory]
+    [InlineData(SyncProviderKind.MicrosoftTodo)]
+    [InlineData(SyncProviderKind.GoogleCalendar)]
+    public async Task Catalog_format_is_distinct_and_persists_deletion_guards_and_outbox(SyncProviderKind kind)
+    {
+        await using var fixture = new DatabaseFixture(); var store = new SyncStore(fixture.Queue, fixture.Database);
+        var binding = new SyncBinding(Guid.NewGuid(), kind, "client", "account", SyncContainers.CatalogPath(kind), "Catalog");
+        await Assert.ThrowsAsync<InvalidDataException>(async () => await store.SaveAsync(new(binding), -1));
+        var fields = new JsonObject { [kind == SyncProviderKind.MicrosoftTodo ? "displayName" : "summary"] = "Name" };
+        var entity = new SyncEntity(Guid.NewGuid(), "container", fields, fields, Metadata: new JsonObject { ["deletedResourceIds"] = new JsonArray("older-id") });
+        var state = SyncEdits.Edit(new(binding, Entities: [entity], FormatVersion: 3), entity.LocalId, null, fixture.Clock.UtcNow);
+        Assert.True(await store.SaveAsync(state, -1));
+        var restored = (await new SyncStore(fixture.Queue, fixture.Database).ReadAsync(binding.Id))!;
+        Assert.Equal(3, restored.FormatVersion); Assert.Single(restored.Queue); Assert.Equal(SyncOperationState.AwaitingApproval, restored.Queue[0].State);
+        Assert.Equal("older-id", restored.Items[0].Metadata!["deletedResourceIds"]![0]!.GetValue<string>());
+        await Assert.ThrowsAsync<InvalidDataException>(async () => await store.SaveAsync(restored with { FormatVersion = 2 }, restored.Version));
+    }
     [Fact]
     public async Task Parent_child_identity_and_queued_offline_creation_commit_together_and_survive_reopening()
     {

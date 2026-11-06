@@ -20,7 +20,7 @@ public sealed partial class GoogleCalendarProvider(HttpClient http, IIntegration
 
     public override async Task<SyncPage> ReadPageAsync(SyncBinding binding, string? cursor, string? page, CancellationToken token)
     {
-        if (binding.ResourcePath == "calendars") throw new InvalidOperationException("Discover calendars through calendarList.");
+        if (binding.ResourcePath == "calendars") return await ReadCalendarsAsync(binding, page, token).ConfigureAwait(false);
         var incremental = binding.ResourcePath.EndsWith("/events", StringComparison.Ordinal) || binding.ResourcePath == "users/me/calendarList";
         var uri = CollectionUri(binding).AbsoluteUri + "?maxResults=250";
         if (binding.ResourcePath.EndsWith("/events", StringComparison.Ordinal)) uri += "&singleEvents=false&showDeleted=true";
@@ -36,6 +36,9 @@ public sealed partial class GoogleCalendarProvider(HttpClient http, IIntegration
 
     protected override SyncWriteResult? ValidateWrite(SyncBinding binding, SyncOperation operation, SyncRemoteEntity? current, JsonObject? patch)
     {
+        if (binding.ResourcePath == "calendars" && current is not null)
+            return (operation.Kind == SyncOperationKind.Delete ? SyncContainers.CanDelete(Kind, current.Metadata) : SyncContainers.CanEdit(Kind, current.Metadata))
+                ? null : new(SyncWriteStatus.Forbidden, ErrorCode: "calendar-primary-or-not-owned");
         if (!binding.ResourcePath.EndsWith("/events", StringComparison.Ordinal) || patch is null) return null;
         if (!GoogleEventOptions.IsStandard(current?.Fields ?? patch)) return new(SyncWriteStatus.Failed, ErrorCode: "special-event-editor-unavailable");
         if (current is null) return null;
@@ -61,6 +64,60 @@ public sealed partial class GoogleCalendarProvider(HttpClient http, IIntegration
             }
         }
         return new(SyncWriteStatus.Forbidden, ErrorCode: "attendees-edit-forbidden");
+    }
+
+    public override async Task<SyncRemoteEntity?> GetAsync(SyncBinding binding, string remoteId, CancellationToken token)
+    {
+        if (binding.ResourcePath != "calendars") return await base.GetAsync(binding, remoteId, token).ConfigureAwait(false);
+        _ = CollectionUri(binding);
+        using var response = await SendAsync(binding, HttpMethod.Get, CalendarListUri(remoteId), null, null, false, token).ConfigureAwait(false);
+        JsonObject entry;
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound) entry = new() { ["id"] = remoteId, ["accessRole"] = "none" };
+        else { await EnsureReadAsync(response).ConfigureAwait(false); entry = await BodyAsync(response, token).ConfigureAwait(false); }
+        var primaryId = entry["primary"]?.GetValue<bool>() == true ? entry["id"]?.GetValue<string>() : await ReadPrimaryIdAsync(binding, token).ConfigureAwait(false);
+        return await ReadCalendarAsync(binding, remoteId, entry, primaryId, token).ConfigureAwait(false);
+    }
+
+    private Uri CalendarListUri(string id) => Trusted(new Uri(Root, "users/me/calendarList/" + EncodeItemId(id)));
+    private async Task<SyncPage> ReadCalendarsAsync(SyncBinding binding, string? page, CancellationToken token)
+    {
+        _ = CollectionUri(binding);
+        var uri = new Uri(Root, "users/me/calendarList?maxResults=250&showHidden=true" + (page is null ? "" : "&pageToken=" + Uri.EscapeDataString(page)));
+        using var response = await SendAsync(binding, HttpMethod.Get, uri, null, null, false, token).ConfigureAwait(false);
+        await EnsureReadAsync(response).ConfigureAwait(false); var body = await BodyAsync(response, token).ConfigureAwait(false);
+        if (body["items"] is not JsonArray items) throw new InvalidDataException("Missing calendar collection.");
+        if (items.Any(i => i is not JsonObject)) throw new InvalidDataException("Invalid calendar entry.");
+        var primaryId = items.OfType<JsonObject>().FirstOrDefault(e => e["primary"]?.GetValue<bool>() == true)?["id"]?.GetValue<string>()
+            ?? await ReadPrimaryIdAsync(binding, token).ConfigureAwait(false);
+        var entries = new List<SyncRemoteEntity>();
+        foreach (var item in items.OfType<JsonObject>())
+        {
+            var id = item["id"]?.GetValue<string>() ?? throw new InvalidDataException("Missing calendar ID.");
+            entries.Add(await ReadCalendarAsync(binding, id, item, primaryId, token).ConfigureAwait(false) ?? new(id, null));
+        }
+        return new(entries, body["nextPageToken"]?.GetValue<string>(), null, true);
+    }
+    private async Task<string?> ReadPrimaryIdAsync(SyncBinding binding, CancellationToken token)
+    {
+        using var response = await SendAsync(binding, HttpMethod.Get, CalendarListUri("primary"), null, null, false, token).ConfigureAwait(false);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
+        await EnsureReadAsync(response).ConfigureAwait(false); var value = await BodyAsync(response, token).ConfigureAwait(false);
+        return value["primary"]?.GetValue<bool>() == true ? value["id"]?.GetValue<string>() : null;
+    }
+    private async Task<SyncRemoteEntity?> ReadCalendarAsync(SyncBinding binding, string id, JsonObject entry, string? primaryId, CancellationToken token)
+    {
+        SyncRemoteEntity? calendar;
+        try { calendar = await base.GetAsync(binding, id, token).ConfigureAwait(false); }
+        catch (HttpRequestException error) when (error.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        { calendar = Parse(binding, entry); entry = (JsonObject)entry.DeepClone(); entry["propertiesUnavailable"] = true; }
+        if (calendar is null) return null;
+        var metadata = (JsonObject?)calendar.Metadata?.DeepClone() ?? new();
+        foreach (var key in new[] { "accessRole", "dataOwner", "propertiesUnavailable" }) metadata[key] = entry[key]?.DeepClone();
+        var owner = entry["dataOwner"]?.GetValue<string>() ?? calendar.Metadata?["dataOwner"]?.GetValue<string>();
+        metadata["dataOwner"] = owner;
+        metadata["isDataOwner"] = owner is not null && primaryId is not null ? JsonValue.Create(string.Equals(owner, primaryId, StringComparison.OrdinalIgnoreCase)) : null;
+        metadata["primary"] = entry["primary"]?.DeepClone() ?? (entry["accessRole"]?.GetValue<string>() == "none" ? null : JsonValue.Create(false));
+        return calendar with { Metadata = metadata };
     }
 
     protected override JsonObject? PreparePayload(SyncBinding binding, JsonObject? payload, SyncRemoteEntity? current)
