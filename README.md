@@ -39,7 +39,9 @@ W zadaniach Microsoft można także zmienić ważność, przypisane kategorie, d
 
 Po wybraniu zadania przyciski **Checklista zadania** i **Powiązane zasoby** otwierają jego kroki oraz odnośniki do innych aplikacji i dokumentów. Można je dodawać, edytować, usuwać i oznaczać kroki jako wykonane. Gdy wynik tworzenia w Microsoft jest nieznany, w kolejce dostępny jest wybór **Wskaż istniejący element** — po porównaniu danych można powiązać lokalny szkic z konkretnym elementem usługi. Aplikacja nie ponawia tego tworzenia automatycznie.
 
-**Ta funkcja pozostaje w rozwoju.** Pełna obsługa cykliczności, załączników, uczestników i zarządzania listami oraz kalendarzami nie jest jeszcze ukończona. Nie zakończono prób na rzeczywistych kontach ani weryfikacji publicznego OAuth. [Aktualny zakres i ograniczenia](docs/SYNCHRONIZACJA_DWUKIERUNKOWA.md).
+W edytorze Google Calendar można zmieniać listę adresów uczestników na kopii organizatora, własną odpowiedź na zaproszenie, przypomnienia, widoczność oraz oznaczenie „wolny/zajęty”. Istniejące odpowiedzi i dodatkowe dane uczestników pozostają zachowane. Podgląd przed wysłaniem pokazuje dodawane i usuwane osoby oraz dane przed i po zmianie. Niepełnej listy uczestników nie można zastąpić; specjalne typy wydarzeń i pozostałe niedostępne operacje można otworzyć w Google Calendar.
+
+**Ta funkcja pozostaje w rozwoju.** Pełna obsługa cykliczności, załączników, szczegółowych opcji uczestników i zarządzania listami oraz kalendarzami nie jest jeszcze ukończona. Nie zakończono prób na rzeczywistych kontach ani weryfikacji publicznego OAuth. [Aktualny zakres i ograniczenia](docs/SYNCHRONIZACJA_DWUKIERUNKOWA.md).
 
 **Ustawienia → Integracje → Centrum synchronizacji** pokazuje powiązania, kolejkę i konflikty. Edytor umożliwia ponowienie, wstrzymanie synchronizacji i ponowne połączenie konta. Usuwanie wydarzenia lub zadania w edytorze oznacza zmianę w usłudze; usunięcie samego panelu lub zakładki nie usuwa danych w Microsoft ani Google. Dotychczasowe lokalne importy nie są automatycznie wysyłane do usług.
 
@@ -53,6 +55,7 @@ Integracje łączą się bezpośrednio z Microsoft, Google lub Open-Meteo i prze
 
 | Wersja / etap | Zmiany dla użytkownika |
 | --- | --- |
+| Prace nad synchronizacją, 6 listopada 2026 | Google Calendar: uczestnicy i własna odpowiedź, przypomnienia, widoczność i dostępność. Ochrona niepełnej listy i ograniczeń kopii wydarzenia. Podgląd dodawanych i usuwanych uczestników przed wysłaniem. |
 | Prace nad synchronizacją, 5 listopada 2026 | Edytory Microsoft To Do i Google Calendar, trwała kolejka, konflikty i centrum synchronizacji. Zadania: ważność, kategorie, daty, przypomnienia, powtarzanie, checklisty i powiązane zasoby. Wybór istniejącego elementu po niepewnym tworzeniu. Pobrane zakresy kalendarza dostępne offline. Publiczna polityka prywatności. Pełny zakres integracji nadal w przygotowaniu. |
 | 1.9.0 | Panel Skróty: aplikacje, foldery, dokumenty i strony, kilka widoków oraz własne ikony i kolory. |
 | 1.8.1 | Zapamiętywanie trybu, pozycji i rozmiaru okna oraz bezpieczne odtwarzanie po odłączeniu monitora. |

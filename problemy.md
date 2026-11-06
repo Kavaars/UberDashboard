@@ -1,4 +1,12 @@
 # Rejestr problemów
+## 2026-11-06T06:16:00+01:00 | 1.9.0 / c326140 + zmiany robocze | opcje Google i przegląd skutków
+
+- Zgłoszenie: kontynuować pełny plan synchronizacji. Środowisko: Windows, WPF/.NET 10, izolowane profile, kontrolowane HTTP. Oczekiwane: lokalna edycja uczestników, własnej odpowiedzi i ustawień wydarzenia bez utraty pozostałych danych, z jawnym przeglądem skutków. Faktyczne w c326140: formularz miał tylko podstawowe pola; rozszerzono go o opcje Google, z zachowaniem trwałej kolejki.
+- Potwierdzona inspekcją przyczyna niepełnego przeglądu: Review wybierał wyłącznie Desired.attendees, jeśli istniało. Po usunięciu adresu z tego zbioru usuwana osoba nie pojawiała się na liście skutków. Odtworzenie na danych przykładowych: bazowe adresy A/B, docelowo B/C; stary wybór pokazywał B/C. Nie wykonano rzeczywistej wysyłki zaproszeń.
+- Poprawka: porównanie tożsamości e-mail bez rozróżniania wielkości liter; listy dodawanych/usuwanych/pozostałych i dane przed/po zmianie. Zatwierdzanie przyjmuje sprawdzony podgląd i odrzuca zmianę jego bazy lub treści. Regresje Core, App i Application przeszły.
+- Transport ponownie odczytuje uprawnienia kopii przed minimalnym PATCH z If-Match. RSVP gościa wysyła wyłącznie jego wpis i attendeesOmitted=true; edycja pełnej listy zachowuje zapisywalne dane innych osób, pomijając pola tylko do odczytu. Kolekcja niepełna lub rozwijana, utrata praw do wspólnych pól i specjalne typy wydarzeń nie prowadzą do zapisu przez zwykły edytor.
+- Weryfikacja: Release 0 ostrzeżeń/błędów; 545 testów PASS; VisualChecks PL/EN po 201 PNG (w tym po 18 nowych); PluginChecks PASS. Obejrzano mały formularz i duży tekst. Pierwsza kompilacja ujawniła niejednoznaczną nazwę Control i brak adnotacji null w nowym teście; obie poprawiono, końcowy build oraz testy powtórzono. Nie wykonano logowania ani zmian na kontach, pełnej ręcznej klawiatury, DPI lub Narratora; nie przygotowano wydania. Szczegóły pokrycia i pozostałego zakresu: docs/SYNCHRONIZACJA_DWUKIERUNKOWA.md.
+
 ## 2026-11-05T21:50:08+01:00 | 1.9.0 / 1ac890a + zmiany robocze | relacje Microsoft i niepewne wyniki
 
 - Zgłoszenie: kontynuować pełny plan synchronizacji. Środowisko: WPF/.NET 10, Windows, izolowane profile testowe i kontrolowane HTTP. Rzeczywiste konta Microsoft/Google nie były modyfikowane; brak ich odbioru pozostaje otwarty.

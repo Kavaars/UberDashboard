@@ -1,3 +1,5 @@
+2026-11-06T06:16:00+01:00 | 1.9.0 / google-options-20261106-01, bez wydania: opcje wydarzeń Google i przegląd skutków dla uczestników. Release 0 ostrzeżeń/błędów, 545 testów PASS i PluginChecks PASS. Pełny plan, prawdziwe konta i publiczny OAuth nadal otwarte.
+
 2026-11-05T21:50:08+01:00 | 1.9.0 / prace robocze, bez wydania: relacje To Do, uzgadnianie niepewnego tworzenia, SQLite 7 / format 2. Release 0 ostrzeżeń/błędów, 522 testy PASS, PL/EN po 183 rendery i PluginChecks PASS. Rzeczywiste konta i pełny plan nadal otwarte.
 
 2026-11-05T20:56:22+01:00 | 1.9.0 / prace robocze, bez wydania: pola i cykliczność To Do, cache kalendarza SQLite 6, scalanie potwierdzeń. Release 0 ostrzeżeń/błędów, 489 testów PASS, WPF PL/EN i pluginy PASS; prawdziwe OAuth i pełny plan nadal otwarte.

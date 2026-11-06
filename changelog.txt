@@ -1,3 +1,9 @@
+Prace robocze 1.9.0 (2026-11-06T06:16:00+01:00)
+- Google Calendar: adresy uczestników, własna odpowiedź, domyślne lub własne przypomnienia, widoczność i oznaczenie wolny/zajęty.
+- Istniejące odpowiedzi i dodatkowe dane uczestników są zachowane. Niepełne listy i ograniczenia kopii wydarzenia chronią przed niedozwoloną edycją; RSVP gościa nie zastępuje innych uczestników.
+- Przed wysłaniem podgląd pokazuje dodawane i usuwane osoby oraz wersję przed i po zmianie. Zmiana przeglądanej operacji wymaga ponownego zatwierdzenia.
+- Specjalne wydarzenia i pozostałe operacje można otworzyć w Google Calendar. To etap prac nad pełną synchronizacją, bez wydania 1.10.0.
+
 Prace robocze 1.9.0 (2026-11-05T21:50:08+01:00)
 - Microsoft To Do: dodawanie, edycja i usuwanie kroków checklisty oraz powiązań z dokumentami i aplikacjami; oznaczanie wykonania kroku.
 - Elementy zależne czekają na utworzenie zadania; niewysłane zmiany są chronione przed usunięciem zadania i odtwarzaniem po konflikcie.

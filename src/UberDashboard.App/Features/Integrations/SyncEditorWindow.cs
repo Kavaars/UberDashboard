@@ -160,7 +160,7 @@ internal static partial class SyncEditorWindow
         {
             if (state is null || list.SelectedItem is not Row row) return;
             if (row.Entity.Conflicts is { Length: > 0 }) { Resolve(window, service, bindingId, row.Entity, token, state.Items.Count(e => e.ParentId == row.Entity.LocalId)); return; }
-            var fields = itemKind == SyncEntityKind.Item ? Edit(window, state.Binding.Provider, row.Entity.Local) : EditRelated(window, itemKind, row.Entity.Local);
+            var fields = itemKind == SyncEntityKind.Item ? Edit(window, state.Binding.Provider, row.Entity.Local, metadata: row.Entity.Metadata) : EditRelated(window, itemKind, row.Entity.Local);
             if (fields is not null)
             { await service.Coordinator.EditFromSnapshotAsync(bindingId, row.Entity.LocalId, row.Entity.Local, row.Entity.Revision, fields, token); service.Request(bindingId); }
         });
@@ -246,7 +246,7 @@ internal static partial class SyncEditorWindow
 
     private static string Title(JsonObject? fields) => fields?["title"]?.GetValue<string>() ?? fields?["summary"]?.GetValue<string>() ?? fields?["displayName"]?.GetValue<string>() ?? UiText.Get("UntitledEvent");
 
-    internal static JsonObject? Edit(Window owner, SyncProviderKind provider, JsonObject? original, Action<Window>? onLoaded = null)
+    internal static JsonObject? Edit(Window owner, SyncProviderKind provider, JsonObject? original, Action<Window>? onLoaded = null, JsonObject? metadata = null)
     {
         var calendar = provider == SyncProviderKind.GoogleCalendar;
         var window = WindowFrame.Create(owner, UiText.Get("SyncEdit"), 620, 640);
@@ -262,6 +262,7 @@ internal static partial class SyncEditorWindow
         TextBox? startTime = null, endTime = null;
         CheckBox? allDay = null;
         MicrosoftTaskForm? taskForm = null;
+        GoogleEventOptionsForm? googleForm = null;
         DateTime? initialStart = null, initialEnd = null;
         if (calendar)
         {
@@ -274,21 +275,56 @@ internal static partial class SyncEditorWindow
             endDate = DateField(form, "SyncEnd", initialEnd.Value); endTime = Field(form, "SyncEndTime", initialEnd.Value.ToString("HH:mm", CultureInfo.InvariantCulture));
             if (fields["recurrence"] is not null || fields["recurringEventId"] is not null)
                 form.Children.Add(new TextBlock { Text = UiText.Get("SyncWholeSeriesNotice"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 8) });
+            if (!GoogleEventOptions.CanEditMain(original, metadata))
+            {
+                foreach (var control in form.Children.OfType<System.Windows.Controls.Control>()) control.IsEnabled = false;
+                form.Children.Add(new TextBlock { Text = UiText.Get("SyncGoogleMainReadOnly"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 8) });
+            }
+            googleForm = new GoogleEventOptionsForm(form, original, metadata);
         }
         else
         {
             taskForm = new MicrosoftTaskForm(form, original);
         }
         var validation = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 8) }; form.Children.Add(validation);
+        form.AddHandler(System.Windows.Controls.Primitives.TextBoxBase.TextChangedEvent,
+            new TextChangedEventHandler((_, _) => validation.Text = ""));
+        form.AddHandler(System.Windows.Controls.Primitives.Selector.SelectionChangedEvent,
+            new SelectionChangedEventHandler((_, _) => validation.Text = ""));
+        form.AddHandler(System.Windows.Controls.Primitives.ToggleButton.CheckedEvent,
+            new RoutedEventHandler((_, _) => validation.Text = ""));
+        form.AddHandler(System.Windows.Controls.Primitives.ToggleButton.UncheckedEvent,
+            new RoutedEventHandler((_, _) => validation.Text = ""));
         var buttons = new WrapPanel(); form.Children.Add(buttons);
         var save = ActionButton("SyncSaveLocal", buttons); var cancel = ActionButton("SyncCancel", buttons); cancel.IsCancel = true;
+        if (calendar)
+        {
+            var openGoogle = ActionButton("SyncOpenGoogleCalendar", buttons);
+            openGoogle.Click += (_, _) =>
+            {
+                try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://calendar.google.com/calendar/u/0/r") { UseShellExecute = true }); }
+                catch (Exception) { validation.Text = UiText.Get("CouldNotOpenProjectLink"); }
+            };
+        }
         JsonObject? result = null;
         save.Click += (_, _) =>
         {
-            if (string.IsNullOrWhiteSpace(title.Text)) { validation.Text = UiText.Get("SyncTitleRequired"); return; }
-            fields[calendar ? "summary" : "title"] = title.Text.Trim();
+            var canEditMain = !calendar || GoogleEventOptions.CanEditMain(original, metadata);
+            if (canEditMain && string.IsNullOrWhiteSpace(title.Text)) { validation.Text = UiText.Get("SyncTitleRequired"); return; }
+            if (canEditMain && (!calendar || original is null || title.Text != Title(original))) fields[calendar ? "summary" : "title"] = title.Text.Trim();
             if (calendar)
             {
+                if (!googleForm!.TryApply(out var options, out var optionError))
+                {
+                    validation.Text = UiText.Get(optionError switch
+                    {
+                        GoogleEventValidation.InvalidAttendees => "SyncGoogleInvalidAttendees",
+                        GoogleEventValidation.InvalidResponse => "SyncGoogleInvalidResponse",
+                        GoogleEventValidation.InvalidReminders => "SyncGoogleInvalidReminders",
+                        _ => "SyncGoogleNotAllowed"
+                    }); return;
+                }
+                foreach (var option in SyncMerge.Patch(original ?? new JsonObject(), options)) fields[option.Key] = option.Value?.DeepClone();
                 if (original is null || description.Text != (original["description"]?.GetValue<string>() ?? "")) fields["description"] = description.Text;
                 if (original is null || location!.Text != (original["location"]?.GetValue<string>() ?? "")) fields["location"] = location!.Text;
                 var timeChanged = original is null || allDay!.IsChecked != (original["start"]?["date"] is not null) ||
@@ -414,13 +450,12 @@ internal static partial class SyncEditorWindow
             body.Children.Add(new TextBlock { Text = Title(operation.Desired ?? operation.Baseline) + " · " + StateLabel(state, entity), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 4) });
             if (operation.State == SyncOperationState.AwaitingApproval)
             {
-                var participants = (operation.Desired?["attendees"] ?? operation.Baseline?["attendees"]) as JsonArray;
-                body.Children.Add(new TextBlock { Text = UiText.Get("SyncNotificationsNotice") + "\n" + string.Join("\n", participants?.Select(n => n?["email"]?.GetValue<string>()) ?? []), TextWrapping = TextWrapping.Wrap });
+                body.Children.Add(new TextBlock { Text = ApprovalDetails(operation), TextWrapping = TextWrapping.Wrap });
                 var approve = ActionButton("SyncApprove", body);
                 approve.Click += async (_, _) =>
                 {
                     approve.IsEnabled = false;
-                    try { await service.Coordinator.ApproveAsync(state.Binding.Id, operation.Id, token); service.Request(state.Binding.Id); approve.Content = UiText.Get("SyncPending"); }
+                    try { await service.Coordinator.ApproveAsync(state.Binding.Id, operation.Id, token, operation); service.Request(state.Binding.Id); approve.Content = UiText.Get("SyncPending"); }
                     catch (Exception) { approve.Content = UiText.Get("SyncConflictChanged"); }
                 };
             }
@@ -455,6 +490,17 @@ internal static partial class SyncEditorWindow
     private sealed record Row(SyncEntity Entity, string Label) { public override string ToString() => Label; }
     private sealed record BindingRow(Guid Id, string Label) { public override string ToString() => Label; }
 
+    internal static string ApprovalDetails(SyncOperation operation)
+    {
+        var people = GoogleAttendeeReview.Compare(operation.Baseline, operation.Desired);
+        var text = new System.Text.StringBuilder(UiText.Get("SyncNotificationsNotice"));
+        foreach (var (key, emails) in new[] { ("SyncGoogleAddedPeople", people.Added), ("SyncGoogleRemovedPeople", people.Removed), ("SyncGoogleRemainingPeople", people.Remaining) })
+            if (emails.Length > 0) text.Append("\n\n").Append(UiText.Get(key)).Append(":\n").Append(string.Join("\n", emails));
+        text.Append("\n\n").Append(UiText.Get("SyncGoogleBeforeChange")).Append(":\n").Append(Describe(operation.Baseline));
+        text.Append("\n\n").Append(UiText.Get("SyncGoogleAfterChange")).Append(":\n").Append(Describe(operation.Desired));
+        return text.ToString();
+    }
+
     private static string Describe(JsonObject? value)
     {
         if (value is null) return UiText.Get("SyncDeletedVersion");
@@ -466,7 +512,9 @@ internal static partial class SyncEditorWindow
                 "title" or "summary" => "SyncTitle", "description" or "body" => "SyncDescription", "location" => "SyncLocation",
                 "start" => "SyncStart", "end" => "SyncEnd", "status" => "SyncTaskStatus", "displayName" => "SyncRelatedName",
                 "isChecked" => "SyncStepChecked", "checkedDateTime" => "SyncStepCheckedAt", "createdDateTime" => "SyncStepCreatedAt",
-                "webUrl" => "SyncRelatedUrl", "applicationName" => "SyncRelatedApplication", "externalId" => "SyncRelatedExternalId", _ => "SyncOtherDetails",
+                "webUrl" => "SyncRelatedUrl", "applicationName" => "SyncRelatedApplication", "externalId" => "SyncRelatedExternalId",
+                "attendees" => "SyncGooglePeople", "reminders" => "SyncGoogleReminders", "visibility" => "SyncGoogleVisibility",
+                "transparency" => "SyncGoogleAvailability", _ => "SyncOtherDetails",
             };
             text.Append(UiText.Get(label)).Append(": ").AppendLine(DescribeValue(pair.Value));
         }

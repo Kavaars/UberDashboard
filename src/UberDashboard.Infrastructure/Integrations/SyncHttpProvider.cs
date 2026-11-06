@@ -17,6 +17,8 @@ public abstract partial class SyncHttpProvider(HttpClient http, IIntegrationAcco
     protected abstract Uri Root { get; }
     protected abstract bool ValidPath(string path);
     protected abstract IReadOnlySet<string> WritableFields(string path);
+    protected virtual SyncWriteResult? ValidateWrite(SyncBinding binding, SyncOperation operation, SyncRemoteEntity? current, JsonObject? patch) => null;
+    protected virtual JsonObject? PreparePayload(SyncBinding binding, JsonObject? payload, SyncRemoteEntity? current) => payload;
 
     public abstract Task<SyncPage> ReadPageAsync(SyncBinding binding, string? cursor, string? page, CancellationToken token);
 
@@ -39,10 +41,10 @@ public abstract partial class SyncHttpProvider(HttpClient http, IIntegrationAcco
 
         string? etag = operation.ETag;
         JsonObject? patch = operation.Desired;
+        SyncRemoteEntity? current = null;
         if (operation.Kind != SyncOperationKind.Create)
         {
             if (operation.RemoteId is null) return new(SyncWriteStatus.Failed, ErrorCode: "missing-remote-id");
-            SyncRemoteEntity? current;
             try { current = await GetAsync(binding, operation.RemoteId, token).ConfigureAwait(false); }
             catch (SyncReadException limited) { return new(SyncWriteStatus.Retry, RetryAfter: limited.RetryAfter); }
             catch (SyncAuthenticationException) { return new(SyncWriteStatus.AuthenticationRequired); }
@@ -65,6 +67,8 @@ public abstract partial class SyncHttpProvider(HttpClient http, IIntegrationAcco
             if (patch is { Count: 0 }) return new(SyncWriteStatus.Success, current);
         }
 
+        if (ValidateWrite(binding, operation, current, patch) is { } rejected) return rejected;
+        patch = PreparePayload(binding, patch, current);
         var uri = operation.Kind == SyncOperationKind.Create ? CollectionUri(binding) : ItemUri(binding, operation.RemoteId!);
         if (Kind == SyncProviderKind.GoogleCalendar && binding.ResourcePath.EndsWith("/events", StringComparison.Ordinal))
         {
