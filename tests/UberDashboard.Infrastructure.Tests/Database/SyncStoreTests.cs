@@ -9,6 +9,34 @@ namespace UberDashboard.Infrastructure.Tests.Database;
 public sealed class SyncStoreTests
 {
     [Fact]
+    public async Task An_unknown_write_can_be_reviewed_and_resolved_after_reopening_the_database_without_repeating_it()
+    {
+        await using var fixture = new DatabaseFixture(); var store = new SyncStore(fixture.Queue, fixture.Database);
+        var binding = new SyncBinding(Guid.NewGuid(), SyncProviderKind.MicrosoftTodo, "client", "account", "lists/a/tasks", "Test");
+        var fields = new JsonObject { ["title"] = "Base" }; var sent = new JsonObject { ["title"] = "Sent" }; var remote = new JsonObject { ["title"] = "Service" };
+        var entity = new SyncEntity(Guid.NewGuid(), "remote", fields, sent, Revision: 1);
+        var operation = new SyncOperation(Guid.NewGuid(), entity.LocalId, 1, SyncOperationKind.Update, sent, entity.RemoteId, null, SyncOperationState.UnknownOutcome, Baseline: fields);
+        Assert.True(await store.SaveAsync(new(binding, Entities: [entity], Operations: [operation]), -1));
+        var provider = new UnknownObservationProvider(new("remote", remote, "etag")); var coordinator = new SyncCoordinator(store, [provider], fixture.Clock);
+        var review = await coordinator.ReadUnknownReviewAsync(binding.Id, operation, entity);
+        await coordinator.PrepareUnknownConflictAsync(binding.Id, review);
+        using var reopened = new UberDashboard.Infrastructure.Database.SqliteDatabase(fixture.Database.DatabaseFile, fixture.Clock);
+        var reopenedStore = new SyncStore(fixture.Queue, reopened); var loaded = (await reopenedStore.ReadAsync(binding.Id))!;
+        Assert.Equal(operation.Id, Assert.Single(loaded.Queue).Id); Assert.Equal(SyncOperationState.Conflict, loaded.Queue[0].State);
+        Assert.Equal(3, loaded.History.Count); Assert.Contains("$unknown-result", loaded.Items[0].Conflicts!);
+        await new SyncCoordinator(reopenedStore, [provider], fixture.Clock).ResolveAsync(binding.Id, entity.LocalId, loaded.Items[0].Remote, expected: loaded.Items[0]);
+        Assert.Empty((await store.ReadAsync(binding.Id))!.Queue); Assert.Equal(0, provider.Writes);
+    }
+
+    private sealed class UnknownObservationProvider(SyncRemoteEntity remote) : ISyncProvider
+    {
+        public SyncProviderKind Kind => SyncProviderKind.MicrosoftTodo; public IReadOnlyList<string[]> AtomicGroups => []; public int Writes;
+        public Task<SyncRemoteEntity?> GetAsync(SyncBinding binding, string id, CancellationToken token) => Task.FromResult<SyncRemoteEntity?>(remote);
+        public Task<SyncPage> ReadPageAsync(SyncBinding binding, string? cursor, string? page, CancellationToken token) => throw new InvalidOperationException("No pull expected");
+        public Task<SyncWriteResult> WriteAsync(SyncBinding binding, SyncOperation operation, CancellationToken token) { Writes++; throw new InvalidOperationException("No repeated write expected"); }
+    }
+
+    [Fact]
     public async Task Recovery_restore_and_selected_copy_removal_persist_without_losing_the_outbox()
     {
         await using var fixture = new DatabaseFixture(); var store = new SyncStore(fixture.Queue, fixture.Database);

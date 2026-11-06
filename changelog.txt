@@ -1,3 +1,10 @@
+Prace robocze 1.9.0 (2026-11-06T11:23:30+01:00)
+- Po niepewnej edycji lub usunięciu można sprawdzić aktualny stan Microsoft/Google i porównać go z wysłanym szkicem oraz nowszą treścią lokalną.
+- Przejście do decyzji ponownie sprawdza podgląd i przygotowuje wyłącznie lokalny konflikt. Dopiero wybór wersji może utworzyć nową operację; wymagane zatwierdzenia skutków są ponawiane.
+- Zachowane późniejsze edycje, ich zależności i celowe cofnięcia pól do dawnych wartości. Zmiana konta, rodzica lub mapowania ID blokuje przyjęcie starego podglądu.
+- Brak elementu jest opisany jako usunięcie albo niedostępność, bez twierdzenia, że wcześniejszy zapis na pewno się wykonał. Błędy i timeouty mają ponowienie, a po błędzie znika stan pobierania.
+- Zaktualizowano instrukcję, dokumentację integracji i politykę prywatności PL/EN. Niepewne tworzenie zachowuje osobną ścieżkę uzgodnienia. Pełny plan i publiczne weryfikacje nadal trwają.
+
 Prace robocze 1.9.0 (2026-11-06T08:56:40+01:00)
 - Konflikty: porównanie wspólnej bazy, wersji lokalnej i wersji usługi oraz ręczna edycja połączonego szkicu przez istniejące formularze.
 - Pełniejsza kontrola aktualności decyzji przed zapisem; zmieniona baza lub element bez konfliktu nie przechodzą ścieżki rozstrzygnięcia. Wszystkie trzy wersje pozostają w historii.

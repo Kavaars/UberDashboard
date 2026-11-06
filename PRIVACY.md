@@ -53,6 +53,8 @@ Pobrane zakresy kalendarza mogą być przechowywane w lokalnej bazie do przeglą
 
 ### 5. Kontrola i usuwanie danych
 
+Sprawdzanie niepewnej edycji lub usunięcia wykonuje bezpośredni odczyt Microsoft/Google. Po świadomym przejściu do decyzji wysłany szkic, aktualna treść lokalna i zaobserwowana wersja usługi są zachowywane w lokalnej historii. Sam podgląd i przygotowanie konfliktu nie ponawiają zapisu do dostawcy; późniejszy wybór wersji może przygotować zwykłą zmianę do synchronizacji.
+
 **Historia odzyskiwania** w oknie synchronizacji udostępnia wcześniejsze lokalne kopie oraz wersje bazową, lokalną i zdalną zachowane przy rozstrzygnięciu konfliktu. Przywrócenie otwiera edytor i po zapisie tworzy zwykłą zmianę do synchronizacji z dostawcą. Można wcześniej usunąć wybraną lokalną kopię po osobnym potwierdzeniu; ta operacja nie usuwa bieżącej treści, niewysłanych operacji ani osobnych backupów. Retencja 30 dni jest sprawdzana podczas edycji, scalania i odczytu historii; nierozstrzygnięte konflikty i oczekujące zmiany chronią związane z nimi kopie przed automatycznym wygasaniem.
 
 Można nie włączać integracji sieciowych, odłączyć konto w aplikacji oraz odwołać dostęp w ustawieniach konta [Google](https://myaccount.google.com/connections) lub [Microsoft](https://account.live.com/consent/Manage). Dla kont organizacyjnych dostęp może podlegać administratorowi organizacji. Odłączenie nie oznacza usunięcia zadań/wydarzeń z usługi i nie gwarantuje usunięcia lokalnych kopii, logów lub backupów.
@@ -111,6 +113,8 @@ Content/settings remain until changed or removed. Daily log rotation retains up 
 Fetched calendar ranges may be stored in the local database for offline viewing, including titles, times, and event/series identifiers. Copies are separated by account and calendar; disconnecting does not automatically erase them. Removing the full app profile also removes this local cache, subject to separately retained backups.
 
 ### 5. Control and deletion
+
+Inspecting an uncertain update or deletion reads directly from Microsoft/Google. After explicitly proceeding to a decision, the sent draft, current local content and observed service version are retained in local history. The inspection and conflict preparation do not repeat the provider write; a later version choice can prepare an ordinary synchronization change.
 
 **Recovery history** in the synchronization window exposes older local copies and the base, local and service versions retained when resolving a conflict. Restoring opens the editor; saving prepares an ordinary change for synchronization with the provider. A selected local copy can be removed early after separate confirmation; this does not remove current content, unsent operations or separate backups. The 30-day retention rule is checked during editing, merging and history reads. Unresolved conflicts and pending changes protect related copies from automatic expiry.
 
