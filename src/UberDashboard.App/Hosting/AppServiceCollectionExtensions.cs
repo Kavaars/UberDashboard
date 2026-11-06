@@ -58,6 +58,9 @@ public static class AppServiceCollectionExtensions
             .AddUberDashboardSynchronization<Features.Integrations.IntegrationAccounts>(services);
         services.AddSingleton(provider => (Features.Integrations.IntegrationAccounts)provider
             .GetRequiredService<UberDashboard.Application.Synchronization.IIntegrationAccountService>());
+        services.AddSingleton<UberDashboard.Application.Synchronization.IIntegrationFileAccountService>(provider => provider.GetRequiredService<Features.Integrations.IntegrationAccounts>());
+        services.AddSingleton<UberDashboard.Application.Synchronization.ISyncSessionProtector, Features.Integrations.DpapiSyncSessionProtector>();
+        UberDashboard.Infrastructure.DependencyInjection.SynchronizationServiceCollectionExtensions.AddUberDashboardFileSynchronization(services);
         services.AddSingleton<Features.Integrations.IntegrationSyncService>();
         services.AddHostedService<IntegrationSyncWorker>();
         services.AddSingleton<Features.Todo.MicrosoftTodoRefresh>();

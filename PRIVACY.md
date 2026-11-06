@@ -29,6 +29,8 @@ Nowa integracja lub dostęp do dodatkowych danych wymaga odpowiedniego opisu i z
 
 ### 3. Odbiorcy i zewnętrzne usługi
 
+Załączniki wybrane do wysłania są kopiowane do lokalnego profilu i przesyłane bezpośrednio do Microsoft albo Google Drive. Google wymaga kontekstowej zgody `drive.file`, dotyczącej plików utworzonych lub udostępnionych aplikacji. Przypięcie pliku do wydarzenia nie nadaje uczestnikom dostępu do pliku; odpięcie nie usuwa go z Drive. Lokalne migawki plików można usuwać osobno w oknie załączników. Adresy sesji transferów są chronione DPAPI dla użytkownika Windows i nie są zapisywane w logach HTTP. Plany podziału serii i kopie przyszłych wyjątków pozostają lokalnie; zakończone plany są usuwane po 30 dniach podczas porządkowania historii albo wcześniej na żądanie. Nierozstrzygnięte plany i niewysłane transfery nie wygasają automatycznie. Google może wysłać uczestnikom aktualizacje, odwołania i nowe zaproszenia po zatwierdzonym podziale.
+
 Autor nie sprzedaje danych użytkownika ani nie przekazuje ich reklamodawcom. Połączenia z Microsoft, Google i Open-Meteo są potrzebne do funkcji wybranych przez użytkownika; usługi przetwarzają otrzymane dane zgodnie z własnymi zasadami:
 
 - [Microsoft Privacy Statement](https://privacy.microsoft.com/privacystatement)
@@ -93,6 +95,8 @@ UberDashboard is a Windows desktop application maintained by Kavaars. Dashboard 
 Access to additional data or integrations requires appropriate disclosure and consent before use. Code present in the repository is not necessarily enabled in an installed release.
 
 ### 3. Recipients and external services
+
+Attachments selected for upload are copied into the local profile and sent directly to Microsoft or Google Drive. Google requests contextual `drive.file` consent for files created by or shared with the app. Attaching does not grant file access to attendees; detaching does not delete a Drive file. Local upload snapshots can be removed separately. Upload session addresses are protected with Windows user DPAPI and excluded from HTTP logs. Series split plans and exception copies remain local; finished plans are retained for 30 days during history cleanup or removed earlier on request. Unresolved plans and unsent transfers do not expire automatically. Approved splitting can cause Google to send updates, cancellations and new invitations.
 
 The developer does not sell user data or supply it to advertisers. Microsoft, Google, and Open-Meteo connections support user-selected features and are subject to the providers' own policies: [Microsoft](https://privacy.microsoft.com/privacystatement), [Google](https://policies.google.com/privacy), and [Open-Meteo](https://open-meteo.com/en/terms).
 

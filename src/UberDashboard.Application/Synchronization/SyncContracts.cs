@@ -21,6 +21,10 @@ public interface ISyncProvider
 
 public interface IMicrosoftTodoProvider : ISyncProvider;
 public interface IGoogleCalendarProvider : ISyncProvider;
+public interface IGoogleSeriesProvider
+{
+    Task<SyncPage> ReadInstancesAsync(SyncBinding binding, string seriesId, DateTimeOffset from, DateTimeOffset until, string? page, CancellationToken token);
+}
 public interface ISyncRelationProvider
 {
     Task<IReadOnlyList<SyncRelationSnapshot>> ReadRelationsAsync(SyncBinding binding, IReadOnlyList<SyncEntity> parents, CancellationToken token);

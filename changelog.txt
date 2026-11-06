@@ -1,3 +1,10 @@
+Prace robocze 1.9.0 (2026-11-06T13:00:00+01:00)
+- Załączniki Microsoft do 25 MB oraz pliki Google Drive z osobną zgodą: upload, pobranie, odpięcie i kopie lokalne.
+- Trwały postęp transferów, bezpieczne wznowienie i jawne uzgadnianie nieznanego wyniku Microsoft.
+- Reguły iCalendar, strefy IANA, wystąpienia, odwołanie/przywrócenie oraz podział „To i następne” z przeglądem skutków i kopiami wyjątków.
+- Migracja z kopią bazy, ochrona sesji DPAPI i wyłączenie logowania adresów żądań integracji.
+- Kontrole interakcji WPF uzupełnione o odrzucanie pustych renderów w środowisku bez ekranu. Odbiór dostawców pozostaje osobny.
+
 Prace robocze 1.9.0 (2026-11-06T11:23:30+01:00)
 - Po niepewnej edycji lub usunięciu można sprawdzić aktualny stan Microsoft/Google i porównać go z wysłanym szkicem oraz nowszą treścią lokalną.
 - Przejście do decyzji ponownie sprawdza podgląd i przygotowuje wyłącznie lokalny konflikt. Dopiero wybór wersji może utworzyć nową operację; wymagane zatwierdzenia skutków są ponawiane.

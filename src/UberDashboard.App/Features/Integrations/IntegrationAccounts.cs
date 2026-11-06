@@ -12,7 +12,7 @@ namespace UberDashboard.App.Features.Integrations;
 
 /// <summary>Only credential references are stored in settings; bearer/refresh tokens stay in protected stores.</summary>
 internal sealed class IntegrationAccounts(MicrosoftTodoSession microsoft, IAppSettingsStore settings, IAppPaths paths, IClock clock)
-    : IIntegrationAccountService
+    : IIntegrationAccountService, IIntegrationFileAccountService
 {
     private const string Key = "integration.google.sessions";
     private readonly SemaphoreSlim _gate = new(1, 1);
@@ -30,7 +30,9 @@ internal sealed class IntegrationAccounts(MicrosoftTodoSession microsoft, IAppSe
         finally { _gate.Release(); }
     }
 
-    public async Task<string?> GetAccessTokenAsync(SyncBinding binding, bool write, CancellationToken token)
+    public Task<string?> GetAccessTokenAsync(SyncBinding binding, bool write, CancellationToken token) => AccessAsync(binding, write, false, token);
+    public Task<string?> GetFileAccessTokenAsync(SyncBinding binding, CancellationToken token) => AccessAsync(binding, true, true, token);
+    private async Task<string?> AccessAsync(SyncBinding binding, bool write, bool files, CancellationToken token)
     {
         if (binding.Provider == SyncProviderKind.MicrosoftTodo)
         {
@@ -50,7 +52,7 @@ internal sealed class IntegrationAccounts(MicrosoftTodoSession microsoft, IAppSe
             var client = new GoogleCalendarClient(storage);
             string? access;
             try { access = await client.GetAccessTokenAsync(binding.ClientId, binding.AccountId, write, token,
-                GoogleCalendarClient.RequiredScopes(binding, write)).ConfigureAwait(false); }
+                files ? [GoogleCalendarClient.FileScope] : GoogleCalendarClient.RequiredScopes(binding, write)).ConfigureAwait(false); }
             catch (Exception error) when (error is Google.Apis.Auth.OAuth2.Responses.TokenResponseException or System.Security.Cryptography.CryptographicException)
             { throw new SyncAuthenticationException(); }
             if (access is not null) return access;
@@ -61,14 +63,16 @@ internal sealed class IntegrationAccounts(MicrosoftTodoSession microsoft, IAppSe
     internal async Task RequestCalendarManagementAsync(SyncBinding binding, CancellationToken token, bool forceConsent = false)
         => await RequestGoogleAccessAsync(binding with { ResourcePath = "calendars" }, token, forceConsent).ConfigureAwait(false);
 
-    internal async Task RequestGoogleAccessAsync(SyncBinding binding, CancellationToken token, bool forceConsent = false)
+    internal async Task RequestGoogleAccessAsync(SyncBinding binding, CancellationToken token, bool forceConsent = false, bool files = false)
     {
         foreach (var reference in (await ReadReferencesAsync(token).ConfigureAwait(false)).Where(r => r.ClientId == binding.ClientId && r.AccountId == binding.AccountId))
         {
             var storage = new PanelStorage(paths.GetPluginInstanceDirectory(AppServiceCollectionExtensions.BuiltInPluginId, new PanelInstanceId(reference.InstanceId)));
             var client = new GoogleCalendarClient(storage); var connection = await client.GetConnectionAsync(token).ConfigureAwait(false);
             if (connection?.ClientId != binding.ClientId || connection.AccountId != binding.AccountId) continue;
-            await client.RequestAccessAsync(binding, token, forceConsent).ConfigureAwait(false); return;
+            if (files) await client.RequestFileAccessAsync(binding.ClientId, binding.AccountId, token, forceConsent).ConfigureAwait(false);
+            else await client.RequestAccessAsync(binding, token, forceConsent).ConfigureAwait(false);
+            return;
         }
         throw new SyncAuthenticationException();
     }

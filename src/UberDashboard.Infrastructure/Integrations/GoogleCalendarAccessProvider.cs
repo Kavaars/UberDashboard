@@ -6,7 +6,9 @@ namespace UberDashboard.Infrastructure.Integrations;
 
 public sealed partial class GoogleCalendarProvider
 {
-    protected override bool IsDeleted(SyncBinding binding, JsonObject value) => base.IsDeleted(binding, value) || GoogleCalendarAccess.IsSharing(binding) && value["role"]?.GetValue<string>() == "none";
+    protected override bool IsDeleted(SyncBinding binding, JsonObject value) =>
+        value["recurringEventId"] is not null && value["originalStartTime"] is JsonObject && value["status"]?.GetValue<string>() == "cancelled" ? false :
+        base.IsDeleted(binding, value) || GoogleCalendarAccess.IsSharing(binding) && value["role"]?.GetValue<string>() == "none";
     protected override string? WriteQuery(SyncBinding binding, SyncOperation operation) => GoogleCalendarAccess.IsSubscriptions(binding) && operation.Kind != SyncOperationKind.Delete
         ? "colorRgbFormat=true" : GoogleCalendarAccess.IsSharing(binding) && operation.Kind != SyncOperationKind.Delete ? "sendNotifications=true" : null;
 
@@ -112,6 +114,28 @@ public sealed partial class GoogleCalendarProvider
                 current is not null && !GoogleCalendarAccess.SameScope(current.Fields?["scope"], operation.Desired?["scope"])))
                 return new(SyncWriteStatus.Failed, ErrorCode: "sharing-scope-immutable");
             return null;
+        }
+        if (binding.ResourcePath.EndsWith("/events", StringComparison.Ordinal))
+        {
+            if (current?.Metadata?["recurringEventId"] is { } masterId)
+            {
+                if (operation.ApprovalHash != UberDashboard.Application.Synchronization.SyncEdits.Hash(operation.Desired))
+                    return new(SyncWriteStatus.Failed, ErrorCode: "occurrence-approval-required");
+                if (current.Fields?["status"]?.GetValue<string>() == "cancelled")
+                {
+                    var master = await base.GetAsync(binding, masterId.GetValue<string>(), token).ConfigureAwait(false);
+                    if (master?.Fields is null) return new(SyncWriteStatus.Conflict, ErrorCode: "series-deleted");
+                    var metadata = (JsonObject?)current.Metadata.DeepClone() ?? new();
+                    foreach (var key in new[] { "organizer", "locked" }) metadata[key] = master.Metadata?[key]?.DeepClone();
+                    current = current with { Metadata = metadata };
+                }
+            }
+            if (operation.Desired?["recurrence"] is not null && (operation.Kind == SyncOperationKind.Create || patch?.Any(p => p.Key is "recurrence" or "start" or "end") == true))
+            {
+                try { GoogleRecurrence.Validate(operation.Desired); }
+                catch (Exception e) when (e is ArgumentException or InvalidOperationException or FormatException or InvalidDataException)
+                { return new(SyncWriteStatus.Failed, ErrorCode: "invalid-recurrence"); }
+            }
         }
         return await base.ValidateWriteAsync(binding, operation, current, patch, token).ConfigureAwait(false);
     }

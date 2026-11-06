@@ -1,4 +1,13 @@
 # Rejestr problemów
+
+## 2026-11-06T13:00:00+01:00 | 1.9.0 / 4f35dbf + zmiany robocze | załączniki i serie
+
+- Zgłoszenie: wdrożyć załączniki i pełne przebiegi obsługi serii. Przed zmianą brakowało transferów plików, edytora reguł i podziału. Windows, .NET 10/WPF; rzeczywistych kont nie używano.
+- Dodano trwałe migawki plików i transfery MS/Drive, osobną zgodę drive.file, bezpieczne niepewne wyniki, pobieranie i usuwanie/odpinanie. SQLite 9 / format 6 tworzy kopię i wymusza ponowny pełny odczyt Google przed zapisem załączników.
+- Serie: reguły iCalendar, IANA/DST, cache wystąpień, trwałe anulowane wyjątki i etapy podziału z ID przed POST. Testy awarii po odpowiedzi i przed zapisem DB oraz timeoutu POST przechodzą bez powtarzania potwierdzonych etapów. Regresja najpierw wykazała pozostawienie wygenerowanych wystąpień po usunięciu mastera; propagacja usunięcia po zbudowaniu pełnego snapshotu naprawia ten przypadek.
+- Oględziny PNG wykazały puste obrazy ze starszego narzędzia WPF. Udokumentowany przełącznik ShouldRenderEvenWhenNoDisplayDevicesAreAvailable w projekcie testowym i kontrola pikseli zapobiegają fałszywemu potwierdzaniu renderów. Kontrole interakcji przechodziły niezależnie; starsze puste PNG nie stanowią dowodu wizualnego.
+- Nadal wymagane: rzeczywiste konta obu dostawców, obsługa polityk organizacyjnych, pełny ręczny DPI/Narrator oraz bramki wydawcy. Siatka kalendarza nadal pokazuje ostatni odczyt usługi; lokalne szkice są w edytorach.
+
 ## 2026-11-06T11:23:30+01:00 | 1.9.0 / 1a15764 + zmiany robocze | niepewne edycje i usuwanie
 
 - Zgłoszenie: kontynuować pełny plan MS/Google. Środowisko: Windows, .NET 10/WPF, kontrolowane adaptery i izolowane SQLite. Oczekiwane: po niepewnym zapisie sprawdzić aktualny stan i świadomie zdecydować bez automatycznego powtórzenia żądania. Stan wyjściowy potwierdzony kodem: ReconcileUnknownAsync potwierdzał tylko rozpoznany skutek, a kolejka nie miała ręcznej ścieżki dla pozostałych edycji/usunięć. Nie wykonano reprodukcji na prawdziwym koncie.

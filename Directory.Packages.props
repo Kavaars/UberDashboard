@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup Label="UI i dane">
+    <PackageVersion Include="Ical.Net" Version="5.2.4" />
     <PackageVersion Include="Google.Apis.Auth" Version="1.77.0" />
     <PackageVersion Include="LibreHardwareMonitorLib" Version="0.9.6" />
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />

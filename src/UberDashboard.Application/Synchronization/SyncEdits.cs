@@ -13,7 +13,8 @@ public static class SyncEdits
         var previous = state.Items.FirstOrDefault(e => e.LocalId == entityId);
         if (previous is null && desired is null) return state;
         if (previous is not null && JsonNode.DeepEquals(previous.Local, desired)) return state;
-        if (previous?.Kind == SyncEntityKind.Item && desired is null && MicrosoftTodoRelations.HasPendingChildren(state, entityId))
+        if (previous is not null && GoogleRecurrence.Locked(state, previous)) throw new SyncDependentChangesException();
+        if (previous?.Kind == SyncEntityKind.Item && desired is null && (MicrosoftTodoRelations.HasPendingChildren(state, entityId) || SyncFileRules.HasPending(state, entityId)))
             throw new SyncDependentChangesException();
         if (previous is { Kind: not SyncEntityKind.Item }) ValidateParent(state, previous.ParentId);
         if (previous?.Conflicts is { Length: > 0 }) throw new InvalidOperationException("Resolve the conflict before editing this item.");
@@ -36,7 +37,7 @@ public static class SyncEdits
                 queue.Add(new(Guid.NewGuid(), entityId, entity.Revision, kind, Clone(desired), kind == SyncOperationKind.Create
                     ? state.Binding.Provider == SyncProviderKind.GoogleCalendar && state.Binding.ResourcePath.EndsWith("/events", StringComparison.Ordinal)
                         ? Guid.NewGuid().ToString("N") : GoogleCalendarAccess.IsSubscriptions(state.Binding) ? entity.RemoteId : null : entity.RemoteId,
-                    entity.ETag, RequiresApproval(state.Binding, entity.Baseline, desired)
+                    entity.ETag, RequiresApproval(state.Binding, entity.Baseline, desired, entity.Metadata)
                         ? SyncOperationState.AwaitingApproval : SyncOperationState.Pending, DependsOn: predecessor?.Id, Baseline: Clone(entity.Baseline)));
         }
         var history = previous is null ? state.History : state.History.Append(new(entityId, now, Clone(previous.Local), "local-edit")).ToArray();
@@ -52,9 +53,12 @@ public static class SyncEdits
 
     public static SyncState PruneHistory(SyncState state, DateTimeOffset now)
     {
-        var protectedIds = state.Queue.Select(o => o.EntityId).Concat(state.Items.Where(e => e.Conflicts is { Length: > 0 }).Select(e => e.LocalId)).ToHashSet();
+        var protectedIds = state.Queue.Select(o => o.EntityId).Concat(state.Items.Where(e => e.Conflicts is { Length: > 0 }).Select(e => e.LocalId))
+            .Concat(state.FileTransfers.Where(t => t.IsActive).Select(t => t.EntityId))
+            .Concat(state.SeriesPlans.Where(GoogleRecurrence.Active).Select(p => p.EntityId)).ToHashSet();
         var retained = state.History.Where(h => h.CreatedAt >= now.AddDays(-30) || protectedIds.Contains(h.EntityId)).ToArray();
-        return retained.Length == state.History.Count ? state : state with { Recovery = retained };
+        var plans = state.SeriesPlans.Where(p => GoogleRecurrence.Active(p) || p.CompletedAt is null || p.CompletedAt >= now.AddDays(-30)).ToArray();
+        return retained.Length == state.History.Count && plans.Length == state.SeriesPlans.Count ? state : state with { Recovery = retained, SeriesChanges = plans };
     }
 
     internal static SyncState TouchParent(SyncState state, Guid parentId) => state with
@@ -107,9 +111,10 @@ public static class SyncEdits
             ? o with { State = SyncOperationState.Pending, ApprovalHash = Hash(o.Desired) } : o).ToArray() };
     }
 
-    public static bool RequiresApproval(SyncBinding binding, JsonObject? baseline, JsonObject? desired) =>
+    public static bool RequiresApproval(SyncBinding binding, JsonObject? baseline, JsonObject? desired, JsonObject? metadata = null) =>
         binding.Provider == SyncProviderKind.GoogleCalendar &&
             (binding.ResourcePath.Contains("/acl", StringComparison.Ordinal) ||
+             metadata?["recurringEventId"] is not null || baseline?["recurrence"] is JsonArray { Count: > 0 } || desired?["recurrence"] is JsonArray { Count: > 0 } ||
              (baseline?["attendees"] as JsonArray)?.Count > 0 || (desired?["attendees"] as JsonArray)?.Count > 0) ||
         (desired is null && (binding.ResourcePath is "lists" or "calendars" or "users/me/calendarList"));
 

@@ -7,7 +7,7 @@ public static class MicrosoftTodoRelations
     {
         var parts = path.Split('/');
         return parts.Length is 3 or 5 && parts[0] == "lists" && parts[1].Length > 0 && parts[2] == "tasks" &&
-            (parts.Length == 3 || parts[3].Length > 0 && parts[4] is "checklistItems" or "linkedResources")
+            (parts.Length == 3 || parts[3].Length > 0 && parts[4] is "checklistItems" or "linkedResources" or "attachments")
             ? string.Join('/', parts.Take(3)) : null;
     }
 
@@ -20,7 +20,7 @@ public static class MicrosoftTodoRelations
         var parent = state.Items.Single(e => e.LocalId == entity.ParentId && e.Kind == SyncEntityKind.Item);
         if (string.IsNullOrEmpty(parent.RemoteId)) throw new InvalidOperationException("The parent has not been uploaded yet.");
         return state.Binding with { ResourcePath = state.Binding.ResourcePath + "/" + Uri.EscapeDataString(parent.RemoteId) + "/" +
-            (entity.Kind == SyncEntityKind.ChecklistItem ? "checklistItems" : "linkedResources") };
+            (entity.Kind switch { SyncEntityKind.ChecklistItem => "checklistItems", SyncEntityKind.LinkedResource => "linkedResources", SyncEntityKind.FileAttachment => "attachments", _ => throw new InvalidDataException("Invalid task relation.") }) };
     }
 
     public static bool CanSend(SyncState state, SyncEntity entity) => entity.Kind == SyncEntityKind.Item ||

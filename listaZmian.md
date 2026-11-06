@@ -1,3 +1,5 @@
+2026-11-06T13:00:00+01:00 | Załączniki MS/Drive, wznawialne transfery i pełne przebiegi edycji serii Google z odzyskiwaniem wyjątków.
+
 2026-11-06T11:23:30+01:00 | Niepewne edycje i usunięcia MS/Google: świeży podgląd, jawne przejście do konfliktu, zachowanie nowszych szkiców i ponowne zatwierdzenie skutków.
 
 2026-11-06T08:56:40+01:00 | Ręczne rozwiązywanie konfliktów i historia odzyskiwania obu usług: bezpieczne przywracanie, usuwanie kopii i ochrona nowszych zmian.

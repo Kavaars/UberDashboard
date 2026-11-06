@@ -125,12 +125,23 @@ internal static class SyncEditorChecks
         await GoogleAccessEditorChecks.RunAsync(owner, theme, output);
         await SyncRecoveryChecks.RunAsync(owner, theme, output);
         await SyncUnknownReviewChecks.RunAsync(owner, theme, output);
+        await FileSeriesChecks.RunAsync(owner, theme, output);
     }
 
     internal static void Capture(Window window, string path)
     {
         var bitmap = new RenderTargetBitmap((int)window.ActualWidth, (int)window.ActualHeight, 96, 96, PixelFormats.Pbgra32);
-        bitmap.Render(window);
+        // A Window can produce an empty bitmap on the native HWND rendering path.
+        // Render the themed visual root instead and reject empty diagnostic artifacts.
+        window.ApplyTemplate(); window.UpdateLayout();
+        var root = VisualTreeHelper.GetChildrenCount(window) > 0 ? VisualTreeHelper.GetChild(window, 0) as Visual : null;
+        if (root is null) throw new InvalidOperationException("The editor has no visual root.");
+        bitmap.Render(root);
+        var pixels = new byte[bitmap.PixelWidth * bitmap.PixelHeight * 4]; bitmap.CopyPixels(pixels, bitmap.PixelWidth * 4, 0);
+        var opaque = 0; var shades = new HashSet<int>();
+        for (var index = 0; index < pixels.Length; index += 4)
+            if (pixels[index + 3] != 0) { opaque++; shades.Add(pixels[index] | pixels[index + 1] << 8 | pixels[index + 2] << 16); }
+        if (opaque < bitmap.PixelWidth * bitmap.PixelHeight / 4 || shades.Count < 8) throw new InvalidOperationException($"The editor render is empty: opaque={opaque}, shades={shades.Count}, root={root.GetType().Name}, bounds={VisualTreeHelper.GetDescendantBounds(root)}, opacity={VisualTreeHelper.GetOpacity(root)}, offset={VisualTreeHelper.GetOffset(root)}, window-visible={window.IsVisible}.");
         var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using var stream = File.Create(path); encoder.Save(stream);
     }

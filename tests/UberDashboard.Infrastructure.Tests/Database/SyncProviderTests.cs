@@ -33,6 +33,11 @@ public sealed class SyncProviderTests
         using var transport = new Transport((request, _) =>
         {
             var path = request.RequestUri!.AbsolutePath;
+            if (path.EndsWith("/attachments", StringComparison.Ordinal))
+            {
+                Assert.Contains("$select=", request.RequestUri.Query, StringComparison.Ordinal);
+                return Json("""{"value":[{"id":"file","name":"File","size":9,"contentBytes":"must-not-enter-state"}]}""");
+            }
             if (path.EndsWith("/linkedResources", StringComparison.Ordinal))
                 return Json("""{"value":[{"id":"same","applicationName":"Source","displayName":"Link","webUrl":"custom:source"}]}""");
             Assert.EndsWith("/tasks/task/checklistItems", path, StringComparison.Ordinal);
@@ -42,7 +47,8 @@ public sealed class SyncProviderTests
         });
         using var http = new HttpClient(transport);
         var collections = await new MicrosoftTodoProvider(http, new Accounts()).ReadRelationsAsync(binding, [parent], default);
-        Assert.Equal(2, collections.Count); Assert.Equal(2, collections[0].Items.Count);
+        Assert.Equal(3, collections.Count); Assert.Equal(2, collections[0].Items.Count);
+        Assert.Equal(SyncEntityKind.FileAttachment, collections[2].Kind); Assert.False(collections[2].Items[0].Metadata!.ContainsKey("contentBytes"));
         Assert.Equal("2030-01-01T12:00:00Z", collections[0].Items[0].Fields!["checkedDateTime"]!.GetValue<string>());
         Assert.Equal("custom:source", Assert.Single(collections[1].Items).Fields!["webUrl"]!.GetValue<string>());
         Assert.All(collections, c => Assert.Equal(parent.LocalId, c.ParentId));

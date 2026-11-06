@@ -57,7 +57,8 @@ public static class SyncMerge
 
     private static string? ItemId(JsonNode? node) => node is JsonObject obj
         ? obj["id"] is { } id ? "id:" + id.GetValue<string>() : obj["email"] is { } email
-            ? "email:" + email.GetValue<string>().ToUpperInvariant() : null : null;
+            ? "email:" + email.GetValue<string>().ToUpperInvariant() : obj["fileId"] is { } fileId ? "file:" + fileId.GetValue<string>()
+            : obj["fileUrl"] is { } url ? "url:" + url.GetValue<string>() : null : null;
 
     private static bool CanMergeById(JsonArray a, JsonArray b) => new[] { a, b }.All(array =>
         array.All(n => ItemId(n) is not null) && array.Select(ItemId).Distinct(StringComparer.Ordinal).Count() == array.Count);

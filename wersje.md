@@ -1,3 +1,5 @@
+2026-11-06T13:00:00+01:00 | 1.9.0 / files-series-20261106, bez wydania: transfery plików, reguły i wystąpienia Google, trwały podział i kopie wyjątków; SQLite 9 / dokument 6. Release 0 ostrzeżeń/błędów, 763 testy PASS, WPF PL/EN nowych okien i PluginChecks PASS. Odbiór rzeczywistych kont i publiczny OAuth nadal otwarte.
+
 2026-11-06T11:23:30+01:00 | 1.9.0 / sync-unknown-20261106-05, bez wydania: decyzje dla niepewnych edycji/usunięć obu usług. Release 0 ostrzeżeń/błędów, 697 testów PASS, WPF PL/EN po 321 PNG i PluginChecks PASS. Bez nowych zakresów lub migracji; dalszy plan i rzeczywiste konta otwarte.
 
 2026-11-06T08:56:40+01:00 | 1.9.0 / sync-recovery-20261106, bez wydania: edycja połączonego konfliktu i historia odzyskiwania, ochrona podglądu i retencji. Release 0 ostrzeżeń/błędów, 669 testów PASS, WPF PL/EN po 289 PNG i PluginChecks PASS. SQLite 8 / format 5 bez nowej migracji; pełny plan i odbiór dostawców nadal otwarte.
