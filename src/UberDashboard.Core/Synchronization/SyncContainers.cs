@@ -23,7 +23,7 @@ public static class SyncContainers
         (provider == SyncProviderKind.MicrosoftTodo || metadata?["primary"]?.GetValue<bool>() == false && metadata["isDataOwner"]?.GetValue<bool>() == true);
     public static bool CanWriteContents(SyncProviderKind provider, JsonObject? metadata) => provider == SyncProviderKind.MicrosoftTodo ||
         metadata?["accessRole"]?.GetValue<string>() is "owner" or "writer" or "writerWithoutPrivateAccess";
-    public static int Format(SyncBinding binding) => 5;
+    public static int Format(SyncBinding binding) => 6;
     public static bool SupportedFormat(SyncState state) => state.FormatVersion == Format(state.Binding);
 }
 

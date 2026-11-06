@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace UberDashboard.Core.Synchronization;
 
 public enum SyncProviderKind { MicrosoftTodo, GoogleCalendar }
-public enum SyncEntityKind { Item, ChecklistItem, LinkedResource }
+public enum SyncEntityKind { Item, ChecklistItem, LinkedResource, FileAttachment }
 public enum SyncOperationState { Pending, Sending, Retry, Conflict, AuthenticationRequired, Forbidden, Failed, UnknownOutcome, AwaitingApproval }
 public enum SyncOperationKind { Create, Update, Delete }
 public enum SyncConnectionStatus { Idle, Synchronizing, AuthenticationRequired, Forbidden, Offline, Throttled, Failed }
@@ -26,12 +26,17 @@ public sealed record SyncRecovery(Guid EntityId, DateTimeOffset CreatedAt, JsonO
 
 public sealed record SyncState(SyncBinding Binding, long Version = 0, string? Cursor = null,
     IReadOnlyList<SyncEntity>? Entities = null, IReadOnlyList<SyncOperation>? Operations = null,
-    IReadOnlyList<SyncRecovery>? Recovery = null, DateTimeOffset? LastSuccess = null, int FormatVersion = 5,
-    SyncConnectionStatus ConnectionStatus = SyncConnectionStatus.Idle, DateTimeOffset? LastAttempt = null)
+    IReadOnlyList<SyncRecovery>? Recovery = null, DateTimeOffset? LastSuccess = null, int FormatVersion = 6,
+    SyncConnectionStatus ConnectionStatus = SyncConnectionStatus.Idle, DateTimeOffset? LastAttempt = null,
+    IReadOnlyList<SyncTransfer>? Transfers = null, IReadOnlyList<SyncSeriesChange>? SeriesChanges = null,
+    IReadOnlyList<SyncOccurrenceWindow>? OccurrenceWindows = null)
 {
     [JsonIgnore] public IReadOnlyList<SyncEntity> Items => Entities ?? [];
     [JsonIgnore] public IReadOnlyList<SyncOperation> Queue => Operations ?? [];
     [JsonIgnore] public IReadOnlyList<SyncRecovery> History => Recovery ?? [];
+    [JsonIgnore] public IReadOnlyList<SyncTransfer> FileTransfers => Transfers ?? [];
+    [JsonIgnore] public IReadOnlyList<SyncSeriesChange> SeriesPlans => SeriesChanges ?? [];
+    [JsonIgnore] public IReadOnlyList<SyncOccurrenceWindow> InstanceWindows => OccurrenceWindows ?? [];
 }
 
 public sealed record SyncRemoteEntity(string Id, JsonObject? Fields, string? ETag = null, JsonObject? Metadata = null);

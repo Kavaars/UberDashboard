@@ -83,6 +83,15 @@ internal static partial class SyncEditorWindow
         if (contents is not null) contents.Visibility = Visibility.Collapsed;
         var checklist = itemKind == SyncEntityKind.Item ? ActionButton("SyncChecklist", toolbar) : null;
         var links = itemKind == SyncEntityKind.Item ? ActionButton("SyncLinkedResources", toolbar) : null;
+        var files = itemKind == SyncEntityKind.Item ? ActionButton("SyncFiles", toolbar) : null;
+        var series = itemKind == SyncEntityKind.Item ? ActionButton("SyncSeries", toolbar) : null;
+        var plans = itemKind == SyncEntityKind.Item ? ActionButton("SyncSeriesPlans", toolbar) : null;
+        if (series is not null) series.Visibility = Visibility.Collapsed;
+        if (plans is not null) plans.Visibility = Visibility.Collapsed;
+        if (files is not null)
+        {
+            files.Visibility = Visibility.Collapsed;
+        }
         if (checklist is not null) checklist.Visibility = Visibility.Collapsed;
         if (links is not null) links.Visibility = Visibility.Collapsed;
         var toggle = itemKind == SyncEntityKind.ChecklistItem ? ActionButton("SyncToggleChecked", toolbar) : null;
@@ -106,6 +115,9 @@ internal static partial class SyncEditorWindow
         }
         window.SizeChanged += (_, _) => SizeViewports(); SizeViewports();
         SyncState? state = null;
+        if (series is not null) series.Click += (_, _) => { if (state is not null && (list.SelectedItem as Row)?.Entity is { } selected) OpenSeries(window, service, bindingId, selected.LocalId, token); };
+        if (plans is not null) plans.Click += (_, _) => OpenSeriesPlans(window, service, bindingId, token);
+        if (files is not null) files.Click += (_, _) => { if ((list.SelectedItem as Row)?.Entity is { } selected && state is not null) OpenFiles(window, service, state.Binding.Id, selected.LocalId, token); };
         var busy = false;
 
         async Task ReloadAsync()
@@ -116,16 +128,19 @@ internal static partial class SyncEditorWindow
             window.Title = state.Binding.DisplayName + " · " + UiText.Get("SyncEditorTitle");
             if (itemKind != SyncEntityKind.Item)
                 window.Title = UiText.Get(itemKind == SyncEntityKind.ChecklistItem ? "SyncChecklist" : "SyncLinkedResources") + " · " + Title(state.Items.FirstOrDefault(e => e.LocalId == parentId)?.Local);
-            var rows = state.Items.Where(e => e.Kind == itemKind && e.ParentId == parentId && (e.Local is not null || e.Conflicts is { Length: > 0 }))
+            var rows = state.Items.Where(e => e.Kind == itemKind && e.ParentId == parentId && !GoogleRecurrence.IsInstance(e) && (e.Local is not null || e.Conflicts is { Length: > 0 }))
                 .Select(e => new Row(e, Title(e.Local ?? e.Remote, e.Metadata) + (itemKind == SyncEntityKind.ChecklistItem
                     ? " · " + UiText.Get(e.Local?["isChecked"]?.GetValue<bool>() == true ? "SyncStepDone" : "SyncStepOpen") : "") + " · " + StateLabel(state, e))).ToArray();
             list.ItemsSource = rows;
             list.SelectedItem = rows.FirstOrDefault(r => r.Entity.LocalId == selected);
-            status.Text = UiText.Format("SyncQueueSummary", rows.Length, state.Queue.Count,
+            status.Text = UiText.Format("SyncQueueSummary", rows.Length, state.Queue.Count + state.FileTransfers.Count(t => t.IsActive) + state.SeriesPlans.Count(GoogleRecurrence.Active),
                 state.Binding.Enabled ? UiText.Get("SyncEnabled") : UiText.Get("SyncPaused"));
             if (state.ConnectionStatus is not (SyncConnectionStatus.Idle or SyncConnectionStatus.Synchronizing))
                 status.Text += " · " + ConnectionLabel(state.ConnectionStatus);
             var catalog = SyncContainers.IsCatalog(state.Binding);
+            if (series is not null) series.Visibility = state.Binding.Provider == SyncProviderKind.GoogleCalendar && SyncFileRules.IsContentBinding(state.Binding) ? Visibility.Visible : Visibility.Collapsed;
+            if (plans is not null) plans.Visibility = series?.Visibility ?? Visibility.Collapsed;
+            if (files is not null) files.Visibility = SyncFileRules.IsContentBinding(state.Binding) ? Visibility.Visible : Visibility.Collapsed;
             var access = GoogleCalendarAccess.IsAccessDocument(state.Binding);
             if (checklist is not null) checklist.Visibility = state.Binding.Provider == SyncProviderKind.MicrosoftTodo && !catalog ? Visibility.Visible : Visibility.Collapsed;
             if (links is not null) links.Visibility = state.Binding.Provider == SyncProviderKind.MicrosoftTodo && !catalog ? Visibility.Visible : Visibility.Collapsed;
@@ -323,6 +338,9 @@ internal static partial class SyncEditorWindow
         if (state.ConnectionStatus == SyncConnectionStatus.AuthenticationRequired) return UiText.Get("SyncReconnectRequired");
         var operation = state.Queue.FirstOrDefault(o => o.EntityId == entity.LocalId) ??
             state.Queue.FirstOrDefault(o => state.Items.Any(e => e.LocalId == o.EntityId && e.ParentId == entity.LocalId));
+        if (operation is null && state.FileTransfers.FirstOrDefault(t => t.EntityId == entity.LocalId && t.IsActive) is { } transfer)
+            return UiText.Get("SyncTransfer" + transfer.State);
+        if (operation is null && GoogleRecurrence.BlockingPlan(state, entity) is { } plan) return UiText.Get("SyncSeriesState" + plan.State);
         return UiText.Get(operation?.State switch
         {
             SyncOperationState.Conflict => "SyncConflict",
@@ -381,17 +399,19 @@ internal static partial class SyncEditorWindow
         CheckBox? allDay = null;
         MicrosoftTaskForm? taskForm = null;
         GoogleEventOptionsForm? googleForm = null;
+        GoogleRecurrenceForm? recurrenceForm = null;
         DateTime? initialStart = null, initialEnd = null;
         if (calendar)
         {
             location = Field(form, "SyncLocation", fields["location"]?.GetValue<string>() ?? "");
-            initialStart = ReadDate(fields["start"]) ?? DateTime.Today.AddHours(9);
-            initialEnd = ReadDate(fields["end"]) ?? initialStart.Value.AddHours(1);
+            initialStart = ReadDate(fields["start"], fields["start"]?["timeZone"]?.GetValue<string>() ?? GoogleRecurrenceForm.DefaultZone()) ?? DateTime.Today.AddHours(9);
+            initialEnd = ReadDate(fields["end"], fields["end"]?["timeZone"]?.GetValue<string>() ?? fields["start"]?["timeZone"]?.GetValue<string>() ?? GoogleRecurrenceForm.DefaultZone()) ?? initialStart.Value.AddHours(1);
             allDay = new CheckBox { Content = UiText.Get("SyncAllDay"), IsChecked = fields["start"]?["date"] is not null };
             allDay.SetResourceReference(FrameworkElement.StyleProperty, "ThemedCheckBox"); form.Children.Add(allDay);
             startDate = DateField(form, "SyncStart", initialStart.Value); startTime = Field(form, "SyncStartTime", initialStart.Value.ToString("HH:mm", CultureInfo.InvariantCulture));
             endDate = DateField(form, "SyncEnd", initialEnd.Value); endTime = Field(form, "SyncEndTime", initialEnd.Value.ToString("HH:mm", CultureInfo.InvariantCulture));
-            if (fields["recurrence"] is not null || fields["recurringEventId"] is not null)
+            recurrenceForm = new GoogleRecurrenceForm(form, original, metadata);
+            if (fields["recurrence"] is not null || metadata?["recurringEventId"] is not null)
                 form.Children.Add(new TextBlock { Text = UiText.Get("SyncWholeSeriesNotice"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 8) });
             if (!GoogleEventOptions.CanEditMain(original, metadata))
             {
@@ -425,7 +445,7 @@ internal static partial class SyncEditorWindow
             };
         }
         JsonObject? result = null;
-        save.Click += (_, _) =>
+        save.Click += async (_, _) =>
         {
             var canEditMain = !calendar || GoogleEventOptions.CanEditMain(original, metadata);
             if (canEditMain && string.IsNullOrWhiteSpace(title.Text)) { validation.Text = UiText.Get("SyncTitleRequired"); return; }
@@ -449,7 +469,7 @@ internal static partial class SyncEditorWindow
                     HasDateError(startDate!) || HasDateError(endDate!) ||
                     startDate!.SelectedDate != initialStart!.Value.Date || endDate!.SelectedDate != initialEnd!.Value.Date ||
                     startTime!.Text != initialStart.Value.ToString("HH:mm", CultureInfo.InvariantCulture) || endTime!.Text != initialEnd.Value.ToString("HH:mm", CultureInfo.InvariantCulture);
-                if (timeChanged)
+                if (timeChanged || recurrenceForm!.ZonesChanged)
                 {
                     if (DateValue(startDate!) is not { } first || DateValue(endDate!) is not { } last)
                     { validation.Text = UiText.Get("SyncInvalidDates"); return; }
@@ -465,11 +485,19 @@ internal static partial class SyncEditorWindow
                             !TimeOnly.TryParseExact(endTime!.Text, "HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var lastTime))
                         { validation.Text = UiText.Get("SyncInvalidDates"); return; }
                         first = first.Date.Add(firstTime.ToTimeSpan()); last = last.Date.Add(lastTime.ToTimeSpan());
-                        if (last <= first || TimeZoneInfo.Local.IsInvalidTime(first) || TimeZoneInfo.Local.IsInvalidTime(last) ||
-                            TimeZoneInfo.Local.IsAmbiguousTime(first) || TimeZoneInfo.Local.IsAmbiguousTime(last))
+                        if (!recurrenceForm!.TryTimes(first, last, out var firstValue, out var lastValue))
                         { validation.Text = UiText.Get("SyncInvalidDates"); return; }
-                        fields["start"] = EventTime(first); fields["end"] = EventTime(last);
+                        fields["start"] = firstValue; fields["end"] = lastValue;
                     }
+                }
+                recurrenceForm!.ApplyRules(fields);
+                if (fields["recurrence"] is not null && (timeChanged || recurrenceForm.ZonesChanged || recurrenceForm.RulesChanged))
+                {
+                    form.IsEnabled = save.IsEnabled = false;
+                    try { await Task.Run(() => GoogleRecurrence.Validate(fields)); }
+                    catch (Exception) { validation.Text = UiText.Get("SyncSeriesInvalidRules"); return; }
+                    finally { form.IsEnabled = save.IsEnabled = true; }
+                    if (!window.IsVisible) return;
                 }
             }
             else
@@ -489,7 +517,7 @@ internal static partial class SyncEditorWindow
                 }
                 fields = taskFields;
             }
-            if (calendar && fields["recurrence"] is not null && ThemedMessageBox.Show(window, UiText.Get("SyncWholeSeriesNotice"),
+            if (calendar && (fields["recurrence"] is not null || original?["recurrence"] is not null) && ThemedMessageBox.Show(window, UiText.Get("SyncWholeSeriesNotice"),
                 UiText.Get("SyncEdit"), MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
             result = fields; window.DialogResult = true;
         };
@@ -503,16 +531,12 @@ internal static partial class SyncEditorWindow
         return window.ShowDialog() == true ? result : null;
     }
 
-    private static DateTime? ReadDate(JsonNode? node)
+    private static DateTime? ReadDate(JsonNode? node, string? fallbackZone = null)
     {
         if (node?["date"]?.GetValue<string>() is { } date && DateTime.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var allDay)) return allDay;
-        return node?["dateTime"]?.GetValue<string>() is { } time && DateTimeOffset.TryParse(time, CultureInfo.InvariantCulture, DateTimeStyles.None, out var timed) ? timed.LocalDateTime : null;
-    }
-    private static JsonObject EventTime(DateTime time)
-    {
-        var local = DateTime.SpecifyKind(time, DateTimeKind.Unspecified);
-        var zone = TimeZoneInfo.TryConvertWindowsIdToIanaId(TimeZoneInfo.Local.Id, out var iana) ? iana : TimeZoneInfo.Local.Id;
-        return new() { ["dateTime"] = new DateTimeOffset(local, TimeZoneInfo.Local.GetUtcOffset(local)).ToString("O", CultureInfo.InvariantCulture), ["timeZone"] = zone };
+        if (node is JsonObject time && time["dateTime"] is not null)
+        { try { return GoogleRecurrence.Time(time, fallbackZone).Value; } catch (Exception) { return null; } }
+        return null;
     }
     internal static void Label(System.Windows.Controls.Panel parent, string key) => parent.Children.Add(new TextBlock { Text = UiText.Get(key), Margin = new Thickness(0, 7, 0, 3), TextWrapping = TextWrapping.Wrap });
     internal static TextBox Field(System.Windows.Controls.Panel parent, string key, string value, bool multiline = false)

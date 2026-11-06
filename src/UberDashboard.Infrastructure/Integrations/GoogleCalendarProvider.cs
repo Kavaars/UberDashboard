@@ -6,7 +6,7 @@ using UberDashboard.Core.Synchronization;
 namespace UberDashboard.Infrastructure.Integrations;
 
 public sealed partial class GoogleCalendarProvider(HttpClient http, IIntegrationAccountService accounts)
-    : SyncHttpProvider(http, accounts), IGoogleCalendarProvider, ISyncResourceMetadataProvider
+    : SyncHttpProvider(http, accounts), IGoogleCalendarProvider, ISyncResourceMetadataProvider, IGoogleSeriesProvider
 {
     public override SyncProviderKind Kind => SyncProviderKind.GoogleCalendar;
     public override IReadOnlyList<string[]> AtomicGroups { get; } = [["start", "end", "endTimeUnspecified"], ["recurrence", "recurringEventId", "originalStartTime"]];
@@ -45,7 +45,7 @@ public sealed partial class GoogleCalendarProvider(HttpClient http, IIntegration
         if (current is null) return null;
         if (patch.ContainsKey("eventType")) return new(SyncWriteStatus.Failed, ErrorCode: "event-type-immutable");
         var main = new[] { "summary", "description", "location", "start", "end", "endTimeUnspecified", "recurrence", "visibility", "transparency",
-            "guestsCanInviteOthers", "guestsCanModify", "guestsCanSeeOtherGuests", "conferenceData", "attachments" };
+            "guestsCanInviteOthers", "guestsCanModify", "guestsCanSeeOtherGuests", "conferenceData", "attachments", "status" };
         if (patch.Any(p => main.Contains(p.Key, StringComparer.Ordinal)) && !GoogleEventOptions.CanEditMain(current.Fields, current.Metadata))
             return new(SyncWriteStatus.Forbidden, ErrorCode: "event-shared-fields-forbidden");
         if (!patch.ContainsKey("attendees")) return null;
@@ -128,8 +128,11 @@ public sealed partial class GoogleCalendarProvider(HttpClient http, IIntegration
         { var personal = (JsonObject)payload.DeepClone(); personal.Remove("id"); return personal; }
         if (GoogleCalendarAccess.IsSharing(binding) && current is not null && payload is not null)
         { var permission = (JsonObject)payload.DeepClone(); permission.Remove("scope"); return permission; }
-        if (!binding.ResourcePath.EndsWith("/events", StringComparison.Ordinal) || payload?["attendees"] is not JsonArray attendees) return payload;
+        if (!binding.ResourcePath.EndsWith("/events", StringComparison.Ordinal) || payload is null) return payload;
         var copy = (JsonObject)payload.DeepClone();
+        if (copy["attachments"] is JsonArray attachments)
+            foreach (var attachment in attachments.OfType<JsonObject>()) { attachment.Remove("fileId"); attachment.Remove("iconLink"); }
+        if (payload["attendees"] is not JsonArray attendees) return copy;
         var writable = new HashSet<string>(["email", "displayName", "optional", "responseStatus", "comment", "additionalGuests", "resource"], StringComparer.Ordinal);
         IEnumerable<JsonObject> sentPeople = attendees.OfType<JsonObject>();
         if (current is not null && !GoogleEventOptions.CanManageAttendees(current.Fields, current.Metadata))

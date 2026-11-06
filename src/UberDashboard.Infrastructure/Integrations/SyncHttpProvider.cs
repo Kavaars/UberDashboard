@@ -116,7 +116,7 @@ public abstract partial class SyncHttpProvider(HttpClient http, IIntegrationAcco
         return Trusted(new Uri(Root, binding.ResourcePath));
     }
 
-    private Uri ItemUri(SyncBinding binding, string id) => Trusted(new Uri(CollectionUri(binding).AbsoluteUri + "/" + EncodeItemId(id)));
+    protected Uri ItemUri(SyncBinding binding, string id) => Trusted(new Uri(CollectionUri(binding).AbsoluteUri + "/" + EncodeItemId(id)));
     protected static string EncodeItemId(string id) => string.IsNullOrWhiteSpace(id) || id is "." or ".." || id.Any(char.IsControl)
         ? throw new InvalidDataException("Invalid resource ID.") : Uri.EscapeDataString(id);
 
@@ -158,7 +158,7 @@ public abstract partial class SyncHttpProvider(HttpClient http, IIntegrationAcco
         response.EnsureSuccessStatusCode();
     }
 
-    protected SyncRemoteEntity Parse(SyncBinding binding, JsonObject value)
+    protected virtual SyncRemoteEntity Parse(SyncBinding binding, JsonObject value)
     {
         var id = value["id"]?.GetValue<string>() ?? throw new InvalidDataException("Missing API resource ID.");
         if (IsDeleted(binding, value)) return new(id, null);

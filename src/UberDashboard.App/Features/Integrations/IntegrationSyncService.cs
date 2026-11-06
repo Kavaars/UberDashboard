@@ -4,10 +4,19 @@ using UberDashboard.Core.Synchronization;
 namespace UberDashboard.App.Features.Integrations;
 
 /// <summary>Account/container identity, not the title or panel identity, selects the durable document.</summary>
-internal sealed class IntegrationSyncService(ISyncStore store, SyncCoordinator coordinator, SyncScheduler scheduler, IntegrationAccounts? accounts = null)
+internal sealed class IntegrationSyncService(ISyncStore store, SyncCoordinator coordinator, SyncScheduler scheduler, IntegrationAccounts? accounts = null,
+    ISyncFileStore? fileStore = null, IEnumerable<ISyncFileProvider>? fileProviders = null)
 {
     public ISyncStore Store => store;
     public SyncCoordinator Coordinator => coordinator;
+    internal ISyncFileStore Files => fileStore ?? throw new InvalidOperationException("File storage unavailable.");
+    internal ISyncFileProvider FileProvider(SyncBinding binding) => (fileProviders ?? []).Single(p => p.Kind == binding.Provider);
+    internal async Task RequestFilesAsync(SyncBinding binding, CancellationToken token)
+    {
+        if (binding.Provider != SyncProviderKind.GoogleCalendar) return;
+        if (accounts is null) throw new SyncAuthenticationException();
+        await Task.Run(() => accounts.RequestGoogleAccessAsync(binding, token, files: true), token).ConfigureAwait(false);
+    }
 
     public async Task<Guid> EnableAsync(SyncProviderKind provider, string clientId, string accountId, string resourcePath,
         string name, CancellationToken token)

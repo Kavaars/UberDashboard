@@ -6,10 +6,12 @@ using UberDashboard.Core.Synchronization;
 namespace UberDashboard.Application.Synchronization;
 
 /// <summary>Pull/merge/push. No network call occurs within a database transaction.</summary>
-public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncProvider> providers, IClock clock) : ISyncCoordinator
+public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncProvider> providers, IClock clock,
+    IEnumerable<ISyncFileProvider>? fileProviders = null) : ISyncCoordinator
 {
     private readonly ConcurrentDictionary<(SyncProviderKind Provider, string Client, string Account), SemaphoreSlim> _gates = new();
     private readonly IReadOnlyDictionary<SyncProviderKind, ISyncProvider> _providers = providers.ToDictionary(p => p.Kind);
+    private readonly IReadOnlyDictionary<SyncProviderKind, ISyncFileProvider> _fileProviders = (fileProviders ?? []).ToDictionary(p => p.Kind);
 
     public Task SetEnabledAsync(Guid bindingId, bool enabled, CancellationToken token = default) =>
         UpdateAsync(bindingId, s => s with { Binding = s.Binding with { Enabled = enabled }, ConnectionStatus = !enabled ? SyncConnectionStatus.Idle :
@@ -50,6 +52,7 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
             throw new InvalidOperationException("The conflict changed while it was being reviewed.");
         var remote = entity.RemoteId is null ? null : await ReadWithQuotaAsync(state.Binding,
             MicrosoftTodoRelations.Scope(state, entity), entity.RemoteId, token).ConfigureAwait(false);
+        if (remote?.Fields is null && SyncFileRules.HasPending(state, entityId)) throw new SyncDependentChangesException();
         await GuardedEditAsync(bindingId, entityId, chosen, current =>
         {
             var latest = current.Items.Single(e => e.LocalId == entityId);
@@ -107,6 +110,8 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
                 }, token).ConfigureAwait(false);
             }
 
+            await ProcessSeriesAsync(bindingId, provider, token).ConfigureAwait(false);
+            await ProcessTransfersAsync(bindingId, token).ConfigureAwait(false);
             // A bounded batch keeps a busy account from monopolizing the background worker.
             for (var count = 0; count < 100; count++)
             {
@@ -119,7 +124,8 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
                     !state.Queue.Any(p => p.EntityId == o.EntityId && p.Id != o.Id &&
                         p.State is SyncOperationState.UnknownOutcome or SyncOperationState.Sending) &&
                     state.Items.Single(e => e.LocalId == o.EntityId).Conflicts is not { Length: > 0 } &&
-                    MicrosoftTodoRelations.CanSend(state, state.Items.Single(e => e.LocalId == o.EntityId)));
+                    MicrosoftTodoRelations.CanSend(state, state.Items.Single(e => e.LocalId == o.EntityId)) && !SyncFileRules.BlocksWrite(state, o) &&
+                    !GoogleRecurrence.Locked(state, state.Items.Single(e => e.LocalId == o.EntityId)));
                 if (next is null) break;
                 try { await CheckContainerAsync(state, next.EntityId, next.Desired, token).ConfigureAwait(false); }
                 catch (SyncContainerAccessException)
@@ -159,7 +165,8 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
                 token.ThrowIfCancellationRequested();
                 if (result.Status is SyncWriteStatus.Conflict or SyncWriteStatus.Retry) break;
             }
-            await UpdateAsync(bindingId, s => s with { LastSuccess = s.Queue.Count == 0 ? clock.UtcNow : s.LastSuccess,
+            await ProcessTransfersAsync(bindingId, token).ConfigureAwait(false);
+            await UpdateAsync(bindingId, s => s with { LastSuccess = s.Queue.Count == 0 && !s.FileTransfers.Any(t => t.IsActive) && !s.SeriesPlans.Any(GoogleRecurrence.Active) ? clock.UtcNow : s.LastSuccess,
                 ConnectionStatus = s.Binding.NotBefore > clock.UtcNow ? SyncConnectionStatus.Throttled : SyncConnectionStatus.Idle }, token).ConfigureAwait(false);
         }
         catch (Exception error)
@@ -263,8 +270,11 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
         var entities = state.Items.ToList();
         var queue = state.Queue.ToList();
         var history = state.History.ToList();
-        if (full) foreach (var entity in entities.Where(e => e.RemoteId is not null && e.Kind == kindScope && e.ParentId == parentScope))
+        if (full) foreach (var entity in entities.Where(e => e.RemoteId is not null && e.Kind == kindScope && e.ParentId == parentScope && e.Metadata?["projectionInstance"]?.GetValue<bool>() != true))
             changes.TryAdd(entity.RemoteId!, new(entity.RemoteId!, null));
+        foreach (var deleted in changes.Values.Where(r => r.Fields is null).ToArray())
+            foreach (var instance in entities.Where(e => e.RemoteId is not null && e.Metadata?["recurringEventId"]?.GetValue<string>() == deleted.Id))
+                changes.TryAdd(instance.RemoteId!, new(instance.RemoteId!, null));
         foreach (var remote in changes.Values)
         {
             var index = entities.FindIndex(e => e.RemoteId == remote.Id && e.Kind == kindScope && e.ParentId == parentScope);
@@ -281,7 +291,7 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
             if (remote.Fields is null && entity.Baseline is not null && pendingContainers?.Contains(remote.Id) == true)
                 merge = new(entity.Local ?? entity.Baseline, ["$deleted"]);
             if (entity.Kind == SyncEntityKind.Item && remote.Fields is null && entity.Local is not null &&
-                MicrosoftTodoRelations.HasPendingChildren(state, entity.LocalId)) merge = new(entity.Local, ["$deleted"]);
+                (MicrosoftTodoRelations.HasPendingChildren(state, entity.LocalId) || SyncFileRules.HasPending(state, entity.LocalId))) merge = new(entity.Local, ["$deleted"]);
             var conflicted = merge.Conflicts.Count > 0;
             entities[index] = entity with { Baseline = conflicted ? entity.Baseline : remote.Fields,
                 Local = merge.Value, ETag = remote.ETag, Remote = conflicted ? remote.Fields : null,
@@ -300,7 +310,7 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
                 var kind = remote.Fields is null ? SyncOperationKind.Create : merge.Value is null ? SyncOperationKind.Delete : SyncOperationKind.Update;
                 var identity = remote.Fields is not null ? remote.Id : GoogleCalendarAccess.IsSubscriptions(state.Binding) ? merge.Value?["id"]?.GetValue<string>() : null;
                 queue.Add(new(Guid.NewGuid(), entity.LocalId, entity.Revision, kind, merge.Value, identity,
-                    remote.ETag, conflicted ? SyncOperationState.Conflict : SyncEdits.RequiresApproval(state.Binding, remote.Fields, merge.Value)
+                    remote.ETag, conflicted ? SyncOperationState.Conflict : SyncEdits.RequiresApproval(state.Binding, remote.Fields, merge.Value, remote.Metadata)
                         ? SyncOperationState.AwaitingApproval : SyncOperationState.Pending, Baseline: remote.Fields));
             }
         }

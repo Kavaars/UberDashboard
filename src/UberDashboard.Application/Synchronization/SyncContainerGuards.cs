@@ -34,7 +34,7 @@ public sealed partial class SyncCoordinator
         {
             if (SyncContainers.ParentId(binding) is not { } parentId) continue;
             var document = await RequiredAsync(binding.Id, token).ConfigureAwait(false);
-            if (document.Queue.Count > 0 || document.Items.Any(e => e.Conflicts is { Length: > 0 })) ids.Add(parentId);
+            if (document.Queue.Count > 0 || document.FileTransfers.Any(t => t.IsActive) || document.SeriesPlans.Any(GoogleRecurrence.Active) || document.Items.Any(e => e.Conflicts is { Length: > 0 })) ids.Add(parentId);
         }
         return ids;
     }

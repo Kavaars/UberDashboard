@@ -51,6 +51,7 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
         var output = Path.GetFullPath(args.Length > 0 ? args[0] : "Release/VisualChecks");
         Directory.CreateDirectory(output);
         var english = args.Contains("--english");
@@ -101,6 +102,14 @@ internal static class Program
 
                 var shell = (ShellViewModel)window.DataContext;
                 var theme = provider.GetRequiredService<ThemeService>();
+                if (args.Contains("--files-series-only"))
+                {
+                    var probeOwner = UberDashboard.App.Controls.WindowFrame.Create(null, "Files and series checks", 800, 700);
+                    probeOwner.Show();
+                    try { await FileSeriesChecks.RunAsync(probeOwner, theme, output); }
+                    finally { probeOwner.Close(); }
+                    _exitCode = 0; return;
+                }
                 await shell.InitializeAsync();
                 if (shell.IsLayoutEmpty)
                 {

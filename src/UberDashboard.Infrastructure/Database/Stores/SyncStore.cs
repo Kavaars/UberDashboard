@@ -89,5 +89,18 @@ public sealed class SyncStore(IWorkQueue queue, SqliteDatabase database) : ISync
                     MicrosoftTodoRelations.TaskCollectionPath(state.Binding.ResourcePath) != state.Binding.ResourcePath ||
                     !parents.Contains(e.ParentId ?? Guid.Empty))))
             throw new InvalidDataException("Invalid synchronization item identities or parent relationships.");
+        if (state.FileTransfers.Select(t => t.Id).Distinct().Count() != state.FileTransfers.Count ||
+            state.FileTransfers.Count > 0 && !SyncFileRules.IsContentBinding(state.Binding) ||
+            state.FileTransfers.Any(t => t.Id == Guid.Empty || !parents.Contains(t.EntityId) || !SyncFileRules.Valid(t.File, state.Binding.Provider) ||
+                !Enum.IsDefined(t.State) || !Enum.IsDefined(t.Stage) || t.Uploaded < 0 || t.Uploaded > t.File.Size ||
+                t.ProtectedSession is not null && !t.ProtectedSession.StartsWith("dpapi1:", StringComparison.Ordinal)))
+            throw new InvalidDataException("Invalid transfer identity or checkpoint.");
+        if (state.SeriesPlans.Select(p => p.Id).Distinct().Count() != state.SeriesPlans.Count ||
+            state.SeriesPlans.Count > 0 && (state.Binding.Provider != SyncProviderKind.GoogleCalendar || !SyncFileRules.IsContentBinding(state.Binding)) ||
+            state.SeriesPlans.Any(p => p.Id == Guid.Empty || !parents.Contains(p.EntityId) || !Enum.IsDefined(p.State) || !Enum.IsDefined(p.Stage) ||
+                p.FollowingId.Length != 32 || p.FollowingId.Any(c => !Uri.IsHexDigit(c)) || string.IsNullOrWhiteSpace(p.InstanceId)) ||
+            state.InstanceWindows.Any(w => state.Binding.Provider != SyncProviderKind.GoogleCalendar || !SyncFileRules.IsContentBinding(state.Binding) ||
+                string.IsNullOrWhiteSpace(w.SeriesId) || w.Until <= w.From || w.Until - w.From > TimeSpan.FromDays(3660)))
+            throw new InvalidDataException("Invalid series workflow or occurrence cache.");
     }
 }

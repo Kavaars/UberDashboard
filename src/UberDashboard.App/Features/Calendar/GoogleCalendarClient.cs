@@ -28,6 +28,9 @@ internal sealed partial class GoogleCalendarClient(IPanelStorage storage, HttpCl
     internal const string CalendarManagementScope = "https://www.googleapis.com/auth/calendar.calendars";
     internal const string CalendarSubscriptionsScope = "https://www.googleapis.com/auth/calendar.calendarlist";
     internal const string CalendarSharingScope = "https://www.googleapis.com/auth/calendar.acls";
+    internal const string FileScope = "https://www.googleapis.com/auth/drive.file";
+    internal Task RequestFileAccessAsync(string clientId, string accountId, CancellationToken token, bool forceConsent = false) =>
+        RequestScopesAsync(clientId, accountId, [FileScope], token, forceConsent);
     internal static IReadOnlyList<string> CalendarManagementScopes { get; } = [CalendarManagementScope, CalendarListScope];
     private static readonly SemaphoreSlim CredentialGate = new(1, 1);
     private static readonly HttpClient DefaultHttp = new(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(30) };
