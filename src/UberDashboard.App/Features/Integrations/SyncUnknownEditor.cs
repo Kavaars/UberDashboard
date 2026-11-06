@@ -15,7 +15,7 @@ internal static partial class SyncEditorWindow
     {
         var target = snapshot.Items.Single(e => e.LocalId == operation.EntityId);
         var candidates = snapshot.Items.Where(e => e.LocalId != target.LocalId && e.Kind == target.Kind && e.ParentId == target.ParentId &&
-            e.Local is not null && e.Baseline is not null && e.RemoteId is not null && e.Conflicts is not { Length: > 0 } &&
+            e.Local is not null && e.Baseline is not null && e.RemoteId is not null && e.Conflicts is not { Length: > 0 } && SyncContainers.CanIdentifyCreated(snapshot.Binding, e.Metadata) &&
             !snapshot.Queue.Any(o => o.EntityId == e.LocalId) && !MicrosoftTodoRelations.HasPendingChildren(snapshot, e.LocalId))
             .Select(e => new UnknownCandidateRow(e, Title(e.Local) + " · " + e.RemoteId)).ToArray();
         var window = WindowFrame.Create(owner, UiText.Get("SyncSelectExisting"), 680, 620); window.MinWidth = 440; window.MinHeight = 360;
@@ -32,6 +32,7 @@ internal static partial class SyncEditorWindow
         form.Children.Add(new ScrollViewer { Content = new TextBlock { Text = Describe(target.Local), TextWrapping = TextWrapping.Wrap }, MaxHeight = 120, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
         Label(form, "SyncUnknownCandidates");
         var list = new ListBox { ItemsSource = candidates, DisplayMemberPath = nameof(UnknownCandidateRow.Label), Height = 150 };
+        ThemeList(list);
         AutomationProperties.SetName(list, UiText.Get("SyncUnknownCandidates")); form.Children.Add(list);
         var preview = new TextBlock { TextWrapping = TextWrapping.Wrap };
         form.Children.Add(new ScrollViewer { Content = preview, MaxHeight = 180, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });

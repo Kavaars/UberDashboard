@@ -33,7 +33,7 @@ public sealed class SyncStore(IWorkQueue queue, SqliteDatabase database) : ISync
 
     public Task<bool> SaveAsync(SyncState state, long expectedVersion, CancellationToken token = default)
     {
-        if (expectedVersion < -1 || state.FormatVersion != 2) throw new InvalidDataException("Unsupported synchronization format or version.");
+        if (expectedVersion < -1 || !SyncContainers.SupportedFormat(state)) throw new InvalidDataException("Unsupported synchronization format or version.");
         if (state.Binding.Id == Guid.Empty || string.IsNullOrWhiteSpace(state.Binding.ClientId) ||
             string.IsNullOrWhiteSpace(state.Binding.AccountId) || string.IsNullOrWhiteSpace(state.Binding.ResourcePath))
             throw new ArgumentException("A synchronization binding requires a stable identity.", nameof(state));
@@ -74,7 +74,7 @@ public sealed class SyncStore(IWorkQueue queue, SqliteDatabase database) : ISync
     {
         var state = JsonSerializer.Deserialize<SyncState>(json, Options)
             ?? throw new InvalidDataException("Invalid synchronization state.");
-        if (state.FormatVersion != 2) throw new InvalidDataException("Unsupported synchronization state format.");
+        if (!SyncContainers.SupportedFormat(state)) throw new InvalidDataException("Unsupported synchronization state format.");
         ValidateEntities(state);
         return state;
     }

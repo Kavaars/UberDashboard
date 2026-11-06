@@ -24,6 +24,7 @@ internal static partial class SyncEditorWindow
         window.MinWidth = 420; window.MinHeight = 300;
         var cancellation = new CancellationTokenSource();
         var list = new ListBox { DisplayMemberPath = nameof(BindingRow.Label), Margin = new Thickness(0, 8, 0, 8) };
+        ThemeList(list);
         AutomationProperties.SetName(list, UiText.Get("SyncResources"));
         var body = new DockPanel { Margin = new Thickness(16) };
         var actions = new WrapPanel(); DockPanel.SetDock(actions, Dock.Top); body.Children.Add(actions);
@@ -51,7 +52,7 @@ internal static partial class SyncEditorWindow
     }
 
     internal static Window Open(Window owner, IntegrationSyncService service, Guid bindingId, CancellationToken closeToken, Func<Task<bool>>? reconnect = null,
-        SyncEntityKind itemKind = SyncEntityKind.Item, Guid? parentId = null)
+        SyncEntityKind itemKind = SyncEntityKind.Item, Guid? parentId = null, Func<Task<bool>>? contentsReconnect = null)
     {
         var window = WindowFrame.Create(owner, UiText.Get("SyncEditorTitle"), 780, 650);
         window.MinWidth = 480; window.MinHeight = 400;
@@ -59,7 +60,8 @@ internal static partial class SyncEditorWindow
         var token = cancellation.Token;
         var status = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 8) };
         AutomationProperties.SetLiveSetting(status, AutomationLiveSetting.Polite);
-        var list = new ListBox { DisplayMemberPath = nameof(Row.Label), MinHeight = 100 };
+        var list = new ListBox { DisplayMemberPath = nameof(Row.Label) };
+        ThemeList(list);
         AutomationProperties.SetName(list, UiText.Get("SyncItems"));
         var toolbar = new WrapPanel();
         var refresh = ActionButton("SyncNow", toolbar);
@@ -68,6 +70,11 @@ internal static partial class SyncEditorWindow
         var remove = ActionButton("SyncDelete", toolbar);
         var review = ActionButton("SyncReview", toolbar);
         var pause = ActionButton("SyncPauseResume", toolbar);
+        var manage = itemKind == SyncEntityKind.Item ? ActionButton("SyncManageContainers", toolbar) : null;
+        var contents = itemKind == SyncEntityKind.Item ? ActionButton("SyncContainerContents", toolbar) : null;
+        var providerLink = itemKind == SyncEntityKind.Item ? ActionButton("SyncOpenContainerService", toolbar) : null;
+        if (providerLink is not null) providerLink.Visibility = Visibility.Collapsed;
+        if (contents is not null) contents.Visibility = Visibility.Collapsed;
         var checklist = itemKind == SyncEntityKind.Item ? ActionButton("SyncChecklist", toolbar) : null;
         var links = itemKind == SyncEntityKind.Item ? ActionButton("SyncLinkedResources", toolbar) : null;
         if (checklist is not null) checklist.Visibility = Visibility.Collapsed;
@@ -80,8 +87,17 @@ internal static partial class SyncEditorWindow
         body.RowDefinitions.Add(new() { Height = GridLength.Auto });
         body.RowDefinitions.Add(new() { Height = GridLength.Auto });
         body.RowDefinitions.Add(new());
-        body.Children.Add(toolbar); Grid.SetRow(status, 1); body.Children.Add(status);
+        var toolbarViewport = new ScrollViewer { Content = toolbar, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+        var statusViewport = new ScrollViewer { Content = status, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+        body.Children.Add(toolbarViewport); Grid.SetRow(statusViewport, 1); body.Children.Add(statusViewport);
         Grid.SetRow(list, 2); body.Children.Add(list); window.Content = body;
+        void SizeViewports()
+        {
+            var height = window.ActualHeight > 0 ? window.ActualHeight : window.Height;
+            toolbarViewport.MaxHeight = Math.Max(64, height * 0.32);
+            statusViewport.MaxHeight = Math.Max(44, height * 0.2);
+        }
+        window.SizeChanged += (_, _) => SizeViewports(); SizeViewports();
         SyncState? state = null;
         var busy = false;
 
@@ -102,13 +118,32 @@ internal static partial class SyncEditorWindow
                 state.Binding.Enabled ? UiText.Get("SyncEnabled") : UiText.Get("SyncPaused"));
             if (state.ConnectionStatus is not (SyncConnectionStatus.Idle or SyncConnectionStatus.Synchronizing))
                 status.Text += " · " + ConnectionLabel(state.ConnectionStatus);
-            if (checklist is not null) checklist.Visibility = state.Binding.Provider == SyncProviderKind.MicrosoftTodo ? Visibility.Visible : Visibility.Collapsed;
-            if (links is not null) links.Visibility = state.Binding.Provider == SyncProviderKind.MicrosoftTodo ? Visibility.Visible : Visibility.Collapsed;
+            var catalog = SyncContainers.IsCatalog(state.Binding);
+            if (checklist is not null) checklist.Visibility = state.Binding.Provider == SyncProviderKind.MicrosoftTodo && !catalog ? Visibility.Visible : Visibility.Collapsed;
+            if (links is not null) links.Visibility = state.Binding.Provider == SyncProviderKind.MicrosoftTodo && !catalog ? Visibility.Visible : Visibility.Collapsed;
+            if (manage is not null) manage.Visibility = catalog ? Visibility.Collapsed : Visibility.Visible;
+            if (contents is not null) contents.Visibility = catalog ? Visibility.Visible : Visibility.Collapsed;
+            if (providerLink is not null) providerLink.Visibility = catalog ? Visibility.Visible : Visibility.Collapsed;
             var parentAvailable = itemKind == SyncEntityKind.Item || state.Items.Any(e => e.LocalId == parentId && e.Local is not null && e.Conflicts is not { Length: > 0 });
             add.IsEnabled = edit.IsEnabled = remove.IsEnabled = parentAvailable;
             if (toggle is not null) toggle.IsEnabled = parentAvailable;
             if (!parentAvailable) status.Text += " · " + UiText.Get("SyncRelatedParentUnavailable");
+            UpdateSelection();
         }
+
+        void UpdateSelection()
+        {
+            if (state is null || !SyncContainers.IsCatalog(state.Binding)) return;
+            var entity = (list.SelectedItem as Row)?.Entity;
+            edit.IsEnabled = entity?.Local is not null && (entity.RemoteId is null || SyncContainers.CanEdit(state.Binding.Provider, entity.Metadata));
+            remove.IsEnabled = entity?.Local is not null && (entity.RemoteId is null || SyncContainers.CanDelete(state.Binding.Provider, entity.Metadata));
+            if (contents is not null) contents.IsEnabled = entity?.RemoteId is not null && entity.Baseline is not null && entity.Local is not null && entity.Conflicts is not { Length: > 0 };
+            if (entity?.Conflicts is { Length: > 0 }) edit.IsEnabled = true;
+            var readOnlyNotice = " · " + UiText.Get("SyncContainerReadOnly");
+            if (status.Text.EndsWith(readOnlyNotice, StringComparison.Ordinal)) status.Text = status.Text[..^readOnlyNotice.Length];
+            if (entity?.RemoteId is not null && !SyncContainers.CanEdit(state.Binding.Provider, entity.Metadata)) status.Text += readOnlyNotice;
+        }
+        list.SelectionChanged += (_, _) => { UpdateSelection(); if (list.SelectedItem is { } selected) list.ScrollIntoView(selected); };
 
         async Task RunAsync(Func<Task> action)
         {
@@ -123,6 +158,9 @@ internal static partial class SyncEditorWindow
                 {
                     UberDashboard.Application.Synchronization.SyncAuthenticationException => "SyncReconnectRequired",
                     UberDashboard.Application.Synchronization.SyncDependentChangesException => "SyncFinishChildChanges",
+                    UberDashboard.Application.Synchronization.SyncContainerChangesException => "SyncContainerChangesBlocked",
+                    UberDashboard.Application.Synchronization.SyncContainerAccessException => "SyncContainerReadOnly",
+                    SyncListSelectionRequiredException => "SyncContainerSelectInSettings",
                     _ => "SyncFailedCachedDataAvailable",
                 });
             }
@@ -148,7 +186,8 @@ internal static partial class SyncEditorWindow
         add.Click += async (_, _) => await RunAsync(async () =>
         {
             if (state is null) return;
-            var fields = itemKind == SyncEntityKind.Item ? Edit(window, state.Binding.Provider, null) : EditRelated(window, itemKind, null);
+            var fields = SyncContainers.IsCatalog(state.Binding) ? EditContainer(window, state.Binding.Provider, null)
+                : itemKind == SyncEntityKind.Item ? Edit(window, state.Binding.Provider, null) : EditRelated(window, itemKind, null);
             if (fields is not null)
             {
                 if (parentId is { } parent) await service.Coordinator.EditChildAsync(bindingId, parent, Guid.NewGuid(), itemKind, fields, token);
@@ -160,18 +199,44 @@ internal static partial class SyncEditorWindow
         {
             if (state is null || list.SelectedItem is not Row row) return;
             if (row.Entity.Conflicts is { Length: > 0 }) { Resolve(window, service, bindingId, row.Entity, token, state.Items.Count(e => e.ParentId == row.Entity.LocalId)); return; }
-            var fields = itemKind == SyncEntityKind.Item ? Edit(window, state.Binding.Provider, row.Entity.Local, metadata: row.Entity.Metadata) : EditRelated(window, itemKind, row.Entity.Local);
+            if (SyncContainers.IsCatalog(state.Binding) && row.Entity.RemoteId is not null && !SyncContainers.CanEdit(state.Binding.Provider, row.Entity.Metadata)) return;
+            var fields = SyncContainers.IsCatalog(state.Binding) ? EditContainer(window, state.Binding.Provider, row.Entity.Local)
+                : itemKind == SyncEntityKind.Item ? Edit(window, state.Binding.Provider, row.Entity.Local, metadata: row.Entity.Metadata) : EditRelated(window, itemKind, row.Entity.Local);
             if (fields is not null)
             { await service.Coordinator.EditFromSnapshotAsync(bindingId, row.Entity.LocalId, row.Entity.Local, row.Entity.Revision, fields, token); service.Request(bindingId); }
         });
         remove.Click += async (_, _) => await RunAsync(async () =>
         {
-            if (list.SelectedItem is not Row row || row.Entity.Conflicts is { Length: > 0 }) return;
-            if (ThemedMessageBox.Show(window, UiText.Format("SyncConfirmDelete", Title(row.Entity.Local)),
+            if (state is null || list.SelectedItem is not Row row || row.Entity.Conflicts is { Length: > 0 }) return;
+            if (SyncContainers.IsCatalog(state.Binding) && row.Entity.RemoteId is not null && !SyncContainers.CanDelete(state.Binding.Provider, row.Entity.Metadata)) return;
+            if (ThemedMessageBox.Show(window, UiText.Format(SyncContainers.IsCatalog(state.Binding) ? "SyncConfirmContainerDelete" : "SyncConfirmDelete", Title(row.Entity.Local)),
                     UiText.Get("SyncEditorTitle"), MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
             await service.Coordinator.EditFromSnapshotAsync(bindingId, row.Entity.LocalId, row.Entity.Local, row.Entity.Revision, null, token); service.Request(bindingId);
         });
         review.Click += (_, _) => { if (state is not null) Review(window, service, state, token); };
+        if (manage is not null) manage.Click += async (_, _) => await RunAsync(async () =>
+        {
+            if (state is null) return;
+            var source = state.Binding;
+            if (source.Provider == SyncProviderKind.GoogleCalendar && ThemedMessageBox.Show(window, UiText.Get("SyncCalendarManagementConsent"),
+                UiText.Get("SyncManageCalendars"), MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+            var catalogId = await service.EnableCatalogAsync(source, token);
+            Open(window, service, catalogId, token, source.Provider == SyncProviderKind.MicrosoftTodo ? reconnect : async () =>
+            { await service.EnableCatalogAsync(source, token, forceConsent: true); return true; }, contentsReconnect: reconnect);
+        });
+        if (contents is not null) contents.Click += async (_, _) => await RunAsync(async () =>
+        {
+            if (state is null || list.SelectedItem is not Row row) return;
+            var id = await service.EnableContentsAsync(state.Binding, row.Entity, token);
+            Open(window, service, id, token, state.Binding.Provider == SyncProviderKind.MicrosoftTodo ? reconnect : contentsReconnect);
+        });
+        if (providerLink is not null) providerLink.Click += (_, _) =>
+        {
+            if (state is null) return;
+            var url = state.Binding.Provider == SyncProviderKind.MicrosoftTodo ? "https://to-do.office.com/tasks/" : "https://calendar.google.com/calendar/u/0/r";
+            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); }
+            catch (Exception) { status.Text = UiText.Get("CouldNotOpenProjectLink"); }
+        };
         if (checklist is not null) checklist.Click += (_, _) =>
         { if (list.SelectedItem is Row row) Open(window, service, bindingId, token, reconnect, SyncEntityKind.ChecklistItem, row.Entity.LocalId); };
         if (links is not null) links.Click += (_, _) =>
@@ -245,6 +310,14 @@ internal static partial class SyncEditorWindow
     }
 
     private static string Title(JsonObject? fields) => fields?["title"]?.GetValue<string>() ?? fields?["summary"]?.GetValue<string>() ?? fields?["displayName"]?.GetValue<string>() ?? UiText.Get("UntitledEvent");
+
+    private static void ThemeList(ListBox list)
+    {
+        list.SetResourceReference(System.Windows.Controls.Control.BackgroundProperty, "Brush.Surface");
+        list.SetResourceReference(System.Windows.Controls.Control.ForegroundProperty, "Brush.Text");
+        list.SetResourceReference(System.Windows.Controls.Control.BorderBrushProperty, "Brush.Border");
+        list.SetResourceReference(ItemsControl.ItemContainerStyleProperty, "ThemedListBoxItem");
+    }
 
     internal static JsonObject? Edit(Window owner, SyncProviderKind provider, JsonObject? original, Action<Window>? onLoaded = null, JsonObject? metadata = null)
     {
@@ -450,7 +523,7 @@ internal static partial class SyncEditorWindow
             body.Children.Add(new TextBlock { Text = Title(operation.Desired ?? operation.Baseline) + " · " + StateLabel(state, entity), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 4) });
             if (operation.State == SyncOperationState.AwaitingApproval)
             {
-                body.Children.Add(new TextBlock { Text = ApprovalDetails(operation), TextWrapping = TextWrapping.Wrap });
+                body.Children.Add(new TextBlock { Text = ApprovalDetails(operation, state.Binding), TextWrapping = TextWrapping.Wrap });
                 var approve = ActionButton("SyncApprove", body);
                 approve.Click += async (_, _) =>
                 {
@@ -466,7 +539,7 @@ internal static partial class SyncEditorWindow
             else if (operation.State is SyncOperationState.UnknownOutcome or SyncOperationState.Sending)
             {
                 body.Children.Add(new TextBlock { Text = UiText.Get("SyncUnknownOutcomeHelp"), TextWrapping = TextWrapping.Wrap });
-                if (state.Binding.Provider == SyncProviderKind.MicrosoftTodo && operation.State == SyncOperationState.UnknownOutcome &&
+                if (SyncContainers.CanManuallyLink(state.Binding) && operation.State == SyncOperationState.UnknownOutcome &&
                     operation.Kind == SyncOperationKind.Create && operation.RemoteId is null)
                 {
                     var link = ActionButton("SyncSelectExisting", body);
@@ -490,8 +563,9 @@ internal static partial class SyncEditorWindow
     private sealed record Row(SyncEntity Entity, string Label) { public override string ToString() => Label; }
     private sealed record BindingRow(Guid Id, string Label) { public override string ToString() => Label; }
 
-    internal static string ApprovalDetails(SyncOperation operation)
+    internal static string ApprovalDetails(SyncOperation operation, SyncBinding? binding = null)
     {
+        if (binding is not null && SyncContainers.IsCatalog(binding)) return UiText.Get("SyncContainerDeleteNotice") + "\n\n" + Describe(operation.Baseline);
         var people = GoogleAttendeeReview.Compare(operation.Baseline, operation.Desired);
         var text = new System.Text.StringBuilder(UiText.Get("SyncNotificationsNotice"));
         foreach (var (key, emails) in new[] { ("SyncGoogleAddedPeople", people.Added), ("SyncGoogleRemovedPeople", people.Removed), ("SyncGoogleRemainingPeople", people.Remaining) })

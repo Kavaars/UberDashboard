@@ -22,7 +22,7 @@ public abstract partial class SyncHttpProvider(HttpClient http, IIntegrationAcco
 
     public abstract Task<SyncPage> ReadPageAsync(SyncBinding binding, string? cursor, string? page, CancellationToken token);
 
-    public async Task<SyncRemoteEntity?> GetAsync(SyncBinding binding, string remoteId, CancellationToken token)
+    public virtual async Task<SyncRemoteEntity?> GetAsync(SyncBinding binding, string remoteId, CancellationToken token)
     {
         using var response = await SendAsync(binding, HttpMethod.Get, ItemUri(binding, remoteId), null, null, false, token).ConfigureAwait(false);
         if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Gone) return null;
@@ -105,7 +105,9 @@ public abstract partial class SyncHttpProvider(HttpClient http, IIntegrationAcco
         return Trusted(new Uri(Root, binding.ResourcePath));
     }
 
-    private Uri ItemUri(SyncBinding binding, string id) => Trusted(new Uri(CollectionUri(binding).AbsoluteUri + "/" + Uri.EscapeDataString(id)));
+    private Uri ItemUri(SyncBinding binding, string id) => Trusted(new Uri(CollectionUri(binding).AbsoluteUri + "/" + EncodeItemId(id)));
+    protected static string EncodeItemId(string id) => string.IsNullOrWhiteSpace(id) || id is "." or ".." || id.Any(char.IsControl)
+        ? throw new InvalidDataException("Invalid resource ID.") : Uri.EscapeDataString(id);
 
     protected Uri Trusted(Uri uri)
     {

@@ -1,3 +1,5 @@
+2026-11-06T07:23:13+01:00 | 1.9.0 / sync-containers-20261106-01, bez wydania: katalogi zasobów i ochrona zależności, format katalogu 3 przy SQLite 7; 609 testów PASS, Release bez ostrzeżeń/błędów i PluginChecks PASS. Pełny plan oraz odbiór dostawców nadal otwarte.
+
 2026-11-06T06:16:00+01:00 | 1.9.0 / google-options-20261106-01, bez wydania: opcje wydarzeń Google i przegląd skutków dla uczestników. Release 0 ostrzeżeń/błędów, 545 testów PASS i PluginChecks PASS. Pełny plan, prawdziwe konta i publiczny OAuth nadal otwarte.
 
 2026-11-05T21:50:08+01:00 | 1.9.0 / prace robocze, bez wydania: relacje To Do, uzgadnianie niepewnego tworzenia, SQLite 7 / format 2. Release 0 ostrzeżeń/błędów, 522 testy PASS, PL/EN po 183 rendery i PluginChecks PASS. Rzeczywiste konta i pełny plan nadal otwarte.

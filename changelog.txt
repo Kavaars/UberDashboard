@@ -1,3 +1,12 @@
+Prace robocze 1.9.0 (2026-11-06T07:23:13+01:00)
+- Katalogi kont: tworzenie i zmiana nazw własnych list Microsoft oraz tworzenie i edycja podstawowych właściwości kalendarzy Google.
+- Zarządzanie kalendarzami wymaga osobnej zgody. Odmowa, zmiana konta i spóźniona odpowiedź nie zastępują poprzedniej sesji.
+- List systemowych i kalendarza głównego nie można usunąć; usuwanie kalendarza dodatkowego wymaga potwierdzonego właściciela danych.
+- Niewysłane zmiany zawartości blokują usunięcie całego zasobu. Zdalne usunięcie tworzy konflikt, a lokalne dokumenty i kolejki pozostają zachowane.
+- Niepewne tworzenie listy lub kalendarza można uzgodnić przez wybór istniejącego elementu, bez ponawiania tworzenia i bez dopasowywania po nazwie.
+- Poprawiono kontrast list centrum synchronizacji, edytora i wyboru istniejącego elementu. Zaktualizowano instrukcję oraz politykę prywatności.
+- To nadal etap pełnego planu, bez wydania 1.10.0 i bez potwierdzenia rzeczywistych kont dostawców.
+
 Prace robocze 1.9.0 (2026-11-06T06:16:00+01:00)
 - Google Calendar: adresy uczestników, własna odpowiedź, domyślne lub własne przypomnienia, widoczność i oznaczenie wolny/zajęty.
 - Istniejące odpowiedzi i dodatkowe dane uczestników są zachowane. Niepełne listy i ograniczenia kopii wydarzenia chronią przed niedozwoloną edycją; RSVP gościa nie zastępuje innych uczestników.

@@ -1,3 +1,5 @@
+2026-11-06T07:23:13+01:00 | Katalogi list i kalendarzy: CRUD, osobna zgoda Google, ochrona właściciela i niewysłanych zmian; poprawa kontrastu list integracji.
+
 2026-11-06T06:16:00+01:00 | Google Calendar: uczestnicy, RSVP, przypomnienia, widoczność i dostępność; podgląd usuwanych osób i kontrola wersji zatwierdzanej operacji.
 
 2026-11-05T21:50:08+01:00 | Checklisty i powiązania Microsoft: trwała kolejka zależności, konflikty usunięcia zadania i ręczne wskazanie istniejącego elementu po niepewnym tworzeniu.

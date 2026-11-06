@@ -16,7 +16,8 @@ using UberDashboard.Contracts.Host;
 namespace UberDashboard.App.Features.Calendar;
 
 internal sealed partial class GoogleCalendarClient(IPanelStorage storage, HttpClient? http = null,
-    UberDashboard.Application.Synchronization.ICalendarViewCache? viewCache = null)
+    UberDashboard.Application.Synchronization.ICalendarViewCache? viewCache = null,
+    Func<IReadOnlyList<string>, CancellationToken, Task<GoogleCalendarClient.GoogleAuthorization>>? authorization = null)
 {
     internal const string DefaultClientId = "566017659051-5tnkvv0jjiih7kj7p51378nik127pqd9.apps.googleusercontent.com";
     private const string SessionFile = "google-calendar.session";
@@ -24,6 +25,8 @@ internal sealed partial class GoogleCalendarClient(IPanelStorage storage, HttpCl
     private const string Scope = "https://www.googleapis.com/auth/calendar.events.readonly";
     private const string WriteScope = "https://www.googleapis.com/auth/calendar.events";
     private const string CalendarListScope = "https://www.googleapis.com/auth/calendar.calendarlist.readonly";
+    internal const string CalendarManagementScope = "https://www.googleapis.com/auth/calendar.calendars";
+    internal static IReadOnlyList<string> CalendarManagementScopes { get; } = [CalendarManagementScope, CalendarListScope];
     private static readonly SemaphoreSlim CredentialGate = new(1, 1);
     private static readonly HttpClient DefaultHttp = new(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(30) };
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
@@ -45,6 +48,37 @@ internal sealed partial class GoogleCalendarClient(IPanelStorage storage, HttpCl
 
         var requested = allowWrite ? new[] { "openid", WriteScope, CalendarListScope } : ["openid", Scope];
         var session = new Session(clientId, clientSecret, null, RequestedScopes: requested);
+        await AuthorizeAndStoreAsync(session, requested, allowWrite ? [WriteScope] : [], expectedAccountId, true, token).ConfigureAwait(false);
+    }
+
+    internal async Task RequestCalendarManagementAsync(string clientId, string accountId, CancellationToken token, bool forceConsent = false)
+    {
+        var session = await LoadSessionAsync(token).ConfigureAwait(false);
+        if (session?.Token is null || session.ClientId != clientId || session.AccountId != accountId)
+            throw new UberDashboard.Application.Synchronization.SyncAuthenticationException();
+        if (!forceConsent && HasScopes(session.GrantedScopes ?? [], CalendarManagementScopes)) return;
+        var requested = (session.GrantedScopes ?? []).Concat(CalendarManagementScopes).Append("openid").Distinct(StringComparer.Ordinal).ToArray();
+        await AuthorizeAndStoreAsync(session with { Token = null, RequestedScopes = requested }, requested,
+            CalendarManagementScopes.Concat(session.GrantedScopes ?? []).ToArray(), accountId, false, token).ConfigureAwait(false);
+    }
+
+    private async Task AuthorizeAndStoreAsync(Session session, IReadOnlyList<string> requested, IReadOnlyList<string> required,
+        string? expectedAccountId, bool allowReplacement, CancellationToken token)
+    {
+        var result = authorization is null ? await AuthorizeGoogleAsync(session, requested, token).ConfigureAwait(false)
+            : await authorization(requested, token).ConfigureAwait(false);
+        token.ThrowIfCancellationRequested();
+        if (string.IsNullOrWhiteSpace(result.AccountId) || expectedAccountId is not null && result.AccountId != expectedAccountId)
+            throw new InvalidOperationException(UiText.Get("SyncReconnectRequired"));
+        var granted = ParseScopes(result.Token.Scope);
+        if (!HasScopes(granted, required)) throw new InvalidOperationException(UiText.Get("WriteConsentRequired"));
+        var verified = session with { AccountId = result.AccountId, GrantedScopes = granted, Token = result.Token };
+        await new TokenStore(verified, storage, allowAccountReplacement: allowReplacement,
+            requiredPreviousScopes: allowReplacement ? null : session.GrantedScopes ?? []).StoreAsync(User, result.Token).ConfigureAwait(false);
+    }
+
+    private async Task<GoogleAuthorization> AuthorizeGoogleAsync(Session session, IReadOnlyList<string> requested, CancellationToken token)
+    {
         // Do not replace the existing account/session if additional consent fails.
         var store = new TokenStore(session, storage, persist: false);
         var credential = await GoogleWebAuthorizationBroker.AuthorizeAsync(Initializer(session, store, interactive: true),
@@ -59,12 +93,7 @@ internal sealed partial class GoogleCalendarClient(IPanelStorage storage, HttpCl
             using var identity = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(token).ConfigureAwait(false), cancellationToken: token).ConfigureAwait(false);
             var subject = identity.RootElement.GetProperty("sub").GetString();
             if (string.IsNullOrWhiteSpace(subject)) throw new InvalidDataException();
-            if (expectedAccountId is not null && subject != expectedAccountId) throw new InvalidOperationException(UiText.Get("SyncReconnectRequired"));
-            var granted = ParseScopes(credential.Token.Scope);
-            if (allowWrite && !granted.Contains(WriteScope, StringComparer.Ordinal))
-                throw new InvalidOperationException(UiText.Get("WriteConsentRequired"));
-            var verified = session with { AccountId = subject, GrantedScopes = granted, Token = credential.Token };
-            await new TokenStore(verified, storage, allowAccountReplacement: true).StoreAsync(User, credential.Token).ConfigureAwait(false);
+            return new(subject, credential.Token);
         }
         finally { credential.Flow.Dispose(); }
     }
@@ -75,15 +104,16 @@ internal sealed partial class GoogleCalendarClient(IPanelStorage storage, HttpCl
         return session?.AccountId is { Length: > 0 } subject ? new(session.ClientId, subject, session.GrantedScopes ?? []) : null;
     }
 
-    internal async Task<string?> GetAccessTokenAsync(string clientId, string accountId, bool write, CancellationToken token)
+    internal async Task<string?> GetAccessTokenAsync(string clientId, string accountId, bool write, CancellationToken token, IReadOnlyList<string>? requiredScopes = null)
     {
+        var required = requiredScopes ?? (write ? [WriteScope] : Array.Empty<string>());
         var session = await LoadSessionAsync(token).ConfigureAwait(false);
         if (session?.Token is null || session.ClientId != clientId || session.AccountId != accountId ||
-            write && !(session.GrantedScopes ?? []).Contains(WriteScope, StringComparer.Ordinal)) return null;
+            !HasScopes(session.GrantedScopes ?? [], required)) return null;
         using var flow = new GoogleAuthorizationCodeFlow(Initializer(session, new TokenStore(session, storage)));
         var credential = new UserCredential(flow, User, session.Token);
         var access = await credential.GetAccessTokenForRequestAsync(cancellationToken: token).ConfigureAwait(false);
-        if (write && !string.IsNullOrWhiteSpace(credential.Token.Scope) && !ParseScopes(credential.Token.Scope).Contains(WriteScope, StringComparer.Ordinal)) return null;
+        if (!string.IsNullOrWhiteSpace(credential.Token.Scope) && !HasScopes(ParseScopes(credential.Token.Scope), required)) return null;
         return access;
     }
 
@@ -95,6 +125,12 @@ internal sealed partial class GoogleCalendarClient(IPanelStorage storage, HttpCl
     }
 
     private static string[] ParseScopes(string? value) => value?.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
+    private static bool HasScopes(IEnumerable<string> granted, IEnumerable<string> required)
+    {
+        var scopes = granted.ToHashSet(StringComparer.Ordinal);
+        return required.All(s => scopes.Contains(s) || s.EndsWith(".readonly", StringComparison.Ordinal) && scopes.Contains(s[..^9]) ||
+            s.StartsWith("https://www.googleapis.com/auth/calendar.", StringComparison.Ordinal) && scopes.Contains("https://www.googleapis.com/auth/calendar"));
+    }
 
     private static async Task<byte[]?> ReadSessionDataAsync(IPanelStorage storage, CancellationToken token)
     {
@@ -191,8 +227,10 @@ internal sealed partial class GoogleCalendarClient(IPanelStorage storage, HttpCl
         string[]? GrantedScopes = null, string[]? RequestedScopes = null);
 
     internal sealed record GoogleConnection(string ClientId, string AccountId, string[] GrantedScopes);
+    internal sealed record GoogleAuthorization(string AccountId, TokenResponse Token);
 
-    private sealed class TokenStore(Session session, IPanelStorage storage, bool persist = true, bool allowAccountReplacement = false) : IDataStore
+    private sealed class TokenStore(Session session, IPanelStorage storage, bool persist = true, bool allowAccountReplacement = false,
+        IReadOnlyList<string>? requiredPreviousScopes = null) : IDataStore
     {
         private TokenResponse? _currentToken = session.Token;
         public async Task StoreAsync<T>(string key, T value)
@@ -212,6 +250,8 @@ internal sealed partial class GoogleCalendarClient(IPanelStorage storage, HttpCl
                     var current = currentData is null ? null : NewtonsoftJsonSerializer.Instance.Deserialize<Session>(System.Text.Encoding.UTF8.GetString(
                         ProtectedData.Unprotect(currentData, null, DataProtectionScope.CurrentUser)));
                     if (current is null || current.ClientId != session.ClientId || current.AccountId != session.AccountId)
+                        throw new UberDashboard.Application.Synchronization.SyncAuthenticationException();
+                    if (requiredPreviousScopes is not null && !(current.GrantedScopes ?? []).ToHashSet(StringComparer.Ordinal).SetEquals(requiredPreviousScopes))
                         throw new UberDashboard.Application.Synchronization.SyncAuthenticationException();
                 }
                 await storage.WriteAsync(SessionFile, ProtectedData.Protect(data, null, DataProtectionScope.CurrentUser),

@@ -69,6 +69,13 @@ public sealed partial class MicrosoftTodoProvider(HttpClient http, IIntegrationA
         return result;
     }
 
+    protected override SyncWriteResult? ValidateWrite(SyncBinding binding, SyncOperation operation, SyncRemoteEntity? current, System.Text.Json.Nodes.JsonObject? patch)
+    {
+        if (binding.ResourcePath != "lists" || current is null) return null;
+        return (operation.Kind == SyncOperationKind.Delete ? SyncContainers.CanDelete(Kind, current.Metadata) : SyncContainers.CanEdit(Kind, current.Metadata))
+            ? null : new(SyncWriteStatus.Forbidden, ErrorCode: "list-system-or-not-owned");
+    }
+
     [GeneratedRegex("^lists(?:/(?:[A-Za-z0-9_+=@.-]|%[0-9a-fA-F]{2})+/tasks(?:/(?:[A-Za-z0-9_+=@.-]|%[0-9a-fA-F]{2})+/(?:checklistItems|linkedResources))?)?$", RegexOptions.CultureInvariant)]
     private static partial Regex ResourcePath();
 }
