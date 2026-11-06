@@ -21,6 +21,8 @@ internal static partial class SyncEditorWindow
         var cancellation = CancellationTokenSource.CreateLinkedTokenSource(closeToken);
         var form = new StackPanel { Margin = new Thickness(16) };
         form.Children.Add(new TextBlock { Text = UiText.Get("SyncConflictHelp"), TextWrapping = TextWrapping.Wrap });
+        if (entity.Conflicts?.Contains("$unknown-result") == true)
+            form.Children.Add(new TextBlock { Text = UiText.Get("SyncUnknownConflictNotice"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) });
         if (relatedCount > 0 && entity.Conflicts?.Contains("$deleted") == true)
             form.Children.Add(new TextBlock { Text = UiText.Format("SyncRelatedConflictNotice", relatedCount), TextWrapping = TextWrapping.Wrap });
         foreach (var (key, value) in new[] { ("SyncConflictBase", entity.Baseline), ("SyncConflictLocal", entity.Local), ("SyncConflictRemote", entity.Remote) })
@@ -158,6 +160,7 @@ internal static partial class SyncEditorWindow
         "local-edit" => "SyncHistoryLocalEdit", "remote-merge" => "SyncHistoryRemoteMerge", "conflict-resolution" => "SyncHistoryConflictResolution",
         "history-restored" => "SyncHistoryRestored", "write-acknowledged" => "SyncHistoryAcknowledged", "write-rebase" => "SyncHistoryRebased",
         "conflict-base" => "SyncConflictBase", "conflict-service" => "SyncConflictRemote",
+        "unknown-write-draft" => "SyncUnknownLocalDraft", "unknown-review-local" => "SyncUnknownCurrentDraft", "unknown-review-service" => "SyncConflictRemote",
         "parent-deletion-resolved" => "SyncHistoryParentDeleted", _ => "SyncHistorySnapshot"
     });
     private static void BindRecoveryLifetime(Window window, CancellationTokenSource cancellation)

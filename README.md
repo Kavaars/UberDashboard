@@ -39,6 +39,8 @@ W zadaniach Microsoft można także zmienić ważność, przypisane kategorie, d
 
 Po wybraniu zadania przyciski **Checklista zadania** i **Powiązane zasoby** otwierają jego kroki oraz odnośniki do innych aplikacji i dokumentów. Można je dodawać, edytować, usuwać i oznaczać kroki jako wykonane. Gdy wynik tworzenia w Microsoft jest nieznany, w kolejce dostępny jest wybór **Wskaż istniejący element** — po porównaniu danych można powiązać lokalny szkic z konkretnym elementem usługi. Aplikacja nie ponawia tego tworzenia automatycznie.
 
+Po niepewnej edycji lub usunięciu przycisk **Sprawdź stan usługi** w kolejce pokazuje wysłany szkic, bieżącą wersję lokalną i aktualny odczyt z Microsoft lub Google. **Przejdź do decyzji** ponownie sprawdza te dane i przygotowuje lokalny konflikt. Następnie można wybrać wersję lub ręcznie poprawić szkic. Nowsze edycje pozostają zachowane, a zmiana podglądu wymaga ponownego porównania. Operacje wpływające na inne osoby nadal wymagają zatwierdzenia skutków. Brak elementu w odpowiedzi usługi nie jest dowodem wykonania wcześniejszego zapisu.
+
 W edytorze Google Calendar można zmieniać listę adresów uczestników na kopii organizatora, własną odpowiedź na zaproszenie, przypomnienia, widoczność oraz oznaczenie „wolny/zajęty”. Istniejące odpowiedzi i dodatkowe dane uczestników pozostają zachowane. Podgląd przed wysłaniem pokazuje dodawane i usuwane osoby oraz dane przed i po zmianie. Niepełnej listy uczestników nie można zastąpić; specjalne typy wydarzeń i pozostałe niedostępne operacje można otworzyć w Google Calendar.
 
 Przycisk **Listy i kalendarze** otwiera katalog konta. Można tworzyć własne listy Microsoft i kalendarze dodatkowe Google, zmieniać ich właściwości oraz przygotować usunięcie całego zasobu. List systemowych i kalendarza głównego nie można usunąć. Google wymaga osobnej zgody na zarządzanie kalendarzami; usuwanie wymaga potwierdzonego właściciela danych. Niewysłane zmiany zawartości blokują usunięcie zasobu, a kolejka wymaga osobnego zatwierdzenia skutków. **Otwórz zawartość** nie zmienia istniejących paneli; listę Microsoft trzeba wcześniej wybrać w ustawieniach integracji. Niepewne utworzenie listy lub kalendarza można uzgodnić przez wskazanie konkretnego elementu usługi, bez ponawiania tworzenia.
@@ -63,6 +65,7 @@ Integracje łączą się bezpośrednio z Microsoft, Google lub Open-Meteo i prze
 
 | Wersja / etap | Zmiany dla użytkownika |
 | --- | --- |
+| Niepewne zapisy, 6 listopada 2026 | Sprawdzenie niepewnych edycji i usunięć w obu usługach, ponowne porównanie przed decyzją i przejście do konfliktu z ochroną nowszych szkiców. |
 | Odzyskiwanie zmian, 6 listopada 2026 | Porównanie trzech wersji konfliktu, ręczna edycja połączonego szkicu i historia kopii. Przywracanie przez lokalną kolejkę, osobne potwierdzenie usunięcia kopii i ochrona nowszych zmian. |
 | Dostęp do kalendarzy, 6 listopada 2026 | Subskrypcje, osobiste aliasy i kolory oraz udostępnianie z podglądem skutków i osobnymi zgodami. Usunięcie subskrypcji zachowuje dane kalendarza i lokalne niewysłane zmiany. |
 | Zarządzanie zasobami, 6 listopada 2026 | Własne listy i kalendarze, osobna zgoda Google, ochrona list systemowych i kalendarza głównego. Usuwanie chroni niewysłane zmiany, wymaga zatwierdzenia i nie usuwa samych paneli. Poprawiony kontrast list integracji. |

@@ -565,6 +565,11 @@ internal static partial class SyncEditorWindow
             else if (operation.State is SyncOperationState.UnknownOutcome or SyncOperationState.Sending)
             {
                 body.Children.Add(new TextBlock { Text = UiText.Get("SyncUnknownOutcomeHelp"), TextWrapping = TextWrapping.Wrap });
+                if (operation.State == SyncOperationState.UnknownOutcome && operation.Kind is SyncOperationKind.Update or SyncOperationKind.Delete && operation.RemoteId is not null)
+                {
+                    var inspect = ActionButton("SyncInspectUnknown", body);
+                    inspect.Click += (_, _) => OpenUnknownReview(window, service, state, operation, token);
+                }
                 if (SyncContainers.CanManuallyLink(state.Binding) && operation.State == SyncOperationState.UnknownOutcome &&
                     operation.Kind == SyncOperationKind.Create && operation.RemoteId is null)
                 {

@@ -1,3 +1,5 @@
+2026-11-06T11:23:30+01:00 | 1.9.0 / sync-unknown-20261106-05, bez wydania: decyzje dla niepewnych edycji/usunięć obu usług. Release 0 ostrzeżeń/błędów, 697 testów PASS, WPF PL/EN po 321 PNG i PluginChecks PASS. Bez nowych zakresów lub migracji; dalszy plan i rzeczywiste konta otwarte.
+
 2026-11-06T08:56:40+01:00 | 1.9.0 / sync-recovery-20261106, bez wydania: edycja połączonego konfliktu i historia odzyskiwania, ochrona podglądu i retencji. Release 0 ostrzeżeń/błędów, 669 testów PASS, WPF PL/EN po 289 PNG i PluginChecks PASS. SQLite 8 / format 5 bez nowej migracji; pełny plan i odbiór dostawców nadal otwarte.
 
 2026-11-06T08:30:45+01:00 | 1.9.0 / google-access-20261106-03, bez wydania: subskrypcje i ACL Google, odrębne zgody, SQLite 8 / format 5; Release 0 ostrzeżeń/błędów, 651 testów PASS, WPF PL/EN po 261 PNG i PluginChecks PASS. Pełny plan, prawdziwe konta i publiczny OAuth nadal otwarte.
