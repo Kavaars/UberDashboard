@@ -18,8 +18,15 @@ public static class SyncEdits
         if (previous is { Kind: not SyncEntityKind.Item }) ValidateParent(state, previous.ParentId);
         if (previous?.Conflicts is { Length: > 0 }) throw new InvalidOperationException("Resolve the conflict before editing this item.");
         var entity = previous is null
-            ? new SyncEntity(entityId, null, null, Clone(desired), Revision: 1)
+            ? new SyncEntity(entityId, GoogleCalendarAccess.IsSubscriptions(state.Binding) ? desired?["id"]?.GetValue<string>() : null, null, Clone(desired), Revision: 1)
             : previous with { Local = Clone(desired), Revision = previous.Revision + 1 };
+        if (GoogleCalendarAccess.IsSubscriptions(state.Binding) && desired is not null)
+        {
+            var id = desired["id"]?.GetValue<string>();
+            if (id is null || !GoogleCalendarAccess.ValidCalendarId(id) || previous?.Local is not null && previous.Local["id"]?.GetValue<string>() != id ||
+                state.Items.Any(e => e.LocalId != entityId && e.RemoteId == id && e.Local is not null)) throw new InvalidOperationException("Invalid, duplicate or changed subscription identity.");
+            entity = entity with { RemoteId = id };
+        }
         var queue = state.Queue.Where(o => o.EntityId != entityId || o.State is SyncOperationState.Sending or SyncOperationState.UnknownOutcome).ToList();
         var predecessor = queue.LastOrDefault(o => o.EntityId == entityId);
         if (!JsonNode.DeepEquals(entity.Baseline, desired) || predecessor is not null)
@@ -28,7 +35,7 @@ public static class SyncEdits
             if (desired is not null || entity.RemoteId is not null || predecessor is not null)
                 queue.Add(new(Guid.NewGuid(), entityId, entity.Revision, kind, Clone(desired), kind == SyncOperationKind.Create
                     ? state.Binding.Provider == SyncProviderKind.GoogleCalendar && state.Binding.ResourcePath.EndsWith("/events", StringComparison.Ordinal)
-                        ? Guid.NewGuid().ToString("N") : null : entity.RemoteId,
+                        ? Guid.NewGuid().ToString("N") : GoogleCalendarAccess.IsSubscriptions(state.Binding) ? entity.RemoteId : null : entity.RemoteId,
                     entity.ETag, RequiresApproval(state.Binding, entity.Baseline, desired)
                         ? SyncOperationState.AwaitingApproval : SyncOperationState.Pending, DependsOn: predecessor?.Id, Baseline: Clone(entity.Baseline)));
         }

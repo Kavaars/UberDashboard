@@ -6,7 +6,7 @@ public static class SyncContainers
 {
     public static string CatalogPath(SyncProviderKind provider) => provider == SyncProviderKind.MicrosoftTodo ? "lists" : "calendars";
     public static bool IsCatalog(SyncBinding binding) => binding.ResourcePath == CatalogPath(binding.Provider);
-    public static bool CanManuallyLink(SyncBinding binding) => binding.Provider == SyncProviderKind.MicrosoftTodo || IsCatalog(binding);
+    public static bool CanManuallyLink(SyncBinding binding) => binding.Provider == SyncProviderKind.MicrosoftTodo || IsCatalog(binding) || GoogleCalendarAccess.IsSharing(binding);
     public static bool CanIdentifyCreated(SyncBinding binding, JsonObject? metadata) => !IsCatalog(binding) || CanDelete(binding.Provider, metadata);
     public static string? ParentId(SyncBinding binding)
     {
@@ -23,7 +23,8 @@ public static class SyncContainers
         (provider == SyncProviderKind.MicrosoftTodo || metadata?["primary"]?.GetValue<bool>() == false && metadata["isDataOwner"]?.GetValue<bool>() == true);
     public static bool CanWriteContents(SyncProviderKind provider, JsonObject? metadata) => provider == SyncProviderKind.MicrosoftTodo ||
         metadata?["accessRole"]?.GetValue<string>() is "owner" or "writer" or "writerWithoutPrivateAccess";
-    public static bool SupportedFormat(SyncState state) => state.FormatVersion == (IsCatalog(state.Binding) ? 3 : 2);
+    public static int Format(SyncBinding binding) => 5;
+    public static bool SupportedFormat(SyncState state) => state.FormatVersion == Format(state.Binding);
 }
 
 public enum SyncContainerValidation { None, NameRequired, InvalidTimeZone }

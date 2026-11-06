@@ -238,9 +238,21 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
             if (page is null) break;
         }
 
-        if (SyncContainers.IsCatalog(binding))
-            await ApplyCatalogPullAsync(binding, (pending, state) => ApplyRemote(state, changes, full, nextCursor, provider.AtomicGroups, pendingContainers: pending), token).ConfigureAwait(false);
-        else await UpdateAsync(binding.Id, state => ApplyRemote(state, changes, full, nextCursor, provider.AtomicGroups), token).ConfigureAwait(false);
+        // Absence from CalendarList means unsubscribed, not necessarily a deleted global calendar.
+        if (full && binding.Provider == SyncProviderKind.GoogleCalendar && SyncContainers.IsCatalog(binding))
+            foreach (var known in (await RequiredAsync(binding.Id, token).ConfigureAwait(false)).Items.Where(e => e.RemoteId is not null && !changes.ContainsKey(e.RemoteId)))
+                changes[known.RemoteId!] = await provider.GetAsync(binding, known.RemoteId!, token).ConfigureAwait(false) ?? new(known.RemoteId!, null);
+        var metadata = provider is ISyncResourceMetadataProvider capabilities ? await capabilities.ReadMetadataAsync(binding, token).ConfigureAwait(false) : null;
+        SyncState Apply(SyncState state, IReadOnlySet<string>? pending = null)
+        {
+            var merged = ApplyRemote(state, changes, full, nextCursor, provider.AtomicGroups, pendingContainers: pending);
+            if (metadata is null) return merged;
+            return merged with { Entities = merged.Items.Select(e => (e.Baseline is not null || e.Local is not null) &&
+                (metadata.Shared ?? (e.RemoteId is { } id ? metadata.Items?.GetValueOrDefault(id) : null)) is { } fresh ? e with { Metadata = fresh } : e).ToArray() };
+        }
+        if (SyncContainers.IsCatalog(binding) || GoogleCalendarAccess.IsSubscriptions(binding))
+            await ApplyCatalogPullAsync(binding, (pending, state) => Apply(state, pending), token).ConfigureAwait(false);
+        else await UpdateAsync(binding.Id, state => Apply(state), token).ConfigureAwait(false);
     }
 
     private SyncState ApplyRemote(SyncState state, Dictionary<string, SyncRemoteEntity> changes, bool full,
@@ -284,7 +296,8 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
                     continue;
                 }
                 var kind = remote.Fields is null ? SyncOperationKind.Create : merge.Value is null ? SyncOperationKind.Delete : SyncOperationKind.Update;
-                queue.Add(new(Guid.NewGuid(), entity.LocalId, entity.Revision, kind, merge.Value, remote.Fields is null ? null : remote.Id,
+                var identity = remote.Fields is not null ? remote.Id : GoogleCalendarAccess.IsSubscriptions(state.Binding) ? merge.Value?["id"]?.GetValue<string>() : null;
+                queue.Add(new(Guid.NewGuid(), entity.LocalId, entity.Revision, kind, merge.Value, identity,
                     remote.ETag, conflicted ? SyncOperationState.Conflict : SyncEdits.RequiresApproval(state.Binding, remote.Fields, merge.Value)
                         ? SyncOperationState.AwaitingApproval : SyncOperationState.Pending, Baseline: remote.Fields));
             }
@@ -338,6 +351,7 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
             var remoteId = remote?.Id;
             if (kind == SyncOperationKind.Create && state.Binding.Provider == SyncProviderKind.GoogleCalendar &&
                 state.Binding.ResourcePath.EndsWith("/events", StringComparison.Ordinal)) remoteId = Guid.NewGuid().ToString("N");
+            if (kind == SyncOperationKind.Create && GoogleCalendarAccess.IsSubscriptions(state.Binding)) remoteId = updated.Local?["id"]?.GetValue<string>();
             queue.Add(new(waiting?.Id ?? Guid.NewGuid(), old.LocalId, old.Revision, kind, updated.Local, remoteId, remote?.ETag,
                 conflicted ? SyncOperationState.Conflict : SyncEdits.RequiresApproval(state.Binding, remote?.Fields, updated.Local)
                     ? SyncOperationState.AwaitingApproval : SyncOperationState.Pending, Baseline: remote?.Fields));

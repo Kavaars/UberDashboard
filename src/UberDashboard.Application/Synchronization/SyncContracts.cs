@@ -26,6 +26,12 @@ public interface ISyncRelationProvider
     Task<IReadOnlyList<SyncRelationSnapshot>> ReadRelationsAsync(SyncBinding binding, IReadOnlyList<SyncEntity> parents, CancellationToken token);
 }
 
+/// <summary>Readonly capabilities can change without appearing in a provider's incremental feed.</summary>
+public interface ISyncResourceMetadataProvider
+{
+    Task<SyncResourceMetadata?> ReadMetadataAsync(SyncBinding binding, CancellationToken token);
+}
+
 /// <summary>Silent only. Interactive consent is initiated by the user interface.</summary>
 public interface IIntegrationAccountService
 {

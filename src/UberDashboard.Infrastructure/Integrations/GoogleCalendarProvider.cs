@@ -6,7 +6,7 @@ using UberDashboard.Core.Synchronization;
 namespace UberDashboard.Infrastructure.Integrations;
 
 public sealed partial class GoogleCalendarProvider(HttpClient http, IIntegrationAccountService accounts)
-    : SyncHttpProvider(http, accounts), IGoogleCalendarProvider
+    : SyncHttpProvider(http, accounts), IGoogleCalendarProvider, ISyncResourceMetadataProvider
 {
     public override SyncProviderKind Kind => SyncProviderKind.GoogleCalendar;
     public override IReadOnlyList<string[]> AtomicGroups { get; } = [["start", "end", "endTimeUnspecified"], ["recurrence", "recurringEventId", "originalStartTime"]];
@@ -15,13 +15,14 @@ public sealed partial class GoogleCalendarProvider(HttpClient http, IIntegration
     protected override IReadOnlySet<string> WritableFields(string path) => path.EndsWith("/acl", StringComparison.Ordinal)
         ? new HashSet<string>(["scope", "role"], StringComparer.Ordinal)
         : path == "calendars" ? new HashSet<string>(["summary", "description", "location", "timeZone"], StringComparer.Ordinal)
-        : path == "users/me/calendarList" ? new HashSet<string>(["summaryOverride", "colorId", "backgroundColor", "foregroundColor", "hidden", "selected", "defaultReminders", "notificationSettings"], StringComparer.Ordinal)
+        : path == "users/me/calendarList" ? new HashSet<string>(["id", "summaryOverride", "colorId", "backgroundColor", "foregroundColor", "hidden", "selected", "defaultReminders", "notificationSettings"], StringComparer.Ordinal)
         : new HashSet<string>(["summary", "description", "location", "start", "end", "endTimeUnspecified", "recurrence", "attendees", "reminders", "visibility", "transparency", "colorId", "status", "conferenceData", "attachments", "guestsCanInviteOthers", "guestsCanModify", "guestsCanSeeOtherGuests", "extendedProperties", "eventType", "focusTimeProperties", "outOfOfficeProperties", "workingLocationProperties", "birthdayProperties"], StringComparer.Ordinal);
 
     public override async Task<SyncPage> ReadPageAsync(SyncBinding binding, string? cursor, string? page, CancellationToken token)
     {
         if (binding.ResourcePath == "calendars") return await ReadCalendarsAsync(binding, page, token).ConfigureAwait(false);
-        var incremental = binding.ResourcePath.EndsWith("/events", StringComparison.Ordinal) || binding.ResourcePath == "users/me/calendarList";
+        if (GoogleCalendarAccess.IsAccessDocument(binding)) return await ReadAccessPageAsync(binding, cursor, page, token).ConfigureAwait(false);
+        var incremental = binding.ResourcePath.EndsWith("/events", StringComparison.Ordinal);
         var uri = CollectionUri(binding).AbsoluteUri + "?maxResults=250";
         if (binding.ResourcePath.EndsWith("/events", StringComparison.Ordinal)) uri += "&singleEvents=false&showDeleted=true";
         if (incremental && cursor is not null) uri += "&syncToken=" + Uri.EscapeDataString(cursor);
@@ -68,6 +69,7 @@ public sealed partial class GoogleCalendarProvider(HttpClient http, IIntegration
 
     public override async Task<SyncRemoteEntity?> GetAsync(SyncBinding binding, string remoteId, CancellationToken token)
     {
+        if (GoogleCalendarAccess.IsAccessDocument(binding)) return await GetAccessItemAsync(binding, remoteId, token).ConfigureAwait(false);
         if (binding.ResourcePath != "calendars") return await base.GetAsync(binding, remoteId, token).ConfigureAwait(false);
         _ = CollectionUri(binding);
         using var response = await SendAsync(binding, HttpMethod.Get, CalendarListUri(remoteId), null, null, false, token).ConfigureAwait(false);
@@ -108,7 +110,7 @@ public sealed partial class GoogleCalendarProvider(HttpClient http, IIntegration
     {
         SyncRemoteEntity? calendar;
         try { calendar = await base.GetAsync(binding, id, token).ConfigureAwait(false); }
-        catch (HttpRequestException error) when (error.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        catch (HttpRequestException error) when (error.StatusCode == System.Net.HttpStatusCode.Forbidden && entry["summary"] is not null)
         { calendar = Parse(binding, entry); entry = (JsonObject)entry.DeepClone(); entry["propertiesUnavailable"] = true; }
         if (calendar is null) return null;
         var metadata = (JsonObject?)calendar.Metadata?.DeepClone() ?? new();
@@ -122,6 +124,10 @@ public sealed partial class GoogleCalendarProvider(HttpClient http, IIntegration
 
     protected override JsonObject? PreparePayload(SyncBinding binding, JsonObject? payload, SyncRemoteEntity? current)
     {
+        if (GoogleCalendarAccess.IsSubscriptions(binding) && current is not null && payload is not null)
+        { var personal = (JsonObject)payload.DeepClone(); personal.Remove("id"); return personal; }
+        if (GoogleCalendarAccess.IsSharing(binding) && current is not null && payload is not null)
+        { var permission = (JsonObject)payload.DeepClone(); permission.Remove("scope"); return permission; }
         if (!binding.ResourcePath.EndsWith("/events", StringComparison.Ordinal) || payload?["attendees"] is not JsonArray attendees) return payload;
         var copy = (JsonObject)payload.DeepClone();
         var writable = new HashSet<string>(["email", "displayName", "optional", "responseStatus", "comment", "additionalGuests", "resource"], StringComparer.Ordinal);

@@ -6,6 +6,7 @@ using Google.Apis.Json;
 using UberDashboard.App.Features.Calendar;
 using UberDashboard.Application.Synchronization;
 using UberDashboard.Contracts.Host;
+using UberDashboard.Core.Synchronization;
 
 namespace UberDashboard.App.Tests.Features;
 
@@ -33,6 +34,30 @@ public sealed class GoogleCalendarConsentTests
         await client.RequestCalendarManagementAsync("client", "account", default, forceConsent: true); Assert.Equal(2, calls);
         var metadata = JsonSerializer.Serialize(await client.GetConnectionAsync(default));
         Assert.DoesNotContain("upgraded-test-token", metadata, StringComparison.Ordinal); Assert.DoesNotContain("ClientSecret", metadata, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Access_features_request_separate_contextual_scopes_and_preserve_event_access(bool sharing)
+    {
+        var binding = new SyncBinding(Guid.NewGuid(), SyncProviderKind.GoogleCalendar, "client", "account",
+            sharing ? "calendars/calendar/acl" : GoogleCalendarAccess.Subscriptions, "Test");
+        var expected = sharing ? GoogleCalendarClient.CalendarSharingScope : GoogleCalendarClient.CalendarSubscriptionsScope;
+        var unrelated = sharing ? GoogleCalendarClient.CalendarSubscriptionsScope : GoogleCalendarClient.CalendarSharingScope;
+        var storage = new Storage(Session([Events])); var calls = 0;
+        var client = new GoogleCalendarClient(storage, authorization: (scopes, _) =>
+        {
+            calls++; Assert.Contains(expected, scopes); Assert.Contains(Events, scopes);
+            Assert.DoesNotContain(unrelated, scopes); Assert.DoesNotContain(GoogleCalendarClient.CalendarManagementScope, scopes);
+            return Task.FromResult(new GoogleCalendarClient.GoogleAuthorization("account", Token(scopes.ToArray())));
+        });
+        var required = GoogleCalendarClient.RequiredScopes(binding, true);
+        Assert.Null(await client.GetAccessTokenAsync("client", "account", true, default, required));
+        await client.RequestAccessAsync(binding, default);
+        Assert.Equal("upgraded-test-token", await client.GetAccessTokenAsync("client", "account", true, default, required));
+        Assert.Equal("upgraded-test-token", await client.GetAccessTokenAsync("client", "account", true, default));
+        await client.RequestAccessAsync(binding, default); Assert.Equal(1, calls);
     }
 
     [Theory]

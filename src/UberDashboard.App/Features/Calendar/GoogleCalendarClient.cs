@@ -26,6 +26,8 @@ internal sealed partial class GoogleCalendarClient(IPanelStorage storage, HttpCl
     private const string WriteScope = "https://www.googleapis.com/auth/calendar.events";
     private const string CalendarListScope = "https://www.googleapis.com/auth/calendar.calendarlist.readonly";
     internal const string CalendarManagementScope = "https://www.googleapis.com/auth/calendar.calendars";
+    internal const string CalendarSubscriptionsScope = "https://www.googleapis.com/auth/calendar.calendarlist";
+    internal const string CalendarSharingScope = "https://www.googleapis.com/auth/calendar.acls";
     internal static IReadOnlyList<string> CalendarManagementScopes { get; } = [CalendarManagementScope, CalendarListScope];
     private static readonly SemaphoreSlim CredentialGate = new(1, 1);
     private static readonly HttpClient DefaultHttp = new(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(30) };
@@ -52,14 +54,25 @@ internal sealed partial class GoogleCalendarClient(IPanelStorage storage, HttpCl
     }
 
     internal async Task RequestCalendarManagementAsync(string clientId, string accountId, CancellationToken token, bool forceConsent = false)
+        => await RequestScopesAsync(clientId, accountId, CalendarManagementScopes, token, forceConsent).ConfigureAwait(false);
+
+    internal static IReadOnlyList<string> RequiredScopes(UberDashboard.Core.Synchronization.SyncBinding binding, bool write) =>
+        UberDashboard.Core.Synchronization.GoogleCalendarAccess.IsSubscriptions(binding) ? [CalendarSubscriptionsScope] :
+        UberDashboard.Core.Synchronization.GoogleCalendarAccess.IsSharing(binding) ? [CalendarSharingScope, CalendarListScope] :
+        UberDashboard.Core.Synchronization.SyncContainers.IsCatalog(binding) ? CalendarManagementScopes : write ? [WriteScope] : [];
+
+    internal Task RequestAccessAsync(UberDashboard.Core.Synchronization.SyncBinding binding, CancellationToken token, bool forceConsent = false) =>
+        RequestScopesAsync(binding.ClientId, binding.AccountId, RequiredScopes(binding, true), token, forceConsent);
+
+    private async Task RequestScopesAsync(string clientId, string accountId, IReadOnlyList<string> required, CancellationToken token, bool forceConsent)
     {
         var session = await LoadSessionAsync(token).ConfigureAwait(false);
         if (session?.Token is null || session.ClientId != clientId || session.AccountId != accountId)
             throw new UberDashboard.Application.Synchronization.SyncAuthenticationException();
-        if (!forceConsent && HasScopes(session.GrantedScopes ?? [], CalendarManagementScopes)) return;
-        var requested = (session.GrantedScopes ?? []).Concat(CalendarManagementScopes).Append("openid").Distinct(StringComparer.Ordinal).ToArray();
+        if (!forceConsent && HasScopes(session.GrantedScopes ?? [], required)) return;
+        var requested = (session.GrantedScopes ?? []).Concat(required).Append("openid").Distinct(StringComparer.Ordinal).ToArray();
         await AuthorizeAndStoreAsync(session with { Token = null, RequestedScopes = requested }, requested,
-            CalendarManagementScopes.Concat(session.GrantedScopes ?? []).ToArray(), accountId, false, token).ConfigureAwait(false);
+            required.Concat(session.GrantedScopes ?? []).ToArray(), accountId, false, token).ConfigureAwait(false);
     }
 
     private async Task AuthorizeAndStoreAsync(Session session, IReadOnlyList<string> requested, IReadOnlyList<string> required,

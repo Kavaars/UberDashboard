@@ -26,7 +26,7 @@ public sealed record SyncRecovery(Guid EntityId, DateTimeOffset CreatedAt, JsonO
 
 public sealed record SyncState(SyncBinding Binding, long Version = 0, string? Cursor = null,
     IReadOnlyList<SyncEntity>? Entities = null, IReadOnlyList<SyncOperation>? Operations = null,
-    IReadOnlyList<SyncRecovery>? Recovery = null, DateTimeOffset? LastSuccess = null, int FormatVersion = 2,
+    IReadOnlyList<SyncRecovery>? Recovery = null, DateTimeOffset? LastSuccess = null, int FormatVersion = 5,
     SyncConnectionStatus ConnectionStatus = SyncConnectionStatus.Idle, DateTimeOffset? LastAttempt = null)
 {
     [JsonIgnore] public IReadOnlyList<SyncEntity> Items => Entities ?? [];
@@ -37,6 +37,7 @@ public sealed record SyncState(SyncBinding Binding, long Version = 0, string? Cu
 public sealed record SyncRemoteEntity(string Id, JsonObject? Fields, string? ETag = null, JsonObject? Metadata = null);
 public sealed record SyncPage(IReadOnlyList<SyncRemoteEntity> Items, string? NextPage, string? Cursor, bool IsFullSnapshot);
 public sealed record SyncRelationSnapshot(Guid ParentId, SyncEntityKind Kind, IReadOnlyList<SyncRemoteEntity> Items);
+public sealed record SyncResourceMetadata(System.Text.Json.Nodes.JsonObject? Shared = null, IReadOnlyDictionary<string, System.Text.Json.Nodes.JsonObject>? Items = null);
 public enum SyncWriteStatus { Success, Conflict, AuthenticationRequired, Forbidden, Retry, Failed, UnknownOutcome }
 public sealed record SyncWriteResult(SyncWriteStatus Status, SyncRemoteEntity? Entity = null,
     string? ErrorCode = null, TimeSpan? RetryAfter = null);

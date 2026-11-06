@@ -73,6 +73,10 @@ internal static partial class SyncEditorWindow
         var manage = itemKind == SyncEntityKind.Item ? ActionButton("SyncManageContainers", toolbar) : null;
         var contents = itemKind == SyncEntityKind.Item ? ActionButton("SyncContainerContents", toolbar) : null;
         var providerLink = itemKind == SyncEntityKind.Item ? ActionButton("SyncOpenContainerService", toolbar) : null;
+        var subscriptionsButton = itemKind == SyncEntityKind.Item ? ActionButton("SyncGoogleSubscriptions", toolbar) : null;
+        var sharingButton = itemKind == SyncEntityKind.Item ? ActionButton("SyncGoogleSharing", toolbar) : null;
+        if (subscriptionsButton is not null) subscriptionsButton.Visibility = Visibility.Collapsed;
+        if (sharingButton is not null) sharingButton.Visibility = Visibility.Collapsed;
         if (providerLink is not null) providerLink.Visibility = Visibility.Collapsed;
         if (contents is not null) contents.Visibility = Visibility.Collapsed;
         var checklist = itemKind == SyncEntityKind.Item ? ActionButton("SyncChecklist", toolbar) : null;
@@ -82,7 +86,8 @@ internal static partial class SyncEditorWindow
         var toggle = itemKind == SyncEntityKind.ChecklistItem ? ActionButton("SyncToggleChecked", toolbar) : null;
         var browser = itemKind == SyncEntityKind.LinkedResource ? ActionButton("SyncOpenRelatedLink", toolbar) : null;
         if (itemKind != SyncEntityKind.Item) { pause.ToolTip = UiText.Get("SyncRelatedPauseHelp"); review.ToolTip = UiText.Get("SyncRelatedQueueHelp"); }
-        var reconnectButton = reconnect is null ? null : ActionButton("SyncReconnect", toolbar);
+        var reconnectButton = ActionButton("SyncReconnect", toolbar);
+        reconnectButton.Visibility = reconnect is null ? Visibility.Collapsed : Visibility.Visible;
         var body = new Grid { Margin = new Thickness(14) };
         body.RowDefinitions.Add(new() { Height = GridLength.Auto });
         body.RowDefinitions.Add(new() { Height = GridLength.Auto });
@@ -110,7 +115,7 @@ internal static partial class SyncEditorWindow
             if (itemKind != SyncEntityKind.Item)
                 window.Title = UiText.Get(itemKind == SyncEntityKind.ChecklistItem ? "SyncChecklist" : "SyncLinkedResources") + " · " + Title(state.Items.FirstOrDefault(e => e.LocalId == parentId)?.Local);
             var rows = state.Items.Where(e => e.Kind == itemKind && e.ParentId == parentId && (e.Local is not null || e.Conflicts is { Length: > 0 }))
-                .Select(e => new Row(e, Title(e.Local ?? e.Remote) + (itemKind == SyncEntityKind.ChecklistItem
+                .Select(e => new Row(e, Title(e.Local ?? e.Remote, e.Metadata) + (itemKind == SyncEntityKind.ChecklistItem
                     ? " · " + UiText.Get(e.Local?["isChecked"]?.GetValue<bool>() == true ? "SyncStepDone" : "SyncStepOpen") : "") + " · " + StateLabel(state, e))).ToArray();
             list.ItemsSource = rows;
             list.SelectedItem = rows.FirstOrDefault(r => r.Entity.LocalId == selected);
@@ -119,11 +124,18 @@ internal static partial class SyncEditorWindow
             if (state.ConnectionStatus is not (SyncConnectionStatus.Idle or SyncConnectionStatus.Synchronizing))
                 status.Text += " · " + ConnectionLabel(state.ConnectionStatus);
             var catalog = SyncContainers.IsCatalog(state.Binding);
+            var access = GoogleCalendarAccess.IsAccessDocument(state.Binding);
             if (checklist is not null) checklist.Visibility = state.Binding.Provider == SyncProviderKind.MicrosoftTodo && !catalog ? Visibility.Visible : Visibility.Collapsed;
             if (links is not null) links.Visibility = state.Binding.Provider == SyncProviderKind.MicrosoftTodo && !catalog ? Visibility.Visible : Visibility.Collapsed;
-            if (manage is not null) manage.Visibility = catalog ? Visibility.Collapsed : Visibility.Visible;
+            if (manage is not null) manage.Visibility = catalog || access ? Visibility.Collapsed : Visibility.Visible;
             if (contents is not null) contents.Visibility = catalog ? Visibility.Visible : Visibility.Collapsed;
-            if (providerLink is not null) providerLink.Visibility = catalog ? Visibility.Visible : Visibility.Collapsed;
+            if (providerLink is not null) providerLink.Visibility = catalog || access ? Visibility.Visible : Visibility.Collapsed;
+            if (subscriptionsButton is not null) subscriptionsButton.Visibility = catalog && state.Binding.Provider == SyncProviderKind.GoogleCalendar ? Visibility.Visible : Visibility.Collapsed;
+            if (sharingButton is not null) sharingButton.Visibility = state.Binding.Provider == SyncProviderKind.GoogleCalendar && (catalog || GoogleCalendarAccess.IsSubscriptions(state.Binding)) ? Visibility.Visible : Visibility.Collapsed;
+            reconnectButton.Visibility = reconnect is not null || state.Binding.Provider == SyncProviderKind.GoogleCalendar ? Visibility.Visible : Visibility.Collapsed;
+            remove.Content = UiText.Get(GoogleCalendarAccess.IsSubscriptions(state.Binding) ? "SyncGoogleUnsubscribe" : GoogleCalendarAccess.IsSharing(state.Binding) ? "SyncGoogleRevoke" : "SyncDelete");
+            AutomationProperties.SetName(remove, (string)remove.Content);
+            remove.ToolTip = UiText.Get(GoogleCalendarAccess.IsSubscriptions(state.Binding) ? "SyncGoogleUnsubscribeHelp" : GoogleCalendarAccess.IsSharing(state.Binding) ? "SyncGoogleRevokeHelp" : "SyncDeleteHelp");
             var parentAvailable = itemKind == SyncEntityKind.Item || state.Items.Any(e => e.LocalId == parentId && e.Local is not null && e.Conflicts is not { Length: > 0 });
             add.IsEnabled = edit.IsEnabled = remove.IsEnabled = parentAvailable;
             if (toggle is not null) toggle.IsEnabled = parentAvailable;
@@ -133,8 +145,20 @@ internal static partial class SyncEditorWindow
 
         void UpdateSelection()
         {
-            if (state is null || !SyncContainers.IsCatalog(state.Binding)) return;
+            if (state is null) return;
             var entity = (list.SelectedItem as Row)?.Entity;
+            if (sharingButton is not null) sharingButton.IsEnabled = entity?.RemoteId is not null && entity.Local is not null && entity.Baseline is not null && entity.Conflicts is not { Length: > 0 } && entity.Metadata?["accessRole"]?.GetValue<string>() == "owner";
+            if (GoogleCalendarAccess.IsAccessDocument(state.Binding))
+            {
+                var acl = GoogleCalendarAccess.IsSharing(state.Binding);
+                add.IsEnabled = !acl || state.Items.Any(e => e.Metadata?["accessRole"]?.GetValue<string>() == "owner");
+                var ruleMetadata = entity?.Metadata ?? state.Items.Select(e => e.Metadata).FirstOrDefault(m => m?["actingCalendarId"] is not null);
+                edit.IsEnabled = entity?.Local is not null && (!acl || GoogleCalendarAccess.CanChangeRule(entity.Local, ruleMetadata));
+                remove.IsEnabled = entity?.Local is not null && (acl ? entity.Baseline is null || GoogleCalendarAccess.CanChangeRule(entity.Local, ruleMetadata) : entity.Baseline is null || GoogleCalendarAccess.CanUnsubscribe(entity.Metadata));
+                if (entity?.Conflicts is { Length: > 0 }) edit.IsEnabled = true;
+                return;
+            }
+            if (!SyncContainers.IsCatalog(state.Binding)) return;
             edit.IsEnabled = entity?.Local is not null && (entity.RemoteId is null || SyncContainers.CanEdit(state.Binding.Provider, entity.Metadata));
             remove.IsEnabled = entity?.Local is not null && (entity.RemoteId is null || SyncContainers.CanDelete(state.Binding.Provider, entity.Metadata));
             if (contents is not null) contents.IsEnabled = entity?.RemoteId is not null && entity.Baseline is not null && entity.Local is not null && entity.Conflicts is not { Length: > 0 };
@@ -174,9 +198,10 @@ internal static partial class SyncEditorWindow
         }
 
         refresh.Click += async (_, _) => await RunAsync(() => service.Coordinator.SynchronizeAsync(bindingId, token));
-        if (reconnectButton is not null) reconnectButton.Click += async (_, _) => await RunAsync(async () =>
+        reconnectButton.Click += async (_, _) => await RunAsync(async () =>
         {
-            if (await reconnect!())
+            if (state is null) return;
+            if (reconnect is not null ? await reconnect() : await service.RenewGoogleAsync(state.Binding, token))
             {
                 await service.Coordinator.UpdateAsync(bindingId, s => s with { Operations = s.Queue.Select(o =>
                     o.State == SyncOperationState.AuthenticationRequired ? o with { State = SyncOperationState.Pending, RetryAt = null } : o).ToArray() }, token);
@@ -186,7 +211,8 @@ internal static partial class SyncEditorWindow
         add.Click += async (_, _) => await RunAsync(async () =>
         {
             if (state is null) return;
-            var fields = SyncContainers.IsCatalog(state.Binding) ? EditContainer(window, state.Binding.Provider, null)
+            var fields = GoogleCalendarAccess.IsAccessDocument(state.Binding) ? EditGoogleAccess(window, GoogleCalendarAccess.IsSharing(state.Binding), null)
+                : SyncContainers.IsCatalog(state.Binding) ? EditContainer(window, state.Binding.Provider, null)
                 : itemKind == SyncEntityKind.Item ? Edit(window, state.Binding.Provider, null) : EditRelated(window, itemKind, null);
             if (fields is not null)
             {
@@ -200,7 +226,9 @@ internal static partial class SyncEditorWindow
             if (state is null || list.SelectedItem is not Row row) return;
             if (row.Entity.Conflicts is { Length: > 0 }) { Resolve(window, service, bindingId, row.Entity, token, state.Items.Count(e => e.ParentId == row.Entity.LocalId)); return; }
             if (SyncContainers.IsCatalog(state.Binding) && row.Entity.RemoteId is not null && !SyncContainers.CanEdit(state.Binding.Provider, row.Entity.Metadata)) return;
-            var fields = SyncContainers.IsCatalog(state.Binding) ? EditContainer(window, state.Binding.Provider, row.Entity.Local)
+            if (GoogleCalendarAccess.IsSharing(state.Binding) && !GoogleCalendarAccess.CanChangeRule(row.Entity.Local, row.Entity.Metadata ?? state.Items.Select(e => e.Metadata).FirstOrDefault(m => m?["actingCalendarId"] is not null))) return;
+            var fields = GoogleCalendarAccess.IsAccessDocument(state.Binding) ? EditGoogleAccess(window, GoogleCalendarAccess.IsSharing(state.Binding), row.Entity.Local)
+                : SyncContainers.IsCatalog(state.Binding) ? EditContainer(window, state.Binding.Provider, row.Entity.Local)
                 : itemKind == SyncEntityKind.Item ? Edit(window, state.Binding.Provider, row.Entity.Local, metadata: row.Entity.Metadata) : EditRelated(window, itemKind, row.Entity.Local);
             if (fields is not null)
             { await service.Coordinator.EditFromSnapshotAsync(bindingId, row.Entity.LocalId, row.Entity.Local, row.Entity.Revision, fields, token); service.Request(bindingId); }
@@ -208,12 +236,26 @@ internal static partial class SyncEditorWindow
         remove.Click += async (_, _) => await RunAsync(async () =>
         {
             if (state is null || list.SelectedItem is not Row row || row.Entity.Conflicts is { Length: > 0 }) return;
+            if (GoogleCalendarAccess.IsSubscriptions(state.Binding) && row.Entity.Baseline is not null && !GoogleCalendarAccess.CanUnsubscribe(row.Entity.Metadata) ||
+                GoogleCalendarAccess.IsSharing(state.Binding) && row.Entity.Baseline is not null && !GoogleCalendarAccess.CanChangeRule(row.Entity.Local, row.Entity.Metadata)) return;
             if (SyncContainers.IsCatalog(state.Binding) && row.Entity.RemoteId is not null && !SyncContainers.CanDelete(state.Binding.Provider, row.Entity.Metadata)) return;
-            if (ThemedMessageBox.Show(window, UiText.Format(SyncContainers.IsCatalog(state.Binding) ? "SyncConfirmContainerDelete" : "SyncConfirmDelete", Title(row.Entity.Local)),
+            var confirmKey = GoogleCalendarAccess.IsSubscriptions(state.Binding) ? "SyncGoogleConfirmUnsubscribe" : GoogleCalendarAccess.IsSharing(state.Binding) ? "SyncGoogleConfirmRevoke" : SyncContainers.IsCatalog(state.Binding) ? "SyncConfirmContainerDelete" : "SyncConfirmDelete";
+            if (ThemedMessageBox.Show(window, UiText.Format(confirmKey, Title(row.Entity.Local, row.Entity.Metadata)),
                     UiText.Get("SyncEditorTitle"), MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
             await service.Coordinator.EditFromSnapshotAsync(bindingId, row.Entity.LocalId, row.Entity.Local, row.Entity.Revision, null, token); service.Request(bindingId);
         });
         review.Click += (_, _) => { if (state is not null) Review(window, service, state, token); };
+        async Task OpenAccessAsync(bool sharing)
+        {
+            if (state is null || sharing && list.SelectedItem is not Row) return;
+            var source = state.Binding; var calendar = (list.SelectedItem as Row)?.Entity;
+            if (ThemedMessageBox.Show(window, UiText.Get(sharing ? "SyncGoogleSharingConsent" : "SyncGoogleSubscriptionsConsent"),
+                UiText.Get(sharing ? "SyncGoogleSharing" : "SyncGoogleSubscriptions"), MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+            var id = await service.EnableAccessAsync(source, calendar, sharing, token);
+            Open(window, service, id, token);
+        }
+        if (subscriptionsButton is not null) subscriptionsButton.Click += async (_, _) => await RunAsync(() => OpenAccessAsync(false));
+        if (sharingButton is not null) sharingButton.Click += async (_, _) => await RunAsync(() => OpenAccessAsync(true));
         if (manage is not null) manage.Click += async (_, _) => await RunAsync(async () =>
         {
             if (state is null) return;
@@ -309,7 +351,8 @@ internal static partial class SyncEditorWindow
         AutomationProperties.SetName(button, UiText.Get(key)); parent.Children.Add(button); return button;
     }
 
-    private static string Title(JsonObject? fields) => fields?["title"]?.GetValue<string>() ?? fields?["summary"]?.GetValue<string>() ?? fields?["displayName"]?.GetValue<string>() ?? UiText.Get("UntitledEvent");
+    private static string Title(JsonObject? fields, JsonObject? metadata = null) => fields?["scope"] is not null ? SharingAudience(fields) + " · " + SharingRole(fields) :
+        fields?["summaryOverride"]?.GetValue<string>() is { Length: > 0 } alias ? alias : fields?["title"]?.GetValue<string>() ?? fields?["summary"]?.GetValue<string>() ?? fields?["displayName"]?.GetValue<string>() ?? metadata?["summary"]?.GetValue<string>() ?? fields?["id"]?.GetValue<string>() ?? UiText.Get("UntitledEvent");
 
     private static void ThemeList(ListBox list)
     {
@@ -565,6 +608,11 @@ internal static partial class SyncEditorWindow
 
     internal static string ApprovalDetails(SyncOperation operation, SyncBinding? binding = null)
     {
+        if (binding is not null && GoogleCalendarAccess.IsSubscriptions(binding)) return UiText.Get("SyncGoogleUnsubscribeNotice") + "\n\n" + Title(operation.Baseline);
+        if (binding is not null && GoogleCalendarAccess.IsSharing(binding)) return UiText.Get("SyncGoogleSharingApprovalNotice") + "\n\n" +
+            SharingAudience(operation.Desired ?? operation.Baseline) + "\n" + UiText.Get("SyncGoogleBeforeChange") + ": " + SharingRole(operation.Baseline) + "\n" +
+            UiText.Get("SyncGoogleAfterChange") + ": " + SharingRole(operation.Desired) +
+            (operation.Desired?["scope"]?["type"]?.GetValue<string>() == "default" ? "\n\n" + UiText.Get("SyncGooglePublicWarning") : "");
         if (binding is not null && SyncContainers.IsCatalog(binding)) return UiText.Get("SyncContainerDeleteNotice") + "\n\n" + Describe(operation.Baseline);
         var people = GoogleAttendeeReview.Compare(operation.Baseline, operation.Desired);
         var text = new System.Text.StringBuilder(UiText.Get("SyncNotificationsNotice"));
