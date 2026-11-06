@@ -30,8 +30,8 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
         return SyncEdits.Edit(state, entityId, desired, clock.UtcNow);
     }, token);
 
-    public async Task ApproveAsync(Guid bindingId, Guid operationId, CancellationToken token = default) =>
-        await UpdateAsync(bindingId, s => SyncEdits.Approve(s, operationId), token).ConfigureAwait(false);
+    public async Task ApproveAsync(Guid bindingId, Guid operationId, CancellationToken token = default, SyncOperation? expected = null) =>
+        await UpdateAsync(bindingId, s => SyncEdits.Approve(s, operationId, expected), token).ConfigureAwait(false);
 
     public async Task ResolveAsync(Guid bindingId, Guid entityId, JsonObject? chosen, CancellationToken token = default, SyncEntity? expected = null)
     {

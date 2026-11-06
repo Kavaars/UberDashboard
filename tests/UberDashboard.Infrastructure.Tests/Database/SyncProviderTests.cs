@@ -164,7 +164,7 @@ public sealed class SyncProviderTests
         using var transport = new Transport((request, body) =>
         {
             if (request.Method == HttpMethod.Get)
-                return Json("""{"id":"event","etag":"\"current\"","summary":"old","description":"remote","start":{"date":"2026-11-05"},"end":{"date":"2026-11-06"}}""");
+                return Json("""{"id":"event","etag":"\"current\"","organizer":{"self":true},"summary":"old","description":"remote","start":{"date":"2026-11-05"},"end":{"date":"2026-11-06"}}""");
             Assert.Equal(HttpMethod.Patch, request.Method);
             Assert.Equal("\"current\"", request.Headers.GetValues("If-Match").Single());
             Assert.Equal("""{"summary":"local"}""", body);

@@ -120,6 +120,7 @@ internal static class SyncEditorChecks
         }
         Console.WriteLine("SYNC EDITORS: validation / advanced task fields / localized controls / preservation / 12 renders PASS");
         await RelatedEditorChecks.RunAsync(owner, theme, output);
+        await GoogleEventEditorChecks.RunAsync(owner, theme, output);
     }
 
     internal static void Capture(Window window, string path)

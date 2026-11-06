@@ -9,6 +9,18 @@ namespace UberDashboard.Application.Tests.Synchronization;
 public sealed class SyncCoordinatorTests
 {
     [Fact]
+    public void Approval_rejects_a_changed_reviewed_payload_or_baseline_even_with_the_same_operation_id()
+    {
+        var binding = new SyncBinding(Guid.NewGuid(), SyncProviderKind.GoogleCalendar, "client", "account", "calendars/primary/events", "Calendar");
+        var fields = JsonNode.Parse("""{"summary":"Meeting","attendees":[{"email":"guest@example.invalid"}]}""")!.AsObject();
+        var state = SyncEdits.Edit(new SyncState(binding), Guid.NewGuid(), fields, DateTimeOffset.UtcNow);
+        var expected = Assert.Single(state.Queue);
+        var changed = (JsonObject)fields.DeepClone(); changed["summary"] = "Changed";
+        Assert.Throws<InvalidOperationException>(() => SyncEdits.Approve(state with { Operations = [expected with { Desired = changed }] }, expected.Id, expected));
+        Assert.Throws<InvalidOperationException>(() => SyncEdits.Approve(state with { Operations = [expected with { Baseline = changed }] }, expected.Id, expected));
+        Assert.Equal(SyncOperationState.Pending, Assert.Single(SyncEdits.Approve(state, expected.Id, expected).Queue).State);
+    }
+    [Fact]
     public async Task Undoing_a_google_deletion_during_send_prepares_a_new_id_before_recreating_the_event()
     {
         var (store, provider, coordinator, binding) = Setup(SyncProviderKind.GoogleCalendar);

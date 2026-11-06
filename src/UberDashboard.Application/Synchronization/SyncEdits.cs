@@ -82,10 +82,13 @@ public static class SyncEdits
             throw new InvalidOperationException("The parent is unavailable or has an unresolved conflict.");
     }
 
-    public static SyncState Approve(SyncState state, Guid operationId)
+    public static SyncState Approve(SyncState state, Guid operationId, SyncOperation? expected = null)
     {
         var operation = state.Queue.Single(o => o.Id == operationId);
         if (operation.State != SyncOperationState.AwaitingApproval) throw new InvalidOperationException("Operation is not awaiting approval.");
+        if (expected is not null && (operation.Revision != expected.Revision || operation.Kind != expected.Kind || operation.RemoteId != expected.RemoteId ||
+            !JsonNode.DeepEquals(operation.Desired, expected.Desired) || !JsonNode.DeepEquals(operation.Baseline, expected.Baseline)))
+            throw new InvalidOperationException("The reviewed consequences changed.");
         return state with { Operations = state.Queue.Select(o => o.Id == operationId
             ? o with { State = SyncOperationState.Pending, ApprovalHash = Hash(o.Desired) } : o).ToArray() };
     }
