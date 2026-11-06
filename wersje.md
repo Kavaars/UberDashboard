@@ -1,3 +1,5 @@
+2026-11-06T08:30:45+01:00 | 1.9.0 / google-access-20261106-03, bez wydania: subskrypcje i ACL Google, odrębne zgody, SQLite 8 / format 5; Release 0 ostrzeżeń/błędów, 651 testów PASS, WPF PL/EN po 261 PNG i PluginChecks PASS. Pełny plan, prawdziwe konta i publiczny OAuth nadal otwarte.
+
 2026-11-06T07:23:13+01:00 | 1.9.0 / sync-containers-20261106-01, bez wydania: katalogi zasobów i ochrona zależności, format katalogu 3 przy SQLite 7; 609 testów PASS, Release bez ostrzeżeń/błędów i PluginChecks PASS. Pełny plan oraz odbiór dostawców nadal otwarte.
 
 2026-11-06T06:16:00+01:00 | 1.9.0 / google-options-20261106-01, bez wydania: opcje wydarzeń Google i przegląd skutków dla uczestników. Release 0 ostrzeżeń/błędów, 545 testów PASS i PluginChecks PASS. Pełny plan, prawdziwe konta i publiczny OAuth nadal otwarte.

@@ -11,17 +11,17 @@ public sealed class SyncStoreTests
     [Theory]
     [InlineData(SyncProviderKind.MicrosoftTodo)]
     [InlineData(SyncProviderKind.GoogleCalendar)]
-    public async Task Catalog_format_is_distinct_and_persists_deletion_guards_and_outbox(SyncProviderKind kind)
+    public async Task Current_protocol_rejects_older_formats_and_persists_deletion_guards_and_outbox(SyncProviderKind kind)
     {
         await using var fixture = new DatabaseFixture(); var store = new SyncStore(fixture.Queue, fixture.Database);
         var binding = new SyncBinding(Guid.NewGuid(), kind, "client", "account", SyncContainers.CatalogPath(kind), "Catalog");
-        await Assert.ThrowsAsync<InvalidDataException>(async () => await store.SaveAsync(new(binding), -1));
+        await Assert.ThrowsAsync<InvalidDataException>(async () => await store.SaveAsync(new(binding, FormatVersion: 3), -1));
         var fields = new JsonObject { [kind == SyncProviderKind.MicrosoftTodo ? "displayName" : "summary"] = "Name" };
         var entity = new SyncEntity(Guid.NewGuid(), "container", fields, fields, Metadata: new JsonObject { ["deletedResourceIds"] = new JsonArray("older-id") });
-        var state = SyncEdits.Edit(new(binding, Entities: [entity], FormatVersion: 3), entity.LocalId, null, fixture.Clock.UtcNow);
+        var state = SyncEdits.Edit(new(binding, Entities: [entity], FormatVersion: 5), entity.LocalId, null, fixture.Clock.UtcNow);
         Assert.True(await store.SaveAsync(state, -1));
         var restored = (await new SyncStore(fixture.Queue, fixture.Database).ReadAsync(binding.Id))!;
-        Assert.Equal(3, restored.FormatVersion); Assert.Single(restored.Queue); Assert.Equal(SyncOperationState.AwaitingApproval, restored.Queue[0].State);
+        Assert.Equal(5, restored.FormatVersion); Assert.Single(restored.Queue); Assert.Equal(SyncOperationState.AwaitingApproval, restored.Queue[0].State);
         Assert.Equal("older-id", restored.Items[0].Metadata!["deletedResourceIds"]![0]!.GetValue<string>());
         await Assert.ThrowsAsync<InvalidDataException>(async () => await store.SaveAsync(restored with { FormatVersion = 2 }, restored.Version));
     }
@@ -76,10 +76,43 @@ public sealed class SyncStoreTests
         var loaded = (await store.ReadAsync(binding.Id))!;
         Assert.Equal("not uploaded", Assert.Single(loaded.Items).Local!["title"]!.GetValue<string>());
         Assert.Equal(Assert.Single(original.Queue).Id, Assert.Single(loaded.Queue).Id);
-        Assert.Equal(2, loaded.FormatVersion); Assert.Equal(1, loaded.Version);
+        Assert.Equal(5, loaded.FormatVersion); Assert.Equal(2, loaded.Version);
         Assert.False(await store.SaveAsync(loaded, 0));
         Assert.Equal(binding.Id, Assert.Single(await store.ListAsync()).Id);
         Assert.NotEmpty(Directory.GetFiles(Path.Combine(fixture.Root, "Data", "Backups"), $"pre-sync-v{UberDashboard.Infrastructure.Database.SqliteSchema.CurrentVersion}-*.db"));
+    }
+
+    [Fact]
+    public async Task Version_seven_upgrade_keeps_pending_work_and_backup_and_invalidates_open_older_writers()
+    {
+        await using var fixture = new DatabaseFixture();
+        var binding = new SyncBinding(Guid.NewGuid(), SyncProviderKind.GoogleCalendar, "client", "account", "calendars/calendar/events", "Test");
+        var original = SyncEdits.Edit(new(binding), Guid.NewGuid(), new JsonObject { ["summary"] = "offline" }, fixture.Clock.UtcNow)
+            with { FormatVersion = 2, Version = 17, Cursor = "old-cursor" };
+        using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={fixture.Database.DatabaseFile};Pooling=False"))
+        {
+            connection.Open(); using var command = connection.CreateCommand();
+            command.CommandText = "CREATE TABLE SchemaMigration (Version INTEGER PRIMARY KEY, Name TEXT NOT NULL, AppliedAtUtc TEXT NOT NULL);"; command.ExecuteNonQuery();
+            foreach (var migration in UberDashboard.Infrastructure.Database.SqliteSchema.Migrations.Take(7))
+            {
+                foreach (var statement in migration.Statements) { command.CommandText = statement; command.ExecuteNonQuery(); }
+                command.CommandText = $"INSERT INTO SchemaMigration VALUES ({migration.Version}, 'test', '2026-11-06');"; command.ExecuteNonQuery();
+            }
+            command.CommandText = "INSERT INTO SyncBinding (BindingId, Provider, ClientId, AccountId, ResourcePath, BindingJson, Version, StateJson) VALUES ($id, 1, 'client', 'account', 'calendars/calendar/events', $binding, 17, $state);";
+            command.Parameters.AddWithValue("$id", binding.Id.ToString("D"));
+            command.Parameters.AddWithValue("$binding", System.Text.Json.JsonSerializer.Serialize(binding, System.Text.Json.JsonSerializerOptions.Web));
+            command.Parameters.AddWithValue("$state", System.Text.Json.JsonSerializer.Serialize(original, System.Text.Json.JsonSerializerOptions.Web)); command.ExecuteNonQuery();
+        }
+        var store = new SyncStore(fixture.Queue, fixture.Database); var upgraded = (await store.ReadAsync(binding.Id))!;
+        Assert.Equal(5, upgraded.FormatVersion); Assert.Equal(18, upgraded.Version); Assert.Equal("old-cursor", upgraded.Cursor);
+        Assert.Equal(original.Queue[0].Id, upgraded.Queue[0].Id); Assert.Equal("offline", upgraded.Items[0].Local!["summary"]!.GetValue<string>());
+        Assert.False(await store.SaveAsync(upgraded, 17));
+        var backup = Assert.Single(Directory.GetFiles(Path.Combine(fixture.Root, "Data", "Backups"), "pre-sync-v8-*.db"));
+        using var saved = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={backup};Mode=ReadOnly;Pooling=False"); saved.Open(); using var read = saved.CreateCommand();
+        read.CommandText = "SELECT StateJson FROM SyncBinding";
+        var preserved = System.Text.Json.JsonSerializer.Deserialize<SyncState>((string)read.ExecuteScalar()!, System.Text.Json.JsonSerializerOptions.Web)!;
+        Assert.Equal(2, preserved.FormatVersion); Assert.Equal(17, preserved.Version); Assert.Equal(original.Queue[0].Id, preserved.Queue[0].Id);
+        read.CommandText = "SELECT MAX(Version) FROM SchemaMigration"; Assert.Equal(7L, read.ExecuteScalar());
     }
 
     [Fact]

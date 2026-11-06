@@ -17,7 +17,8 @@ public sealed partial class SyncCoordinator
             var (operation, target, candidate) = ValidateLink(state, expectedOperation, expectedCandidate, expectedTarget);
             var scope = MicrosoftTodoRelations.Scope(state, target);
             var remote = await ReadWithQuotaAsync(state.Binding, scope, candidate.RemoteId!, token).ConfigureAwait(false);
-            if (remote?.Fields is null || remote.Id != candidate.RemoteId || !JsonNode.DeepEquals(remote.Fields, candidate.Baseline) || !SyncContainers.CanIdentifyCreated(state.Binding, remote.Metadata))
+            if (remote?.Fields is null || remote.Id != candidate.RemoteId || !JsonNode.DeepEquals(remote.Fields, candidate.Baseline) || !SyncContainers.CanIdentifyCreated(state.Binding, remote.Metadata) ||
+                GoogleCalendarAccess.IsSharing(state.Binding) && !GoogleCalendarAccess.SameScope(operation.Desired?["scope"], remote.Fields["scope"]))
                 throw new InvalidOperationException("The selected service item changed. Synchronize and review it again.");
             await UpdateAsync(bindingId, current =>
             {

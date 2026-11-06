@@ -1,3 +1,5 @@
+2026-11-06T08:30:45+01:00 | Subskrypcje i udostępnianie Google: osobne zgody, podgląd skutków, ochrona kolejek oraz migracja SQLite 8 z kopią.
+
 2026-11-06T07:23:13+01:00 | Katalogi list i kalendarzy: CRUD, osobna zgoda Google, ochrona właściciela i niewysłanych zmian; poprawa kontrastu list integracji.
 
 2026-11-06T06:16:00+01:00 | Google Calendar: uczestnicy, RSVP, przypomnienia, widoczność i dostępność; podgląd usuwanych osób i kontrola wersji zatwierdzanej operacji.

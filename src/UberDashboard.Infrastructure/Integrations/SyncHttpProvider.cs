@@ -18,6 +18,9 @@ public abstract partial class SyncHttpProvider(HttpClient http, IIntegrationAcco
     protected abstract bool ValidPath(string path);
     protected abstract IReadOnlySet<string> WritableFields(string path);
     protected virtual SyncWriteResult? ValidateWrite(SyncBinding binding, SyncOperation operation, SyncRemoteEntity? current, JsonObject? patch) => null;
+    protected virtual Task<SyncWriteResult?> ValidateWriteAsync(SyncBinding binding, SyncOperation operation, SyncRemoteEntity? current, JsonObject? patch, CancellationToken token) => Task.FromResult(ValidateWrite(binding, operation, current, patch));
+    protected virtual string? WriteQuery(SyncBinding binding, SyncOperation operation) => null;
+    protected virtual bool IsDeleted(SyncBinding binding, JsonObject value) => value.ContainsKey("@removed") || value["status"]?.GetValue<string>() == "cancelled" || value["deleted"]?.GetValue<bool>() == true;
     protected virtual JsonObject? PreparePayload(SyncBinding binding, JsonObject? payload, SyncRemoteEntity? current) => payload;
 
     public abstract Task<SyncPage> ReadPageAsync(SyncBinding binding, string? cursor, string? page, CancellationToken token);
@@ -67,7 +70,14 @@ public abstract partial class SyncHttpProvider(HttpClient http, IIntegrationAcco
             if (patch is { Count: 0 }) return new(SyncWriteStatus.Success, current);
         }
 
-        if (ValidateWrite(binding, operation, current, patch) is { } rejected) return rejected;
+        try { if (await ValidateWriteAsync(binding, operation, current, patch, token).ConfigureAwait(false) is { } rejected) return rejected; }
+        catch (SyncReadException limited) { return new(SyncWriteStatus.Retry, RetryAfter: limited.RetryAfter); }
+        catch (SyncAuthenticationException) { return new(SyncWriteStatus.AuthenticationRequired); }
+        catch (HttpRequestException error) { return new(error.StatusCode == HttpStatusCode.Forbidden ? SyncWriteStatus.Forbidden :
+            error.StatusCode is null || error.StatusCode is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests || (int)error.StatusCode >= 500
+                ? SyncWriteStatus.Retry : SyncWriteStatus.Failed, ErrorCode: "permission-check-interrupted"); }
+        catch (OperationCanceledException) { return new(SyncWriteStatus.Retry, ErrorCode: "permission-check-canceled"); }
+        catch (Exception error) when (error is IOException or System.Text.Json.JsonException) { return new(SyncWriteStatus.Failed, ErrorCode: "invalid-permission-response"); }
         patch = PreparePayload(binding, patch, current);
         var uri = operation.Kind == SyncOperationKind.Create ? CollectionUri(binding) : ItemUri(binding, operation.RemoteId!);
         if (Kind == SyncProviderKind.GoogleCalendar && binding.ResourcePath.EndsWith("/events", StringComparison.Ordinal))
@@ -82,6 +92,7 @@ public abstract partial class SyncHttpProvider(HttpClient http, IIntegrationAcco
             }
         }
         var method = operation.Kind switch { SyncOperationKind.Create => HttpMethod.Post, SyncOperationKind.Update => HttpMethod.Patch, _ => HttpMethod.Delete };
+        if (WriteQuery(binding, operation) is { } query) uri = new Uri(uri + "?" + query);
         using var response = await SendAsync(binding, method, uri, patch, etag, true, token).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode) return await FailureAsync(response, token).ConfigureAwait(false);
         if (operation.Kind == SyncOperationKind.Delete) return new(SyncWriteStatus.Success);
@@ -150,8 +161,7 @@ public abstract partial class SyncHttpProvider(HttpClient http, IIntegrationAcco
     protected SyncRemoteEntity Parse(SyncBinding binding, JsonObject value)
     {
         var id = value["id"]?.GetValue<string>() ?? throw new InvalidDataException("Missing API resource ID.");
-        if (value.ContainsKey("@removed") || value["status"]?.GetValue<string>() == "cancelled" ||
-            value["deleted"]?.GetValue<bool>() == true) return new(id, null);
+        if (IsDeleted(binding, value)) return new(id, null);
         var fields = WritableFields(binding.ResourcePath);
         var projected = new JsonObject();
         foreach (var pair in value.Where(p => fields.Contains(p.Key))) projected[pair.Key] = pair.Value?.DeepClone();

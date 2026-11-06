@@ -11,10 +11,12 @@ internal sealed record SqliteMigration(int Version, string Name, IReadOnlyList<s
 internal static class SqliteSchema
 {
     /// <summary>Wersja schematu obsługiwana przez tę wersję aplikacji.</summary>
-    public const int CurrentVersion = 7;
+    public const int CurrentVersion = 8;
 
     /// <summary>Migracje w kolejności wykonania.</summary>
-    public static IReadOnlyList<SqliteMigration> Migrations { get; } = [CreateInitialSchema(), CreatePanelTabsSchema(), TodoStorageSchema.Create(), SyncStorageSchema.Create(), SyncStorageSchema.CreateBindingMetadata(), CalendarViewSchema.Create(), SyncStorageSchema.CreateRelatedItems()];
+    public static IReadOnlyList<SqliteMigration> Migrations { get; } = [CreateInitialSchema(), CreatePanelTabsSchema(), TodoStorageSchema.Create(), SyncStorageSchema.Create(), SyncStorageSchema.CreateBindingMetadata(), CalendarViewSchema.Create(), SyncStorageSchema.CreateRelatedItems(), new(8, "calendar-access-compatibility-fence", [
+        "UPDATE SyncBinding SET StateJson = json_set(StateJson, '$.formatVersion', 5, '$.version', Version + 1), Version = Version + 1 WHERE json_extract(StateJson, '$.formatVersion') IN (2, 3, 4);"
+    ])];
 
     private static SqliteMigration CreatePanelTabsSchema() => new(2, "panel-tab-groups", [
         "CREATE TABLE PanelTabGroup (GroupId TEXT NOT NULL PRIMARY KEY REFERENCES PanelInstance(InstanceId) ON DELETE CASCADE, ActiveInstanceId TEXT NOT NULL, OriginalStateJson TEXT NULL);",

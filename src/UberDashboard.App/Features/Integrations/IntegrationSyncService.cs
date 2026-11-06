@@ -21,7 +21,7 @@ internal sealed class IntegrationSyncService(ISyncStore store, SyncCoordinator c
             return existing.Id;
         }
         var binding = new SyncBinding(Guid.NewGuid(), provider, clientId, accountId, resourcePath, name, true, true);
-        if (!await store.SaveAsync(new(binding, FormatVersion: SyncContainers.IsCatalog(binding) ? 3 : 2), -1, token).ConfigureAwait(false))
+        if (!await store.SaveAsync(new(binding, FormatVersion: SyncContainers.Format(binding)), -1, token).ConfigureAwait(false))
             return await EnableAsync(provider, clientId, accountId, resourcePath, name, token).ConfigureAwait(false);
         scheduler.Request(binding.Id);
         return binding.Id;
@@ -50,6 +50,25 @@ internal sealed class IntegrationSyncService(ISyncStore store, SyncCoordinator c
             : "calendars/" + Uri.EscapeDataString(entity.RemoteId) + "/events";
         return await EnableAsync(catalog.Provider, catalog.ClientId, catalog.AccountId, path,
             SyncContainerDraft.Read(catalog.Provider, entity.Local).Name, token).ConfigureAwait(false);
+    }
+
+    internal async Task<Guid> EnableAccessAsync(SyncBinding source, SyncEntity? calendar, bool sharing, CancellationToken token, bool forceConsent = false)
+    {
+        if (source.Provider != SyncProviderKind.GoogleCalendar || accounts is null) throw new SyncAuthenticationException();
+        if (sharing && (calendar?.RemoteId is null || calendar.Baseline is null || calendar.Local is null || calendar.Conflicts is { Length: > 0 } ||
+            calendar.Metadata?["accessRole"]?.GetValue<string>() != "owner")) throw new SyncContainerAccessException();
+        var path = sharing ? "calendars/" + Uri.EscapeDataString(calendar!.RemoteId!) + "/acl" : GoogleCalendarAccess.Subscriptions;
+        var target = source with { ResourcePath = path };
+        await Task.Run(() => accounts.RequestGoogleAccessAsync(target, token, forceConsent), token).ConfigureAwait(false);
+        return await EnableAsync(source.Provider, source.ClientId, source.AccountId, path,
+            UberDashboard.Core.Localization.UiText.Get(sharing ? "SyncGoogleSharing" : "SyncGoogleSubscriptions") +
+            (sharing ? " · " + (calendar!.Local?["summary"] ?? calendar.Metadata?["summary"])?.GetValue<string>() : ""), token).ConfigureAwait(false);
+    }
+
+    internal async Task<bool> RenewGoogleAsync(SyncBinding binding, CancellationToken token)
+    {
+        if (accounts is null) throw new SyncAuthenticationException();
+        await Task.Run(() => accounts.RequestGoogleAccessAsync(binding, token, true), token).ConfigureAwait(false); return true;
     }
 }
 

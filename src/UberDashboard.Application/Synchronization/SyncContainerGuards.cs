@@ -41,7 +41,15 @@ public sealed partial class SyncCoordinator
 
     private async Task CheckContainerAsync(SyncState state, Guid entityId, JsonObject? desired, CancellationToken token)
     {
-        if (SyncContainers.IsCatalog(state.Binding))
+        if (GoogleCalendarAccess.IsSharing(state.Binding))
+        {
+            var entity = state.Items.FirstOrDefault(e => e.LocalId == entityId);
+            var metadata = entity?.Metadata ?? state.Items.Select(e => e.Metadata).FirstOrDefault(m => m?["actingCalendarId"] is not null);
+            var acceptsRemote = entity?.Conflicts is { Length: > 0 } && JsonNode.DeepEquals(desired, entity.Remote);
+            if (!acceptsRemote && !(desired is null && entity?.Baseline is null) && !GoogleCalendarAccess.CanChangeRule(desired ?? entity?.Local, metadata))
+                throw new SyncContainerAccessException();
+        }
+        if (SyncContainers.IsCatalog(state.Binding) || GoogleCalendarAccess.IsSubscriptions(state.Binding))
         {
             var entity = state.Items.FirstOrDefault(e => e.LocalId == entityId);
             // A verified remote deletion can be accepted without discarding drafts in the old binding.
@@ -51,6 +59,15 @@ public sealed partial class SyncCoordinator
             return;
         }
         if (SyncContainers.ParentId(state.Binding) is not { } parent) return;
+        var subscriptionBinding = (await store.ListAsync(token).ConfigureAwait(false)).FirstOrDefault(b => SameAccount(b, state.Binding) && GoogleCalendarAccess.IsSubscriptions(b));
+        if (subscriptionBinding is not null)
+        {
+            var subscriptions = await RequiredAsync(subscriptionBinding.Id, token).ConfigureAwait(false);
+            var entries = subscriptions.Items.Where(e => e.RemoteId == parent || e.Metadata?["unsubscribedCalendarId"]?.GetValue<string>() == parent).ToArray();
+            if (subscriptions.Queue.Any(o => o.Kind == SyncOperationKind.Delete && o.RemoteId == parent) ||
+                entries.Length > 0 && !entries.Any(e => e.RemoteId == parent && e.Local is not null && e.Baseline is not null && e.Conflicts is not { Length: > 0 }))
+                throw new SyncContainerChangesException();
+        }
         var catalogBinding = (await store.ListAsync(token).ConfigureAwait(false)).FirstOrDefault(b => SameAccount(b, state.Binding) && SyncContainers.IsCatalog(b));
         if (catalogBinding is null) return;
         var catalog = await RequiredAsync(catalogBinding.Id, token).ConfigureAwait(false);
@@ -75,6 +92,11 @@ public sealed partial class SyncCoordinator
 
     private static JsonObject? ContainerMetadata(SyncBinding binding, SyncEntity entity, JsonObject? remoteMetadata, string? deletedId = null)
     {
+        if (GoogleCalendarAccess.IsSubscriptions(binding))
+        {
+            if (deletedId is not null && entity.Baseline is not null) return new JsonObject { ["unsubscribedCalendarId"] = deletedId };
+            return remoteMetadata;
+        }
         if (!SyncContainers.IsCatalog(binding)) return remoteMetadata;
         var ids = (entity.Metadata?["deletedResourceIds"] as JsonArray)?.OfType<JsonValue>().Select(v => v.GetValue<string>()).ToList() ?? [];
         if (deletedId is not null && !ids.Contains(deletedId, StringComparer.Ordinal)) ids.Add(deletedId);
