@@ -2,6 +2,8 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
+  <SolidColorBrush x:Key="Brush.MicrosoftTodo.TabBorder" Color="#468FD6" />
+
   <!-- Bazowe tokeny wizualne. ThemeService może je nadpisać dynamicznie bez restartu. -->
   <FontFamily x:Key="Token.FontFamily">Segoe UI</FontFamily>
   <sys:Double x:Key="Token.FontSize.Body">13</sys:Double>

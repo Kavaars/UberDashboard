@@ -9,7 +9,7 @@ public interface ITrayIconService : IDisposable
     ApplicationSettings CurrentSettings { get; }
 
     /// <summary>Inicjalizuje menu i akcje ikony zasobnika.</summary>
-    void Initialize(Action restoreMainWindow, Action exitApplication);
+    void Initialize(Action restoreMainWindow, Action resetMainWindow, Action exitApplication);
 
     /// <summary>Stosuje ustawienia widoczności i zachowania zasobnika.</summary>
     void ApplySettings(ApplicationSettings settings);

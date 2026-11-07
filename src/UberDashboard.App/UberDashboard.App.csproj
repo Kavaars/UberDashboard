@@ -12,8 +12,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <AssemblyMetadata Include="BuildTimestampUtc" Value="$([System.DateTime]::UtcNow.ToString('o'))" />
     <EmbeddedResource Include="Features\Shortcuts\Assets\Lucide\*.svg" />
     <Content Include="Features\Shortcuts\Assets\Lucide\LICENSE.txt" Link="Licenses\Lucide.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <EmbeddedResource Include="..\..\changelog.txt" LogicalName="UberDashboard.Changelog.txt" />
   </ItemGroup>
 
   <ItemGroup>

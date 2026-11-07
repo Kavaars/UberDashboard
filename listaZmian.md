@@ -1,3 +1,19 @@
+2026-11-07T07:58:53+01:00 | Afirmacje: codzienny reset o wybranej godzinie zamiast interwału.
+
+2026-11-07T07:55:18+01:00 | Zakładka O aplikacji z danymi kompilacji, autorem i listą zmian.
+
+2026-11-06T22:11:28+01:00 | Cienka niebieska ramka zakładek list powiązanych z Microsoft To Do.
+
+2026-11-06T22:01:00+01:00 | Regulacja odstępów od krawędzi i między zadaniami dla list lokalnych i Microsoft.
+
+2026-11-06T21:40:00+01:00 | Opcje ukończonych zadań i kolejność także dla list Microsoft To Do.
+
+2026-11-06T21:33:00+01:00 | Filtrowanie, kolejność i potwierdzane usuwanie ukończonych zadań lokalnej listy.
+
+2026-11-06T21:11:00+01:00 | Zapamiętywanie monitora paska przy odłączeniu oraz przywracanie zwykłego okna z menu zasobnika.
+
+2026-11-06T21:00:00+01:00 | Wstępna poprawka żądania Microsoft To Do i kopiowalne komunikaty błędów.
+
 2026-11-06T13:00:00+01:00 | Załączniki MS/Drive, wznawialne transfery i pełne przebiegi edycji serii Google z odzyskiwaniem wyjątków.
 
 2026-11-06T11:23:30+01:00 | Niepewne edycje i usunięcia MS/Google: świeży podgląd, jawne przejście do konfliktu, zachowanie nowszych szkiców i ponowne zatwierdzenie skutków.
@@ -87,5 +103,7 @@
 - 2026-11-03T10:36:00+01:00 | v1.5.1 | Aktywowanie wpisywania przez kliknięcie afirmacji oraz czytelne pole ćwiczenia.
 
 2026-11-03T11:00:00+01:00 | Dodano formatowanie i statystyki panelu afirmacji.
+
+2026-11-07T08:16:16+01:00 | Poprawiono odstępy list zadań, dodano synchronizację na żądanie, animacje i opcję kliknięcia skrótów oraz większą wersję w informacji o aplikacji.
 
 2026-11-07T08:32:45+01:00 | Dodano galerię ikon Lucide i ustawienie kliknięcia oraz animacje skrótów.

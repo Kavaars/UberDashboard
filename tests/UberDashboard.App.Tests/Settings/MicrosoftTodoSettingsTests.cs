@@ -21,7 +21,7 @@ public sealed class MicrosoftTodoSettingsTests
         var restored = JsonSerializer.Deserialize<MicrosoftTodoPreferences>(JsonSerializer.Serialize(updated))!;
         Assert.Equal(["first"], restored.SelectedLists);
         Assert.Equal(3, restored.Snapshots.Length);
-        var view = new MicrosoftTodoListViewModel();
+        var view = new MicrosoftTodoListViewModel(new TodoPanelViewModel(new UberDashboard.App.Tests.TestSupport.FakePanelNotifier()));
         view.Load(first, restored);
         Assert.Equal("new", Assert.Single(view.Items).Text);
         Assert.Contains("Tylko odczyt", view.Status);
@@ -57,6 +57,16 @@ public sealed class MicrosoftTodoSettingsTests
         Assert.Collection(document.Items,
             item => { Assert.Equal("Zadanie", item.Text); Assert.True(item.IsDone); },
             item => { Assert.Equal("Drugie", item.Text); Assert.False(item.IsDone); });
+    }
+
+    [Fact]
+    public void Microsoft_tasks_are_sorted_and_filtered_by_dates()
+    {
+        var date = DateTimeOffset.Parse("2026-01-01T00:00:00Z");
+        TodoItemState[] tasks = [new("old open", false, CreatedAt: date), new("old done", true, CompletedAt: date),
+            new("new open", false, CreatedAt: date.AddDays(1)), new("new done", true, CompletedAt: date.AddDays(1))];
+        Assert.Equal(new[] { "new open", "old open", "new done" }, MicrosoftTodoListViewModel.SortItems(tasks, false, 1).Select(x => x.Text));
+        Assert.Equal(new[] { "new open", "old open" }, MicrosoftTodoListViewModel.SortItems(tasks, true, 50).Select(x => x.Text));
     }
 
     private static MicrosoftTodoSnapshot Snapshot(MicrosoftTodoLink link, string task) =>

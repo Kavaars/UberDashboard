@@ -20,6 +20,18 @@ public sealed class PanelGroupSession : ObservableObject
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly PanelInstanceRecord _root;
     private readonly IToastService _toasts;
+    private readonly HashSet<PanelInstanceId> _microsoftTodoTabs = [];
+    internal bool IsMicrosoftTodoTab(PanelInstanceId id) => _microsoftTodoTabs.Contains(id);
+    internal static bool HasMicrosoftTodoLink(PanelInstanceRecord record)
+    {
+        if (record.PanelTypeId != Features.Todo.TodoPanelDescriptor.TypeId || record.ConfigJson is null) return false;
+        try
+        {
+            return JsonSerializer.Deserialize<Features.Todo.MicrosoftTodoLink>(record.ConfigJson)
+                is { ClientId: var client, AccountId.Length: > 0, ListId.Length: > 0 } && client != Guid.Empty;
+        }
+        catch (JsonException) { return false; }
+    }
     public PanelTabGroup Group { get; private set; }
     public object ActiveViewModel { get; private set; }
     public event EventHandler? Changed;
@@ -68,6 +80,7 @@ public sealed class PanelGroupSession : ObservableObject
             }
             if (records.Count == 0) return;
             await _groups.AddBatchAsync(Group, next, records, token).ConfigureAwait(true);
+            foreach (var record in records.Where(HasMicrosoftTodoLink)) _microsoftTodoTabs.Add(record.InstanceId);
             Group = next;
             Changed?.Invoke(this, EventArgs.Empty);
             _toasts.Show(UiText.Format("ImportedTabs", records.Count), ToastSeverity.Success);
@@ -84,7 +97,15 @@ public sealed class PanelGroupSession : ObservableObject
     public async Task ActivateAsync(CancellationToken token = default)
     {
         await _gate.WaitAsync(token).ConfigureAwait(true);
-        try { _closed = false; await SetViewAsync(Group.ActiveId, token).ConfigureAwait(true); }
+        try
+        {
+            _closed = false;
+            _microsoftTodoTabs.Clear();
+            foreach (var tab in Group.Tabs)
+                if (await _instances.GetAsync(tab.InstanceId, token).ConfigureAwait(true) is { } record && HasMicrosoftTodoLink(record))
+                    _microsoftTodoTabs.Add(tab.InstanceId);
+            await SetViewAsync(Group.ActiveId, token).ConfigureAwait(true);
+        }
         finally { _gate.Release(); }
     }
 

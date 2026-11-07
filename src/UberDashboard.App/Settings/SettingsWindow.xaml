@@ -334,6 +334,26 @@
           </ScrollViewer>
         </Grid>
       </TabItem>
+      <TabItem x:Name="AboutTab" Header="{loc:Text AboutApp}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Margin="8">
+            <Border Style="{StaticResource SettingsCard}" BorderThickness="0">
+              <StackPanel>
+                <TextBlock Style="{StaticResource SettingsSectionTitle}" Text="{loc:Text AboutApp}"/>
+                <TextBlock Text="UberDashboard" FontWeight="SemiBold" FontSize="18" Margin="0,0,0,10"/>
+                <TextBlock Text="{loc:Text AboutVersion}" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding AboutVersion}" FontSize="20" FontWeight="SemiBold" Margin="0,2,0,10"/>
+                <TextBlock Text="{loc:Text AboutBuildTime}" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding AboutBuildTime}" Margin="0,2,0,10"/>
+                <TextBlock Text="{loc:Text AboutAuthor}" FontWeight="SemiBold"/>
+                <TextBlock Text="Tomasz Szabłowski" Margin="0,2,0,16"/>
+                <TextBlock Text="{loc:Text AboutChangelog}" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                <TextBox Text="{Binding AboutChangelog, Mode=OneWay}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" MaxHeight="350" AutomationProperties.Name="{loc:Text AboutChangelog}"/>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
       <TabControl.Template>
         <ControlTemplate TargetType="TabControl">
           <Grid>

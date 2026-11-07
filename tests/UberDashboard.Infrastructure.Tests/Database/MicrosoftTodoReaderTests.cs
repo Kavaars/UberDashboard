@@ -32,12 +32,23 @@ public sealed class MicrosoftTodoReaderTests
         Assert.Equal(1, handler.RequestCount);
     }
 
+    [Fact]
+    public async Task Reads_tasks_using_the_basic_graph_endpoint()
+    {
+        using var handler = new GraphHandler("""{"value":[]}""");
+        using var http = new HttpClient(handler);
+        await new MicrosoftTodoReader(http).ReadTasksAsync("list-id", "test-token", CancellationToken.None);
+        Assert.Equal("/v1.0/me/todo/lists/list-id/tasks", handler.LastUri!.PathAndQuery);
+    }
+
     private sealed class GraphHandler(params string[] pages) : HttpMessageHandler
     {
         public int RequestCount { get; private set; }
+        public Uri? LastUri { get; private set; }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            LastUri = request.RequestUri;
             Assert.Equal(HttpMethod.Get, request.Method);
             Assert.Equal("graph.microsoft.com", request.RequestUri!.Host);
             Assert.Equal("Bearer test-token", request.Headers.Authorization!.ToString());

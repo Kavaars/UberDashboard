@@ -113,7 +113,7 @@ public static class AppServiceCollectionExtensions
             var scheduler = provider.GetRequiredService<PanelStateScheduler>();
             var factory = provider.GetService<IPanelInstanceStore>() is { } instances
                 ? new TodoPanelFactory(scheduler, instances, provider.GetRequiredService<MicrosoftTodoSettings>(),
-                    provider.GetRequiredService<Features.Integrations.IntegrationSyncService>(), provider.GetRequiredService<Features.Todo.MicrosoftTodoSession>())
+                    provider.GetRequiredService<Features.Integrations.IntegrationSyncService>(), provider.GetRequiredService<Features.Todo.MicrosoftTodoSession>(), provider.GetRequiredService<Features.Todo.MicrosoftTodoRefresh>())
                 : new TodoPanelFactory(scheduler);
             return new BuiltInPanelRegistration(TodoPanelDescriptor.TypeId, new TodoPanelDescriptor(factory));
         });

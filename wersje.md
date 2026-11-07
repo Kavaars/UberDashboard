@@ -1,3 +1,19 @@
+2026-11-07T07:58:53+01:00 | 1.9.0 / affirmations-daily-reset, prace robocze: codzienny reset afirmacji.
+
+2026-11-07T07:55:18+01:00 | 1.9.0 / about, prace robocze: informacje o aplikacji w ustawieniach.
+
+2026-11-06T22:11:28+01:00 | 1.9.0 / todo-tabs-20261106-visual, prace robocze: ramka zakładek Microsoft; Release 0 ostrzeżeń, 770 testów PASS, render i asercje ramki w trzech motywach PASS.
+
+2026-11-06T22:01:00+01:00 | 1.9.0 / todo-spacing-20261106-visual, prace robocze: odstępy list; Release 0 ostrzeżeń, 770 testów i render WPF PASS.
+
+2026-11-06T21:40:00+01:00 | 1.9.0 / todo-ms-options, prace robocze: opcje list Microsoft i usuwanie przez kolejkę synchronizacji; kompilacja Release projektu testów bez ostrzeżeń.
+
+2026-11-06T21:33:00+01:00 | 1.9.0 / todo-options, prace robocze: opcje ukończonych zadań lokalnej listy; kompilacja Release projektu testów bez ostrzeżeń.
+
+2026-11-06T21:11:00+01:00 | 1.9.0 / monitor-20261106-2106, prace robocze: oczekiwanie na monitor i reset z tray; Release 0 ostrzeżeń, 766 testów PASS. Fizyczny odbiór wielu monitorów i audyt NuGet niewykonane.
+
+2026-11-06T21:00:00+01:00 | 1.9.0 / fix-20261106-2101, prace nieukończone: Release skompilowany bez ostrzeżeń przy wyłączonym audycie NuGet; diagnoza HTTP 400 wymaga dalszej weryfikacji.
+
 2026-11-06T13:00:00+01:00 | 1.9.0 / files-series-20261106, bez wydania: transfery plików, reguły i wystąpienia Google, trwały podział i kopie wyjątków; SQLite 9 / dokument 6. Release 0 ostrzeżeń/błędów, 763 testy PASS, WPF PL/EN nowych okien i PluginChecks PASS. Odbiór rzeczywistych kont i publiczny OAuth nadal otwarte.
 
 2026-11-06T11:23:30+01:00 | 1.9.0 / sync-unknown-20261106-05, bez wydania: decyzje dla niepewnych edycji/usunięć obu usług. Release 0 ostrzeżeń/błędów, 697 testów PASS, WPF PL/EN po 321 PNG i PluginChecks PASS. Bez nowych zakresów lub migracji; dalszy plan i rzeczywiste konta otwarte.
@@ -89,5 +105,7 @@
 - 2026-11-03T10:39:00+01:00 | 1.5.1 / Release/Dev/v1.5.1_20261103-1036 | 291 testów, test wejścia i 57 renderów WPF, integracja pluginów oraz publikacja win-x64 PASS; instalacja bez zmian.
 
 2026-11-03T11:00:00+01:00 | Źródła 1.6.0: ustawienia tekstu i historia afirmacji.
+
+2026-11-07T08:16:16+01:00 | 1.9.0, zmiany robocze: odstępy i synchronizacja list, interakcje skrótów oraz widok wersji; bez wydania.
 
 2026-11-07T08:32:45+01:00 | 1.9.0, zmiany robocze: galeria ikon i sposób otwierania skrótów; bez wydania.

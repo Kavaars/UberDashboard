@@ -169,7 +169,7 @@ public sealed class LiveSettingsTests
         public bool IsEnabled(string path) => false;
         public void Apply(bool enabled, string path) => Calls++;
         public ApplicationSettings CurrentSettings => ApplicationSettings.Default;
-        public void Initialize(Action restore, Action exit) { }
+        public void Initialize(Action restore, Action reset, Action exit) { }
         public void ApplySettings(ApplicationSettings settings) => Calls++;
         public void SetRequired(bool required) { }
         public void Dispose() { }

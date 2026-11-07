@@ -1,5 +1,13 @@
 # Rejestr problemów
 
+## 2026-11-06T20:55:59+01:00 | 1.9.0 / e3a2a37 | monitor paska i Microsoft To Do
+
+- Zgłoszenie: pasek zmienia monitor po odłączeniu, a pobieranie wybranych list Microsoft To Do kończy się HTTP 400 widocznym tylko w statusie. Windows 11, WPF; model monitorów i odpowiedź serwera nieznane.
+- Oczekiwane: zachowanie monitora do jawnego resetu z tray oraz kopiowalne, widoczne błędy; pobranie wybranych zadań. Odtworzenie: połączyć konto, wybrać listy, użyć „Zapisz wybór i pobierz zadania”. Szczegóły odpowiedzi 400 i dokładna konfiguracja monitorów nieznane.
+- Analiza: wybór monitora ma fallback do innego dostępnego monitora; zmiana konfiguracji wyświetlaczy korzysta z monitora aktualnego okna. Przyczyna odpowiedzi 400 niepotwierdzona.
+- Monitor: usunięto fallback na inny ekran dla zapisanego identyfikatora. Niedostępny pasek pozostaje w trybie paska, jest ukryty i ponawia rejestrację po zmianie konfiguracji ekranów; tray oferuje reset do zwykłego okna na ekranie głównym. Inne zmiany ustawień nie zastępują niedostępnego monitora. Testy koordynatora oraz cały zestaw 766 testów przechodzą; fizycznego odłączania i tray nie sprawdzono.
+- Microsoft: usunięto opcjonalny parametr zapytania i dodano okno błędu z zaznaczanym tekstem. Przyczyna HTTP 400 i skuteczność na rzeczywistym koncie niepotwierdzone. Release bez ostrzeżeń z lokalnych pakietów przy wyłączonym audycie NuGet.
+
 ## 2026-11-06T13:00:00+01:00 | 1.9.0 / 4f35dbf + zmiany robocze | załączniki i serie
 
 - Zgłoszenie: wdrożyć załączniki i pełne przebiegi obsługi serii. Przed zmianą brakowało transferów plików, edytora reguł i podziału. Windows, .NET 10/WPF; rzeczywistych kont nie używano.
@@ -471,3 +479,7 @@ Diagnoza potwierdzona w kodzie dla 1: SettingsViewModel czyści paletę przy zmi
 - Ustalenia: niewpisany tekst korzystał ze wspólnego koloru; oba paski zakładek zawsze żądały potwierdzenia; komunikaty używały systemowego MessageBox, a pasek zakładek był pod nagłówkiem. Selektor nie oferował usuwania pulpitu.
 - Zmiany: niezależny kolor i krycie afirmacji, sprawdzanie treści notatek, wspólny komunikat WPF, zakładki w nagłówku i usuwanie pulpitów z ochroną ostatniego.
 - Kontrole: 339 testów przeszło po końcowej zmianie; kontrola wizualna motywów i rozmiarów przeszła przed końcową korektą przeciągania dialogu oraz walidacji danych notatki. Interakcje komunikatów i usuwania pulpitu w działającym oknie wymagają odbioru.
+
+## 2026-11-07T08:16:16+01:00 | 1.9.0 / e3a2a37 + zmiany robocze | odstęp listy zadań
+- Windows/WPF; dokładna wersja uruchomionej aplikacji nieznana. Użytkownik zgłosił nadmierne odstępy po bokach wpisów i nieprawidłowe działanie suwaka. Oczekiwane: suwak zmienia wyłącznie lewy i prawy odstęp wpisów. Odtwarzanie: zmienić odstęp w opcjach panelu listy.
+- Przyczyna w kodzie: ostatnia niezacommitowana zmiana nakładała margines na cały panel, a szerokość wpisu była ograniczona. Poprawka: margines poziomy listy i usunięcie ograniczenia szerokości. Odbiór wizualny w aplikacji pozostaje do sprawdzenia.

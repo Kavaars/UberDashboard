@@ -50,7 +50,7 @@ public sealed class MainWindowModeCoordinatorTests
     }
 
     [Fact]
-    public async Task Startup_on_missing_monitor_uses_available_display_without_losing_preference()
+    public async Task Startup_on_missing_monitor_waits_without_using_another_display()
     {
         var settings = new FakeWindowModeSettingsService { Settings = new WindowModeSettings { MonitorId = "DISPLAY2" } };
         var host = new FakeDockedBarWindowHost();
@@ -59,8 +59,36 @@ public sealed class MainWindowModeCoordinatorTests
             new FakeDesktopWidgetWindowHost(), host);
         coordinator.AttachWindow(new IntPtr(42));
         Assert.True((await coordinator.InitializeAsync()).IsSuccess);
-        Assert.Equal(0, host.AppliedBounds?.Left);
+        Assert.Null(host.AppliedBounds);
+        Assert.Equal("DISPLAY2", host.WaitingMonitorId);
         Assert.Equal("DISPLAY2", settings.Settings.MonitorId);
+    }
+
+    [Fact]
+    public async Task Missing_monitor_is_not_replaced_when_switching_to_bar()
+    {
+        var settings = new FakeWindowModeSettingsService { Settings = new WindowModeSettings { MonitorId = "DISPLAY2", LaunchMode = WindowMode.Normal } };
+        var host = new FakeDockedBarWindowHost();
+        var coordinator = new MainWindowModeCoordinator(new AppBarController(new FakeAppBarNativeApi()),
+            new FakeMonitorProvider { Monitors = [PrimaryMonitor], WindowMonitor = PrimaryMonitor }, settings,
+            new FakeDesktopWidgetWindowHost(), host);
+        coordinator.AttachWindow(new IntPtr(42));
+        Assert.True((await coordinator.SwitchAsync(WindowMode.DockedBar)).IsSuccess);
+        Assert.Null(host.AppliedBounds);
+        Assert.Equal("DISPLAY2", settings.Settings.MonitorId);
+        Assert.Equal(WindowMode.DockedBar, coordinator.CurrentMode);
+    }
+
+    [Fact]
+    public async Task First_start_saves_automatically_selected_monitor()
+    {
+        var settings = new FakeWindowModeSettingsService { Settings = new WindowModeSettings { MonitorId = null } };
+        var coordinator = new MainWindowModeCoordinator(new AppBarController(new FakeAppBarNativeApi()),
+            new FakeMonitorProvider { Monitors = [PrimaryMonitor], WindowMonitor = PrimaryMonitor }, settings,
+            new FakeDesktopWidgetWindowHost(), new FakeDockedBarWindowHost());
+        coordinator.AttachWindow(new IntPtr(42));
+        Assert.True((await coordinator.InitializeAsync()).IsSuccess);
+        Assert.Equal("DISPLAY1", settings.Settings.MonitorId);
     }
 
     [Fact]
@@ -68,7 +96,7 @@ public sealed class MainWindowModeCoordinatorTests
     {
         var settings = new FakeWindowModeSettingsService { Settings = new WindowModeSettings { MonitorId = "DISPLAY2" } };
         var coordinator = new MainWindowModeCoordinator(new AppBarController(new FakeAppBarNativeApi()),
-            new FakeMonitorProvider { Monitors = [PrimaryMonitor], WindowMonitor = PrimaryMonitor }, settings,
+            new FakeMonitorProvider { Monitors = [PrimaryMonitor with { Id = "DISPLAY2" }], WindowMonitor = PrimaryMonitor }, settings,
             new FakeDesktopWidgetWindowHost(), new FakeDockedBarWindowHost { ApplyResult = false });
         coordinator.AttachWindow(new IntPtr(42));
         Assert.False((await coordinator.InitializeAsync()).IsSuccess);

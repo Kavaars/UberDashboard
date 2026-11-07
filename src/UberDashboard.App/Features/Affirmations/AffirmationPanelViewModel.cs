@@ -37,7 +37,11 @@ public sealed record AffirmationDocument
 
     public List<AffirmationDay> History { get; init; } = [];
 
+    // Retained to migrate settings saved by older versions.
     public int ResetHours { get; init; }
+    public bool? DailyResetEnabled { get; init; }
+    public int ResetHour { get; init; } = 7;
+    public int ResetMinute { get; init; }
 
     public int Index { get; init; }
 
@@ -57,7 +61,9 @@ public sealed class AffirmationPanelViewModel : ObservableObject, IPanelOptionsP
 
     private string _texts = "";
 
-    private int _resetHours, _index, _position;
+    private int _index, _position;
+    private int _resetHour = 7, _resetMinute;
+    private bool _dailyResetEnabled;
 
     private DateTimeOffset _resetAt;
 
@@ -179,7 +185,13 @@ public sealed class AffirmationPanelViewModel : ObservableObject, IPanelOptionsP
 
     public string Texts { get => _texts; set { if (SetProperty(ref _texts, value ?? "")) Reset(); } }
 
-    public int ResetHours { get => _resetHours; set { var hours = value is 4 or 8 or 24 or 48 ? value : 0; if (SetProperty(ref _resetHours, hours)) Reset(); } }
+    public bool DailyResetEnabled { get => _dailyResetEnabled; set { if (SetProperty(ref _dailyResetEnabled, value)) ScheduleChanged(); } }
+    public int ResetHour { get => _resetHour; set { if (SetProperty(ref _resetHour, Math.Clamp(value, 0, 23))) ScheduleChanged(); } }
+    public int ResetMinute { get => _resetMinute; set { if (SetProperty(ref _resetMinute, Math.Clamp(value, 0, 59))) ScheduleChanged(); } }
+    public IReadOnlyList<int> ResetHourOptions { get; } = Enumerable.Range(0, 24).ToArray();
+    public IReadOnlyList<int> ResetMinuteOptions { get; } = Enumerable.Range(0, 60).ToArray();
+
+    private void ScheduleChanged() { _resetAt = _clock(); Changed?.Invoke(this, EventArgs.Empty); }
 
     public string Completed => string.Join("\n", Lines.Take(_index));
 
@@ -215,11 +227,19 @@ public sealed class AffirmationPanelViewModel : ObservableObject, IPanelOptionsP
 
     }
 
-    public void CheckReset() { if (_resetHours > 0 && _clock() >= _resetAt.AddHours(_resetHours)) Reset(); }
+    public void CheckReset()
+    {
+        if (!_dailyResetEnabled) return;
+        var now = _clock().ToLocalTime().DateTime;
+        var last = _resetAt.ToLocalTime().DateTime;
+        var boundary = now.Date.AddHours(_resetHour).AddMinutes(_resetMinute);
+        if (now < boundary) boundary = boundary.AddDays(-1);
+        if (last < boundary && now >= last) Reset();
+    }
 
     public void Reset() { _index = 0; _position = 0; _resetAt = _clock(); Notify(); }
 
-    public AffirmationDocument Snapshot() => new() { Texts = _texts, ResetHours = _resetHours, Index = _index, Position = _position, ResetAt = _resetAt, FontFamily = FontFamily, FontSize = FontSize, LineHeight = LineHeight, NormalColor = NormalColor, MutedColor = MutedColor, RemainingColor = RemainingColor, RemainingOpacity = RemainingOpacity, History = [.. _history] };
+    public AffirmationDocument Snapshot() => new() { Texts = _texts, DailyResetEnabled = _dailyResetEnabled, ResetHour = _resetHour, ResetMinute = _resetMinute, Index = _index, Position = _position, ResetAt = _resetAt, FontFamily = FontFamily, FontSize = FontSize, LineHeight = LineHeight, NormalColor = NormalColor, MutedColor = MutedColor, RemainingColor = RemainingColor, RemainingOpacity = RemainingOpacity, History = [.. _history] };
 
     public void Load(AffirmationDocument doc)
 
@@ -233,7 +253,9 @@ public sealed class AffirmationPanelViewModel : ObservableObject, IPanelOptionsP
 
         OnPropertyChanged(nameof(TotalAffirmations)); OnPropertyChanged(nameof(TotalSets)); OnPropertyChanged(nameof(CurrentStreak)); OnPropertyChanged(nameof(HistoryText)); OnPropertyChanged(nameof(StreakHistory));
 
-        _resetHours = doc.ResetHours is 4 or 8 or 24 or 48 ? doc.ResetHours : 0;
+        _dailyResetEnabled = doc.DailyResetEnabled ?? doc.ResetHours is 4 or 8 or 24 or 48;
+        _resetHour = Math.Clamp(doc.ResetHour, 0, 23);
+        _resetMinute = Math.Clamp(doc.ResetMinute, 0, 59);
 
         var lines = Lines;
 
@@ -241,11 +263,12 @@ public sealed class AffirmationPanelViewModel : ObservableObject, IPanelOptionsP
 
         _position = _index < lines.Length ? Math.Clamp(doc.Position, 0, Math.Max(0, lines[_index].Length - 1)) : 0;
 
-        _resetAt = doc.ResetAt == default ? _clock() : doc.ResetAt;
+        _resetAt = doc.DailyResetEnabled is null || doc.ResetAt == default ? _clock() : doc.ResetAt;
 
-        OnPropertyChanged(nameof(Texts)); OnPropertyChanged(nameof(ResetHours));
+        OnPropertyChanged(nameof(Texts)); OnPropertyChanged(nameof(DailyResetEnabled)); OnPropertyChanged(nameof(ResetHour)); OnPropertyChanged(nameof(ResetMinute));
 
-        if (_resetHours > 0 && _clock() >= _resetAt.AddHours(_resetHours)) Reset(); else Notify();
+        CheckReset();
+        Notify();
 
     }
 
