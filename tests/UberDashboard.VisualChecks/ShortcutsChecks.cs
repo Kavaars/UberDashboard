@@ -13,9 +13,14 @@ internal static class ShortcutsChecks
 {
     internal static async Task RunAsync(ShortcutsPanel panel, ThemeService theme, string output)
     {
+        if (ShortcutIconCatalog.Names.Count != 59 || ShortcutIconCatalog.Render("missing", Colors.Black) is not null)
+            throw new InvalidOperationException("Bundled shortcut icon catalog is invalid.");
+        foreach (var name in ShortcutIconCatalog.Names)
+            if (ShortcutIconCatalog.Render(name, Colors.Black) is not { IsFrozen: true })
+                throw new InvalidOperationException($"Bundled icon {name} could not be rendered.");
         CheckEditor(panel, output);
         panel.Model.Items.Clear();
-        panel.Model.Save(new() { Name = "Dokumenty", Target = @"C:\Users\Public", Icon = "📁" });
+        panel.Model.Save(new() { Name = "Dokumenty", Target = @"C:\Users\Public", BuiltInIcon = "folder" });
         panel.Model.Save(new() { Name = "Przeglądarka / Browser", Target = "https://example.org", Icon = "🌐" });
         panel.Model.Save(new() { Name = "Mój projekt — dłuższa nazwa skrótu", Target = @"C:\Apps\Project.exe", Icon = "★", Background = "#315746", Foreground = "#FFFFFF" });
         panel.Model.Save(new() { Name = "Notatnik", Target = Path.Combine(Environment.SystemDirectory, "notepad.exe") });
@@ -69,6 +74,21 @@ internal static class ShortcutsChecks
                 save.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 if (!window.IsVisible) throw new InvalidOperationException("Invalid shortcut closed the editor.");
                 target.Text = "https://example.org";
+                System.Windows.Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
+                {
+                    var gallery = System.Windows.Application.Current.Windows.OfType<Window>().Single(w => w.Title == UiText.Get("ShortcutIconGallery"));
+                    try
+                    {
+                        var search = Descendants(gallery).OfType<TextBox>().Single(field => AutomationProperties.GetName(field) == UiText.Get("ShortcutIconSearch"));
+                        search.Text = "folder";
+                        var choice = Descendants(gallery).OfType<Button>().Single(button => AutomationProperties.GetName(button) == "folder");
+                        choice.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    }
+                    catch (Exception ex) { failure = ex; gallery.Close(); }
+                }));
+                Descendants(window).OfType<Button>().Single(button => Equals(button.Content, UiText.Get("ShortcutIconGallery")))
+                    .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                if (failure is not null) throw failure;
                 var bitmap = new RenderTargetBitmap((int)window.ActualWidth, (int)window.ActualHeight, 96, 96, PixelFormats.Pbgra32);
                 bitmap.Render(window);
                 var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
@@ -80,7 +100,7 @@ internal static class ShortcutsChecks
         var count = panel.Model.Items.Count;
         panel.AddCommand.Execute(null);
         if (failure is not null) throw new InvalidOperationException("Shortcut editor check failed.", failure);
-        if (panel.Model.Items.Count != count + 1) throw new InvalidOperationException("Valid editor input was not added.");
+        if (panel.Model.Items.Count != count + 1 || panel.Selected?.BuiltInIcon != "folder") throw new InvalidOperationException("Valid editor input or selected icon was not saved.");
         var original = panel.Selected;
         System.Windows.Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
         {

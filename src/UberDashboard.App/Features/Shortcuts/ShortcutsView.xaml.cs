@@ -17,11 +17,11 @@ public partial class ShortcutsView : Wpf.UserControl
     }
     private void OnDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (DataContext is ShortcutsPanel { Mode: not ShortcutViewMode.Buttons } panel && IsItem(e.OriginalSource)) Open(panel);
+        if (DataContext is ShortcutsPanel { SingleClick: false } panel && IsItem(e.OriginalSource)) Open(panel);
     }
     private void OnMouseUp(object sender, MouseButtonEventArgs e)
     {
-        if (DataContext is ShortcutsPanel { Mode: ShortcutViewMode.Buttons } panel && IsItem(e.OriginalSource)) Open(panel);
+        if (DataContext is ShortcutsPanel { SingleClick: true } panel && e.ClickCount == 1 && IsItem(e.OriginalSource)) Open(panel);
     }
     private bool IsItem(object source) => source is DependencyObject dependency &&
         Wpf.ItemsControl.ContainerFromElement(ShortcutList, dependency) is Wpf.ListBoxItem;

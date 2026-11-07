@@ -38,6 +38,7 @@ public sealed partial class ShortcutsPanel : ObservableObject, IPanelInstance, I
     [ObservableProperty] private ShortcutEntry? _selected;
     [ObservableProperty] private ShortcutViewMode _mode;
     [ObservableProperty] private string? _wallpaper;
+    [ObservableProperty] private bool _singleClick;
     [ObservableProperty] private string _status = UiText.Get("ShortcutHint");
     public IReadOnlyList<ShortcutModeOption> Modes { get; } = Enum.GetValues<ShortcutViewMode>()
         .Select(mode => new ShortcutModeOption(mode, UiText.Get("ShortcutView" + mode))).ToArray();
@@ -52,6 +53,7 @@ public sealed partial class ShortcutsPanel : ObservableObject, IPanelInstance, I
     }
 
     partial void OnModeChanged(ShortcutViewMode value) { Model.Mode = value; Save(); }
+    partial void OnSingleClickChanged(bool value) { Model.SingleClick = value; Save(); }
     partial void OnWallpaperChanged(string? value) { Model.Wallpaper = value; Save(); }
     private void Save()
     {
@@ -149,7 +151,7 @@ public sealed partial class ShortcutsPanel : ObservableObject, IPanelInstance, I
         {
             _restoring = true;
             Model = ShortcutsModel.Restore(state.Span);
-            Mode = Model.Mode; Wallpaper = Model.Wallpaper;
+            Mode = Model.Mode; Wallpaper = Model.Wallpaper; SingleClick = Model.SingleClick ?? Model.Mode == ShortcutViewMode.Buttons;
             Selected = null;
         }
         catch (JsonException ex)

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -10,6 +10,11 @@
     <AssemblyName>UberDashboard</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Features\Shortcuts\Assets\Lucide\*.svg" />
+    <Content Include="Features\Shortcuts\Assets\Lucide\LICENSE.txt" Link="Licenses\Lucide.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Google.Apis.Auth" />

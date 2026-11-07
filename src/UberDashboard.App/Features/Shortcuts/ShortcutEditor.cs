@@ -22,6 +22,13 @@ internal static class ShortcutEditor
         var target = Field("ShortcutTarget", draft.Target);
         var icon = Field("ShortcutSymbol", draft.Icon);
         var image = Field("ShortcutImage", draft.ImagePath ?? "");
+        var builtIn = draft.BuiltInIcon;
+        var selectedIcon = new Wpf.TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
+        selectedIcon.SetResourceReference(Wpf.TextBlock.ForegroundProperty, "Brush.Text.Muted");
+        void UpdateSelectedIcon() => selectedIcon.Text = builtIn is null ? "" : UiText.Format("ShortcutIconSelected", builtIn.Replace('-', ' '));
+        icon.TextChanged += (_, _) => { builtIn = null; UpdateSelectedIcon(); };
+        image.TextChanged += (_, _) => { builtIn = null; UpdateSelectedIcon(); };
+        UpdateSelectedIcon();
         var background = new CompactColorPicker { SelectedColor = draft.Background };
         var foreground = new CompactColorPicker { SelectedColor = draft.Foreground, DefaultBrushKey = "Brush.Text" };
         var status = new Wpf.TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) };
@@ -55,13 +62,22 @@ internal static class ShortcutEditor
         AddField("ShortcutSymbol", icon);
         AddField("ShortcutImage", image);
         var images = new Wpf.WrapPanel();
+        AddButton(images, "ShortcutIconGallery", () =>
+        {
+            var chosen = ShortcutIconPicker.Show(window);
+            if (chosen is null) return;
+            image.Text = "";
+            builtIn = chosen;
+            UpdateSelectedIcon();
+        });
         AddButton(images, "ShortcutChooseImage", () =>
         {
             var dialog = new ThemedFileDialog { Title = UiText.Get("ShortcutChooseImage"), Filter = ImageFilter };
             if (dialog.ShowDialog(window) == true) image.Text = dialog.FileName;
         });
-        AddButton(images, "ShortcutAutomaticIcon", () => { image.Text = ""; icon.Text = "↗"; });
+        AddButton(images, "ShortcutAutomaticIcon", () => { image.Text = ""; icon.Text = "↗"; builtIn = null; UpdateSelectedIcon(); });
         form.Children.Add(images);
+        form.Children.Add(selectedIcon);
         AddField("ShortcutBackground", background);
         AddField("ShortcutForeground", foreground);
         var colors = new Wpf.WrapPanel();
@@ -79,7 +95,7 @@ internal static class ShortcutEditor
                 var candidate = draft with
                 {
                     Name = name.Text, Target = target.Text, Icon = icon.Text,
-                    ImagePath = string.IsNullOrWhiteSpace(image.Text) ? null : image.Text.Trim(),
+                    ImagePath = string.IsNullOrWhiteSpace(image.Text) ? null : image.Text.Trim(), BuiltInIcon = builtIn,
                     Background = background.SelectedColor, Foreground = foreground.SelectedColor,
                 };
                 // Apply the same validation as persistence before closing the editor.

@@ -14,6 +14,7 @@ public sealed record ShortcutEntry
     public string Target { get; init; } = "";
     public string Icon { get; init; } = "↗";
     public string? ImagePath { get; init; }
+    public string? BuiltInIcon { get; init; }
     public string? Background { get; init; }
     public string? Foreground { get; init; }
     [System.Text.Json.Serialization.JsonIgnore] public bool HasBackground => Background is not null;
@@ -44,6 +45,7 @@ public sealed class ShortcutsModel
     public ObservableCollection<ShortcutEntry> Items { get; } = [];
     public ShortcutViewMode Mode { get; set; }
     public string? Wallpaper { get; set; }
+    public bool? SingleClick { get; set; }
 
     public ShortcutEntry Save(ShortcutEntry draft, ShortcutEntry? original = null)
     {
@@ -66,7 +68,7 @@ public sealed class ShortcutsModel
         if (index >= 0 && index + offset >= 0 && index + offset < Items.Count) Items.Move(index, index + offset);
     }
 
-    public byte[] Serialize() => JsonSerializer.SerializeToUtf8Bytes(new Document(Mode, Wallpaper, Items.ToArray()));
+    public byte[] Serialize() => JsonSerializer.SerializeToUtf8Bytes(new Document(Mode, Wallpaper, Items.ToArray(), SingleClick));
 
     public static ShortcutsModel Restore(ReadOnlySpan<byte> state)
     {
@@ -75,6 +77,7 @@ public sealed class ShortcutsModel
         {
             Mode = Enum.IsDefined(document.Mode) ? document.Mode : ShortcutViewMode.Icons,
             Wallpaper = document.Wallpaper,
+            SingleClick = document.SingleClick,
         };
         var ids = new HashSet<Guid>();
         foreach (var item in document.Items ?? [])
@@ -92,5 +95,5 @@ public sealed class ShortcutsModel
     }
 
     private static string? Color(string? value) => value is not null && Regex.IsMatch(value, "^#(?:[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$") ? value : null;
-    private sealed record Document(ShortcutViewMode Mode, string? Wallpaper, ShortcutEntry?[]? Items);
+    private sealed record Document(ShortcutViewMode Mode, string? Wallpaper, ShortcutEntry?[]? Items, bool? SingleClick = null);
 }
