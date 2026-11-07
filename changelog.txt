@@ -1,3 +1,26 @@
+Monitor zasobów: dodano wybór widoku kafelkowego. Usunięto wskazówkę obsługi skrótów.
+
+
+2026-11-07 — zmiany robocze 1.9.0
+- Odświeżanie pogody i kalendarza oraz synchronizacja Microsoft To Do w nagłówku panelu.
+- Opcje widoczności elementów pogody i ukrycia paska zakładek bez usuwania danych.
+2026-11-07T11:00:00+01:00
+- Poprawiono test blokujący budowanie po zmianie ikon pogody.
+
+2026-11-07T10:53:16+01:00
+- Treść paneli skaluje się wraz z powierzchnią; w wyglądzie można ustawić limity 15–200%.
+
+2026-11-07T10:41:04+01:00
+- Poprawiono kolory i ikony motywów panelu pogody.
+- W opcjach monitora zasobów można ukrywać poszczególne odczyty.
+
+Prace robocze 1.9.0 (2026-11-07T10:17:53+01:00)
+- Nowa ikona zasobnika oraz zgoda na zapis Microsoft To Do przy łączeniu konta i synchronizacja wybranych list w obie strony.
+
+Prace robocze 1.9.0 (2026-11-07T09:07:00+01:00)
+- Listy zadań oferują ciągły układ, ramki i dzielniki; listy Microsoft pozwalają oznaczać zadania przez kolejkę synchronizacji.
+- Pogoda ma motyw zgodny z aplikacją lub kolorowy, a panele opcje blokowania zmian szerokości i wysokości dzielnikami.
+
 Prace robocze 1.9.0 (2026-11-07T07:58:53+01:00)
 - Afirmacje: opcjonalny codzienny reset postępu o wybranej godzinie lokalnej.
 
@@ -267,3 +290,5 @@ Zmiany robocze 1.8.0 (2026-11-04T10:28:00+01:00): Import notatki rozpoznaje plik
 2026-11-07T08:16:16+01:00 | Listy zadań: regulacja szerokości wpisów i synchronizacja na żądanie z czasem ostatniej synchronizacji. Skróty: animacje i wybór pojedynczego lub podwójnego kliknięcia. O aplikacji: większy numer wersji.
 
 2026-11-07T08:32:45+01:00 | Panel Skróty: galeria 59 ikon Lucide offline, animacje i wybór pojedynczego lub podwójnego kliknięcia.
+Prace robocze 1.9.0 (2026-11-07T08:55:37+01:00)
+- Prawy przycisk skrótu otwiera menu edycji i usuwania; usunięto zbędny komunikat o lokalizacji po aktualizacji pogody.

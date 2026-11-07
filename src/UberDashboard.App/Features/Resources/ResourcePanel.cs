@@ -1,4 +1,6 @@
 using UberDashboard.Core.Localization;
+using System.Text.Json;
+using System.Collections.ObjectModel;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -22,14 +24,28 @@ internal sealed class ResourcePanelDescriptor(HardwareSampler sampler) : IPanelD
         ValueTask.FromResult<IPanelInstance>(new ResourcePanel(context, sampler));
 }
 
-public sealed partial class ResourcePanel : ObservableObject, IPanelInstance
+public sealed partial class ResourcePanel : ObservableObject, IPanelInstance, IPanelStateNotifications
 {
     private readonly PanelContext _context;
     private readonly HardwareSampler _sampler;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(2) };
     private bool _reportedError;
+    private readonly HashSet<string> _hidden = new(StringComparer.Ordinal);
+    private IReadOnlyList<ResourceReading> _allReadings = [];
+    public ObservableCollection<ResourceOption> Options { get; } = [];
+    public event EventHandler? StateChanged;
+    public long ChangeVersion { get; private set; }
+    public void OnStatePersisted() { }
 
     [ObservableProperty] private IReadOnlyList<ResourceReading> _readings = [];
+    [ObservableProperty] private bool _showTiles;
+    private bool _restoring;
+    partial void OnShowTilesChanged(bool value)
+    {
+        if (_restoring) return;
+        ChangeVersion++;
+        StateChanged?.Invoke(this, EventArgs.Empty);
+    }
     [ObservableProperty] private string _status = UiText.Get("ReadingSensors");
 
     public PanelInstanceId InstanceId => _context.InstanceId;
@@ -43,9 +59,40 @@ public sealed partial class ResourcePanel : ObservableObject, IPanelInstance
     }
 
     public ValueTask InitializeAsync(CancellationToken cancellationToken) => ResumeAsync(cancellationToken);
-    public ValueTask RestoreStateAsync(ReadOnlyMemory<byte> state, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+    public ValueTask RestoreStateAsync(ReadOnlyMemory<byte> state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var document = JsonSerializer.Deserialize<ResourcePanelState>(state.Span);
+            _hidden.Clear();
+            _restoring = true;
+            ShowTiles = document?.ShowTiles ?? false;
+            _restoring = false;
+            foreach (var key in document?.Hidden ?? []) _hidden.Add(key);
+            UpdateReadings();
+        }
+        catch (JsonException ex) { _context.Logger.Error("Nie udało się odtworzyć ustawień monitora zasobów.", ex); }
+        return ValueTask.CompletedTask;
+    }
     public ValueTask<ReadOnlyMemory<byte>> CaptureStateAsync(CancellationToken cancellationToken) =>
-        ValueTask.FromResult<ReadOnlyMemory<byte>>("{}"u8.ToArray());
+        ValueTask.FromResult<ReadOnlyMemory<byte>>(JsonSerializer.SerializeToUtf8Bytes(new ResourcePanelState { Hidden = [.. _hidden], ShowTiles = ShowTiles }));
+
+    private void UpdateReadings()
+    {
+        foreach (var reading in _allReadings)
+            if (!Options.Any(option => option.Key == reading.Key))
+                Options.Add(new ResourceOption(reading.Key, $"{reading.Name} — {reading.Device}", !_hidden.Contains(reading.Key), OptionChanged));
+        foreach (var option in Options) option.SetVisible(!_hidden.Contains(option.Key));
+        Readings = _allReadings.Where(reading => !_hidden.Contains(reading.Key)).ToArray();
+    }
+
+    private void OptionChanged(ResourceOption option)
+    {
+        if (option.IsVisible) _hidden.Remove(option.Key); else _hidden.Add(option.Key);
+        UpdateReadings();
+        ChangeVersion++;
+        StateChanged?.Invoke(this, EventArgs.Empty);
+    }
 
     public ValueTask SuspendAsync(CancellationToken cancellationToken)
     {
@@ -83,13 +130,15 @@ public sealed partial class ResourcePanel : ObservableObject, IPanelInstance
         {
             var result = await Task.Run(() => _sampler.Sample(linked.Token), linked.Token).ConfigureAwait(true);
             linked.Token.ThrowIfCancellationRequested();
-            Readings = result;
+            _allReadings = result;
+            UpdateReadings();
             Status = UiText.Format("ReadingAt", DateTime.Now);
             _reportedError = false;
         }
         catch (OperationCanceledException) when (linked.IsCancellationRequested) { }
         catch (Exception ex)
         {
+            _allReadings = [];
             Readings = [];
             Status = UiText.Get("CouldNotReadSensorsTheMonitorWill");
             if (!_reportedError)
@@ -99,4 +148,23 @@ public sealed partial class ResourcePanel : ObservableObject, IPanelInstance
             }
         }
     }
+}
+
+internal sealed class ResourcePanelState
+{
+    public string[] Hidden { get; set; } = [];
+    public bool ShowTiles { get; set; }
+}
+
+public sealed partial class ResourceOption : ObservableObject
+{
+    private readonly Action<ResourceOption> _changed;
+    private bool _updating;
+    public string Key { get; }
+    public string Label { get; }
+    [ObservableProperty] private bool _isVisible;
+    internal ResourceOption(string key, string label, bool isVisible, Action<ResourceOption> changed)
+    { Key = key; Label = label; _isVisible = isVisible; _changed = changed; }
+    internal void SetVisible(bool value) { _updating = true; IsVisible = value; _updating = false; }
+    partial void OnIsVisibleChanged(bool value) { if (!_updating) _changed(this); }
 }

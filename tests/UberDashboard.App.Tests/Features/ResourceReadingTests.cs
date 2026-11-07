@@ -20,4 +20,22 @@ public sealed class ResourceReadingTests
         Assert.Null(HardwareSampler.MemoryPercent(null, 1024));
         Assert.Equal(50f, HardwareSampler.MemoryPercent(512, 1024));
     }
+    [Fact]
+    public void Visibility_option_notifies_only_on_user_change()
+    {
+        var changes = 0;
+        var option = new ResourceOption("cpu|usage", "CPU", true, _ => changes++);
+        option.IsVisible = false;
+        Assert.Equal(1, changes);
+        option.SetVisible(true);
+        Assert.Equal(1, changes);
+    }
+
+    [Fact]
+    public void Legacy_empty_state_keeps_all_parameters_visible()
+    {
+        var state = System.Text.Json.JsonSerializer.Deserialize<ResourcePanelState>("{}");
+        Assert.Empty(state!.Hidden);
+        Assert.False(state.ShowTiles);
+    }
 }

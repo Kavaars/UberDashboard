@@ -94,6 +94,7 @@ public sealed class PanelLeafViewModel : LayoutNodeViewModel, IDisposable
         AttachViewModel(_viewModel);
         OnPropertyChanged(nameof(ViewModel)); OnPropertyChanged(nameof(PanelContent));
         OnPropertyChanged(nameof(HasFormatting)); OnPropertyChanged(nameof(IsFormattingVisible)); OnPropertyChanged(nameof(ToggleFormattingCommand));
+        OnPropertyChanged(nameof(RefreshCommand));
     }
     private void AttachViewModel(object viewModel)
     {
@@ -104,6 +105,13 @@ public sealed class PanelLeafViewModel : LayoutNodeViewModel, IDisposable
         RefreshUnsavedChanges();
     }
     public object PanelContent => ViewModel is UberDashboard.Contracts.Panels.IPanelContent custom ? custom.Content : ViewModel;
+    public System.Windows.Input.ICommand? RefreshCommand => ViewModel switch
+    {
+        Features.Weather.WeatherPanelViewModel weather => weather.RefreshCommand,
+        Features.Calendar.CalendarPanel calendar => calendar.RefreshCommand,
+        Features.Todo.MicrosoftTodoListViewModel todo => todo.SyncNowCommand,
+        _ => null,
+    };
 
     /// <summary><see langword="true"/>, gdy panel udostępnia pływające okno opcji.</summary>
     public bool HasOptions => true;

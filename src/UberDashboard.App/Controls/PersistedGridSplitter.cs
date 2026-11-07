@@ -20,8 +20,15 @@ public sealed class PersistedGridSplitter : GridSplitter
         AutomationProperties.SetName(this, UiText.Get("ResizePanels"));
     }
 
+    protected override void OnPreviewMouseLeftButtonDown(MouseButtonEventArgs e)
+    {
+        if (DataContext is PanelSplitViewModel { IsResizeLocked: true }) { e.Handled = true; return; }
+        base.OnPreviewMouseLeftButtonDown(e);
+    }
+
     protected override void OnKeyDown(System.Windows.Input.KeyEventArgs e)
     {
+        if (DataContext is PanelSplitViewModel { IsResizeLocked: true }) { e.Handled = true; return; }
         base.OnKeyDown(e);
         if (e.Key is Key.Left or Key.Right or Key.Up or Key.Down) QueueCommit();
     }

@@ -39,7 +39,7 @@ public sealed partial class ShortcutsPanel : ObservableObject, IPanelInstance, I
     [ObservableProperty] private ShortcutViewMode _mode;
     [ObservableProperty] private string? _wallpaper;
     [ObservableProperty] private bool _singleClick;
-    [ObservableProperty] private string _status = UiText.Get("ShortcutHint");
+    [ObservableProperty] private string _status = string.Empty;
     public IReadOnlyList<ShortcutModeOption> Modes { get; } = Enum.GetValues<ShortcutViewMode>()
         .Select(mode => new ShortcutModeOption(mode, UiText.Get("ShortcutView" + mode))).ToArray();
     public PanelInstanceId InstanceId => _context.InstanceId;
@@ -124,7 +124,7 @@ public sealed partial class ShortcutsPanel : ObservableObject, IPanelInstance, I
             }, linked.Token).ConfigureAwait(true);
             Status = UiText.Get("ShortcutOpened");
         }
-        catch (OperationCanceledException) when (linked.IsCancellationRequested) { Status = UiText.Get("ShortcutHint"); }
+        catch (OperationCanceledException) when (linked.IsCancellationRequested) { Status = string.Empty; }
         catch (Exception ex) when (ex is ArgumentException or IOException or Win32Exception or InvalidOperationException or UnauthorizedAccessException)
         {
             Status = UiText.Get("ShortcutOpenFailed");

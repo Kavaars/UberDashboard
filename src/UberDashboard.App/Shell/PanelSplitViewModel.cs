@@ -49,5 +49,13 @@ public sealed class PanelSplitViewModel : LayoutNodeViewModel
     /// <summary>Szerokość/wysokość drugiego dziecka jako udział gwiazdkowy.</summary>
     public GridLength SecondLength => new(Clamp(1d - Ratio), GridUnitType.Star);
 
+    public bool IsResizeLocked => ContainsLock(First, Axis) || ContainsLock(Second, Axis);
+    private static bool ContainsLock(LayoutNodeViewModel node, SplitAxis axis) => node switch
+    {
+        PanelLeafViewModel leaf => axis == SplitAxis.Horizontal ? leaf.Appearance?.LockWidth == true : leaf.Appearance?.LockHeight == true,
+        PanelSplitViewModel split => ContainsLock(split.First, axis) || ContainsLock(split.Second, axis),
+        _ => false,
+    };
+
     private static double Clamp(double value) => value > 0.0001d ? value : 0.0001d;
 }

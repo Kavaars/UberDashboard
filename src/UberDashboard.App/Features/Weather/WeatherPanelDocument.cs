@@ -10,6 +10,16 @@ public sealed class WeatherPanelDocument
     /// <summary>Wersja schematu stanu panelu.</summary>
     public const int SchemaVersion = 3;
 
+    public bool ColorfulTheme { get; init; }
+    public bool ShowLocation { get; init; } = true;
+    public bool ShowIcon { get; init; } = true;
+    public bool ShowTemperature { get; init; } = true;
+    public bool ShowCondition { get; init; } = true;
+    public bool ShowDailyRange { get; init; } = true;
+    public bool ShowSunrise { get; init; } = true;
+    public bool ShowSunset { get; init; } = true;
+    public bool ShowForecast { get; init; } = true;
+
     public DateTimeOffset? NetworkConsentGrantedAtUtc { get; init; }
 
     /// <summary>Wybrana lokalizacja albo <see langword="null"/>.</summary>

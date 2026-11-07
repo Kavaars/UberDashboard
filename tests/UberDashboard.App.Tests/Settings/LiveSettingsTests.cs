@@ -113,14 +113,33 @@ public sealed class LiveSettingsTests
         var store = new FakeAppSettingsStore(); var clock = new FakeClock(); var id = Guid.NewGuid();
         var first = new PanelAppearanceViewModel(id, store, clock, new ToastService(NullLogger<ToastService>.Instance));
         await first.LoadAsync();
-        first.BackgroundColor = "#123456"; first.CustomizeText = true; first.FontSize = 19;
+        first.BackgroundColor = "#123456"; first.CustomizeText = true; first.FontSize = 19; first.LockWidth = true; first.LockHeight = true; first.ShowTabs = false;
         await first.SaveAsync();
         var restored = new PanelAppearanceViewModel(id, store, clock, new ToastService(NullLogger<ToastService>.Instance)); await restored.LoadAsync();
         Assert.Equal(first.Snapshot, restored.Snapshot);
         var other = new PanelAppearanceViewModel(Guid.NewGuid(), store, clock, new ToastService(NullLogger<ToastService>.Instance)); await other.LoadAsync();
         Assert.Null(other.BackgroundColor); Assert.False(other.CustomizeText);
         restored.ResetCommand.Execute(null); await restored.SaveAsync();
-        Assert.Null(restored.BackgroundColor); Assert.False(restored.CustomizeText);
+        Assert.Null(restored.BackgroundColor); Assert.False(restored.CustomizeText); Assert.True(restored.LockWidth); Assert.True(restored.LockHeight); Assert.False(restored.ShowTabs);
+    }
+
+    [Fact]
+    public void Splitter_locks_follow_axis_and_nested_panels()
+    {
+        var appearance = new PanelAppearanceViewModel(Guid.NewGuid(), new FakeAppSettingsStore(), new FakeClock(), new ToastService(NullLogger<ToastService>.Instance));
+        var first = new UberDashboard.App.Shell.PanelLeafViewModel(UberDashboard.Core.Layout.PanelInstanceId.New(), "todo", "Todo", null, new object()) { Appearance = appearance };
+        var second = new UberDashboard.App.Shell.PanelLeafViewModel(UberDashboard.Core.Layout.PanelInstanceId.New(), "todo", "Todo", null, new object());
+        var vertical = new UberDashboard.App.Shell.PanelSplitViewModel(Guid.NewGuid(), UberDashboard.Core.Layout.SplitAxis.Vertical, .5, first, second);
+        var horizontal = new UberDashboard.App.Shell.PanelSplitViewModel(Guid.NewGuid(), UberDashboard.Core.Layout.SplitAxis.Horizontal, .5, vertical, second);
+        Assert.False(horizontal.IsResizeLocked);
+        appearance.LockWidth = true;
+        Assert.True(horizontal.IsResizeLocked);
+        Assert.False(vertical.IsResizeLocked);
+        appearance.LockHeight = true;
+        Assert.True(vertical.IsResizeLocked);
+        appearance.LockWidth = false;
+        Assert.False(horizontal.IsResizeLocked);
+        first.Dispose(); second.Dispose();
     }
 
     [Fact]

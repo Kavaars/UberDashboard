@@ -7,6 +7,20 @@ namespace UberDashboard.App.Tests.Weather;
 public sealed class WeatherPanelViewModelTests
 {
     [Fact]
+    public void Weather_visibility_options_round_trip_and_legacy_defaults_are_visible()
+    {
+        var legacy = System.Text.Json.JsonSerializer.Deserialize<WeatherPanelDocument>("{}");
+        Assert.NotNull(legacy);
+        Assert.True(legacy.ShowIcon && legacy.ShowForecast && legacy.ShowLocation);
+        using var vm = new WeatherPanelViewModel(new FakeWeatherService(), new FakeWeatherLocationSearchService(), new FakeWeatherCacheStore(), new FakePanelNotifier());
+        vm.Load(legacy);
+        vm.ShowLocation = false; vm.ShowIcon = false; vm.ShowTemperature = false; vm.ShowCondition = false;
+        vm.ShowDailyRange = false; vm.ShowSunrise = false; vm.ShowSunset = false; vm.ShowForecast = false;
+        var restored = System.Text.Json.JsonSerializer.Deserialize<WeatherPanelDocument>(System.Text.Json.JsonSerializer.Serialize(vm.Snapshot()));
+        Assert.NotNull(restored);
+        Assert.False(restored.ShowLocation || restored.ShowIcon || restored.ShowTemperature || restored.ShowCondition || restored.ShowDailyRange || restored.ShowSunrise || restored.ShowSunset || restored.ShowForecast);
+    }
+    [Fact]
     public async Task Legacy_location_without_explicit_consent_does_not_send_requests()
     {
         var service = new FakeWeatherService();
@@ -127,7 +141,8 @@ public sealed class WeatherPanelViewModelTests
             hour =>
             {
                 Assert.Equal("12:00", hour.TimeText);
-                Assert.Equal("⛅", hour.Glyph);
+                Assert.Equal("☁", hour.Glyph);
+                Assert.Equal("⛅", hour.ColorGlyph);
                 Assert.Equal("9,4 °C", hour.TemperatureText);
             },
             hour =>
@@ -164,10 +179,18 @@ public sealed class WeatherPanelViewModelTests
     {
         using var source = new WeatherPanelViewModel(new FakeWeatherService(), new FakeWeatherLocationSearchService(), new FakeWeatherCacheStore(), new FakePanelNotifier());
         source.IsNetworkEnabled = true;
+        source.ColorfulTheme = true;
         var saved = source.Snapshot();
         using var restored = new WeatherPanelViewModel(new FakeWeatherService(), new FakeWeatherLocationSearchService(), new FakeWeatherCacheStore(), new FakePanelNotifier());
         restored.Load(saved);
         Assert.True(restored.IsNetworkEnabled);
+        Assert.True(restored.ColorfulTheme);
         Assert.Equal(saved.NetworkConsentGrantedAtUtc, restored.Snapshot().NetworkConsentGrantedAtUtc);
+    }
+    [Fact]
+    public void Application_theme_glyphs_do_not_use_emoji_presentation()
+    {
+        foreach (var code in new[] { 0, 1, 2, 3, 45, 61, 71, 95 })
+            Assert.DoesNotContain("⛅", WeatherConditionCatalog.Glyph(code, true));
     }
 }

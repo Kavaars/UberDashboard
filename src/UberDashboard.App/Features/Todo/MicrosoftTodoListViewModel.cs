@@ -33,6 +33,8 @@ public sealed class MicrosoftTodoListViewModel : ObservableObject, IPanelOptions
     public IRelayCommand ToggleOptionsCommand { get; }
     public IAsyncRelayCommand ClearCompletedCommand { get; }
     public IAsyncRelayCommand KeepCompletedCommand { get; }
+    public int ItemStyle { get => _options.ItemStyle; set { _options.ItemStyle = value; OnPropertyChanged(); } }
+    public IAsyncRelayCommand<TodoItemState> ToggleTaskCommand { get; }
     public double EdgeSpacing { get => _options.EdgeSpacing; set { _options.EdgeSpacing = value; OnPropertyChanged(); OnPropertyChanged(nameof(EdgePadding)); } }
     public double EntrySpacing { get => _options.EntrySpacing; set { _options.EntrySpacing = value; OnPropertyChanged(); OnPropertyChanged(nameof(EntryPadding)); } }
     public System.Windows.Thickness EdgePadding => _options.EdgePadding;
@@ -56,6 +58,7 @@ public sealed class MicrosoftTodoListViewModel : ObservableObject, IPanelOptions
     internal MicrosoftTodoListViewModel(TodoPanelViewModel options)
     {
         _options = options;
+        ToggleTaskCommand = new AsyncRelayCommand<TodoItemState>(ToggleTaskAsync);
         ToggleOptionsCommand = new RelayCommand(() => IsOptionsOpen = !IsOptionsOpen);
         ClearCompletedCommand = new AsyncRelayCommand(() => RemoveCompletedAsync(0));
         KeepCompletedCommand = new AsyncRelayCommand(() => RemoveCompletedAsync(CompletedKeepLimit));
@@ -100,6 +103,35 @@ public sealed class MicrosoftTodoListViewModel : ObservableObject, IPanelOptions
         catch (OperationCanceledException) when (_closeToken.IsCancellationRequested) { }
         catch (Exception) { Status = UiText.Get("SyncLocalReadFailed"); }
         finally { _reading = false; }
+    }
+
+    private async Task ToggleTaskAsync(TodoItemState? item)
+    {
+        if (item?.Id is not { } itemId || _sync is null || _state is null)
+        {
+            _notifier?.Publish(UiText.Get("TodoSyncEnableFirst"), PanelNotificationSeverity.Warning);
+            OnPropertyChanged(nameof(Items));
+            return;
+        }
+        var state = _state;
+        var entity = state.Items.FirstOrDefault(e => e.LocalId == itemId && e.Kind == SyncEntityKind.Item);
+        if (entity?.Local is null || entity.Conflicts is { Length: > 0 })
+        {
+            _notifier?.Publish(UiText.Get("TodoSyncConflict"), PanelNotificationSeverity.Warning);
+            OnPropertyChanged(nameof(Items));
+            return;
+        }
+        try
+        {
+            var desired = (JsonObject)entity.Local.DeepClone();
+            desired["status"] = item.IsDone ? "notStarted" : "completed";
+            await _sync.Coordinator.EditFromSnapshotAsync(state.Binding.Id, entity.LocalId, entity.Local, entity.Revision, desired, _closeToken);
+            _sync.Request(state.Binding.Id);
+            await RefreshLocalAsync();
+        }
+        catch (OperationCanceledException) when (_closeToken.IsCancellationRequested) { }
+        catch (Exception) { _notifier?.Publish(UiText.Get("SyncLocalReadFailed"), PanelNotificationSeverity.Warning); await RefreshLocalAsync(); }
+        finally { OnPropertyChanged(nameof(Items)); }
     }
 
     private async Task SyncNowAsync()

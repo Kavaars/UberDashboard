@@ -9,6 +9,8 @@ using Microsoft.Identity.Client;
 using Microsoft.Identity.Client.Extensions.Msal;
 using UberDashboard.App.Controls;
 using UberDashboard.App.Features.Todo;
+using UberDashboard.App.Features.Integrations;
+using UberDashboard.Core.Synchronization;
 using UberDashboard.App.Panels;
 using UberDashboard.Infrastructure.Integrations;
 using Button = System.Windows.Controls.Button;
@@ -18,7 +20,7 @@ using TextBox = System.Windows.Controls.TextBox;
 
 namespace UberDashboard.App.Settings;
 
-internal sealed class MicrosoftTodoWizard(MicrosoftTodoSession session, MicrosoftTodoSettings settings, MicrosoftTodoRefresh refresh)
+internal sealed class MicrosoftTodoWizard(MicrosoftTodoSession session, MicrosoftTodoSettings settings, MicrosoftTodoRefresh refresh, IntegrationSyncService syncService)
 {
     public void Show(Window owner, IReadOnlyList<PanelGroupSession> groups)
     {
@@ -144,7 +146,9 @@ internal sealed class MicrosoftTodoWizard(MicrosoftTodoSession session, Microsof
             var id = Guid.Parse(clientId.Text);
             accountId = null;
             var preferredAccount = saved!.ClientId == id ? saved.AccountId : null;
-            var signedIn = await session.SignInAsync(id, token, preferredAccount, chooseAccount);
+            var signedIn = await session.SignInAsync(id, token, preferredAccount, chooseAccount, allowWrite: true);
+            if (!signedIn.Scopes.Any(s => s.Equals("Tasks.ReadWrite", StringComparison.OrdinalIgnoreCase) || s.EndsWith("/Tasks.ReadWrite", StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException("Microsoft To Do write permission was not granted.");
             var lists = await reader.ReadListsAsync(signedIn.AccessToken, token);
             token.ThrowIfCancellationRequested();
             accountId = signedIn.Account.HomeAccountId.Identifier;
@@ -155,7 +159,7 @@ internal sealed class MicrosoftTodoWizard(MicrosoftTodoSession session, Microsof
             foreach (var list in lists)
             {
                 var copy = new CheckBox { Content = UiText.Get("ImportACopy"), Margin = new Thickness(0, 3, 12, 3) };
-                var sync = new CheckBox { Content = UiText.Get("Sync"), IsChecked = sameAccount && saved.SelectedLists.Contains(list.Id) };
+                var sync = new CheckBox { Content = UiText.Get("Sync"), IsChecked = !sameAccount || saved.SelectedLists.Contains(list.Id) };
                 copy.SetResourceReference(FrameworkElement.StyleProperty, "ThemedCheckBox");
                 sync.SetResourceReference(FrameworkElement.StyleProperty, "ThemedCheckBox");
                 AutomationProperties.SetName(copy, UiText.Format("ImportACopyOf", list.DisplayName));
@@ -204,7 +208,7 @@ internal sealed class MicrosoftTodoWizard(MicrosoftTodoSession session, Microsof
             var tabs = new List<ImportedPanelTab>();
             if (selected.Length > 0)
             {
-                var signedIn = await session.SignInAsync(connectedClient, token, connected);
+                var signedIn = await session.SignInAsync(connectedClient, token, connected, allowWrite: true);
                 if (signedIn.Account.HomeAccountId.Identifier != connected)
                 {
                     accountId = null;
@@ -234,6 +238,14 @@ internal sealed class MicrosoftTodoWizard(MicrosoftTodoSession session, Microsof
                 with { TargetGroup = group?.Group.GroupId.Value ?? saved.TargetGroup };
             await settings.SaveAsync(updated, token);
             saved = updated;
+            var bindings = await syncService.Store.ListAsync(token);
+            foreach (var snapshot in snapshots)
+            {
+                var path = "lists/" + Uri.EscapeDataString(snapshot.Link.ListId) + "/tasks";
+                if (!bindings.Any(b => b.Provider == SyncProviderKind.MicrosoftTodo && b.ClientId == connectedClient.ToString("D") &&
+                    b.AccountId == connected && b.ResourcePath == path))
+                    await syncService.EnableAsync(SyncProviderKind.MicrosoftTodo, connectedClient.ToString("D"), connected, path, snapshot.Name, token);
+            }
             refresh.ClearError();
             if (tabs.Count > 0)
             {

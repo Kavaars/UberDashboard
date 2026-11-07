@@ -21,6 +21,7 @@ public sealed class TodoPanelViewModel : ObservableObject, IPanelOptionsPresente
     private bool _suppressNotifications;
     private bool _isOptionsOpen;
     private bool _showSummary = true;
+    private int _itemStyle;
     private double _edgeSpacing = 12;
     private double _entrySpacing = 6;
     private bool _showOnlyIncomplete;
@@ -50,6 +51,7 @@ public sealed class TodoPanelViewModel : ObservableObject, IPanelOptionsPresente
     /// <summary>Zadania w kolejności dodania.</summary>
     public ObservableCollection<TodoItemViewModel> Items { get; } = [];
     public ObservableCollection<TodoItemViewModel> VisibleItems { get; } = [];
+    public int ItemStyle { get => _itemStyle; set { if (SetProperty(ref _itemStyle, Math.Clamp(value, 0, 2))) MarkChanged(); } }
     public double EdgeSpacing
     {
         get => _edgeSpacing;
@@ -158,6 +160,7 @@ public sealed class TodoPanelViewModel : ObservableObject, IPanelOptionsPresente
         return new TodoDocument
         {
             Items = states,
+            ItemStyle = ItemStyle,
             ShowSummary = ShowSummary,
             EdgeSpacing = EdgeSpacing,
             EntrySpacing = EntrySpacing,
@@ -189,6 +192,7 @@ public sealed class TodoPanelViewModel : ObservableObject, IPanelOptionsPresente
             }
 
             ShowSummary = document.ShowSummary;
+            ItemStyle = document.ItemStyle;
             EdgeSpacing = document.EdgeSpacing;
             EntrySpacing = document.EntrySpacing;
             ShowOnlyIncomplete = document.ShowOnlyIncomplete;

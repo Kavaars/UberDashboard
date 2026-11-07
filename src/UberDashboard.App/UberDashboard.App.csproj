@@ -16,6 +16,7 @@
     <EmbeddedResource Include="Features\Shortcuts\Assets\Lucide\*.svg" />
     <Content Include="Features\Shortcuts\Assets\Lucide\LICENSE.txt" Link="Licenses\Lucide.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <EmbeddedResource Include="..\..\changelog.txt" LogicalName="UberDashboard.Changelog.txt" />
+    <EmbeddedResource Include="SystemIntegration\TrayIcon.ico" LogicalName="UberDashboard.TrayIcon.ico" />
   </ItemGroup>
 
   <ItemGroup>

@@ -3,7 +3,14 @@ using LibreHardwareMonitor.Hardware;
 
 namespace UberDashboard.App.Features.Resources;
 
-public sealed record ResourceReading(string Device, string Name, string Value);
+public sealed record ResourceReading(string Device, string Name, string Value, string Key = "")
+{
+    public string Symbol => Key.Contains("Temperature", StringComparison.Ordinal) ? "°C" :
+        Key.Contains("Fan", StringComparison.Ordinal) || Key.Contains("Control:", StringComparison.Ordinal) || Key.Contains("Speed:", StringComparison.Ordinal) ? "◉" :
+        Key.Contains("Vram", StringComparison.Ordinal) ? "VRAM" :
+        Key.Contains("Ram", StringComparison.Ordinal) ? "RAM" :
+        Key.Contains("Gpu", StringComparison.Ordinal) ? "GPU" : "CPU";
+}
 
 internal sealed class HardwareSampler : IDisposable, IAsyncDisposable
 {
@@ -68,20 +75,20 @@ internal sealed class HardwareSampler : IDisposable, IAsyncDisposable
         var cpus = hardware.Where(device => device.HardwareType == HardwareType.Cpu).ToArray();
         foreach (var cpu in cpus)
         {
-            Add(rows, cpu.Name, UiText.Get("CpuUsage"), Read(cpu, SensorType.Load, "CPU Total"), "%");
-            Add(rows, cpu.Name, UiText.Get("CpuTemperature"),
+            Add(rows, cpu.Name, UiText.Get("CpuUsage"), "CpuUsage", Read(cpu, SensorType.Load, "CPU Total"), "%");
+            Add(rows, cpu.Name, UiText.Get("CpuTemperature"), "CpuTemperature",
                 Read(cpu, SensorType.Temperature, "CPU Package", "Core (Tctl/Tdie)", "Core (Tdie)", "Core (Tctl)", "Core Average", "CCD Max (Tdie)", "CPU Core Max"), "°C");
         }
         if (cpus.Length == 0)
         {
-            Add(rows, "CPU", UiText.Get("Usage"), null, "%");
-            Add(rows, "CPU", UiText.Get("Temperature"), null, "°C");
+            Add(rows, "CPU", UiText.Get("Usage"), "Usage", null, "%");
+            Add(rows, "CPU", UiText.Get("Temperature"), "Temperature", null, "°C");
         }
 
         AddFans(rows, UiText.Get("CpuCooling"), cpuFanSensors);
         var ram = hardware.FirstOrDefault(device => device.HardwareType == HardwareType.Memory);
-        Add(rows, UiText.Get("Memory"), UiText.Get("RamUsage"), Read(ram, SensorType.Load, "Memory"), "%");
-        Add(rows, UiText.Get("Memory"), UiText.Get("RamUsed"), Read(ram, SensorType.Data, "Memory Used"), "GiB");
+        Add(rows, UiText.Get("Memory"), UiText.Get("RamUsage"), "RamUsage", Read(ram, SensorType.Load, "Memory"), "%");
+        Add(rows, UiText.Get("Memory"), UiText.Get("RamUsed"), "RamUsed", Read(ram, SensorType.Data, "Memory Used"), "GiB");
 
         var gpus = hardware.Where(device => device.HardwareType is HardwareType.GpuAmd or HardwareType.GpuNvidia or HardwareType.GpuIntel).ToArray();
         if (gpus.Length == 0)
@@ -95,8 +102,8 @@ internal sealed class HardwareSampler : IDisposable, IAsyncDisposable
     private static void AddGpu(List<ResourceReading> rows, IHardware? gpu)
     {
         var name = gpu?.Name ?? "GPU";
-        Add(rows, name, UiText.Get("GpuUsage"), Read(gpu, SensorType.Load, "GPU Core", "GPU Total", "D3D 3D"), "%");
-        Add(rows, name, UiText.Get("GpuTemperature"), Read(gpu, SensorType.Temperature, "GPU Core", "GPU"), "°C");
+        Add(rows, name, UiText.Get("GpuUsage"), "GpuUsage", Read(gpu, SensorType.Load, "GPU Core", "GPU Total", "D3D 3D"), "%");
+        Add(rows, name, UiText.Get("GpuTemperature"), "GpuTemperature", Read(gpu, SensorType.Temperature, "GPU Core", "GPU"), "°C");
 
         var used = Read(gpu, SensorType.SmallData, "GPU Memory Used");
         var total = Read(gpu, SensorType.SmallData, "GPU Memory Total");
@@ -109,8 +116,8 @@ internal sealed class HardwareSampler : IDisposable, IAsyncDisposable
             else if (used is null)
                 (used, total) = (dedicatedUsed, null);
         }
-        Add(rows, name, UiText.Get("VramUsage"), MemoryPercent(used, total), "%");
-        Add(rows, name, UiText.Get("VramUsed"), used / 1024, "GiB");
+        Add(rows, name, UiText.Get("VramUsage"), "VramUsage", MemoryPercent(used, total), "%");
+        Add(rows, name, UiText.Get("VramUsed"), "VramUsed", used / 1024, "GiB");
         AddFans(rows, name, gpu?.Sensors ?? []);
     }
 
@@ -118,11 +125,11 @@ internal sealed class HardwareSampler : IDisposable, IAsyncDisposable
     {
         var controls = sensors.Where(sensor => sensor.SensorType == SensorType.Control).ToArray();
         if (controls.Length == 0)
-            Add(rows, device, UiText.Get("FanControl"), null, "%");
+            Add(rows, device, UiText.Get("FanControl"), "FanControl", null, "%");
         foreach (var sensor in controls)
-            Add(rows, device, UiText.Format("Control", sensor.Name), sensor.Value, "%");
+            Add(rows, device, UiText.Format("Control", sensor.Name), "Control:" + sensor.Name, sensor.Value, "%");
         foreach (var sensor in sensors.Where(sensor => sensor.SensorType == SensorType.Fan))
-            Add(rows, device, UiText.Format("Speed", sensor.Name), sensor.Value, "RPM");
+            Add(rows, device, UiText.Format("Speed", sensor.Name), "Speed:" + sensor.Name, sensor.Value, "RPM");
     }
 
     private static float? Read(IHardware? device, SensorType type, params string[] names)
@@ -143,8 +150,8 @@ internal sealed class HardwareSampler : IDisposable, IAsyncDisposable
         value is float number && float.IsFinite(number) && (unit != "%" || number is >= 0 and <= 100)
             ? $"{number:0.#} {unit}" : UiText.Get("Unavailable");
 
-    private static void Add(List<ResourceReading> rows, string device, string name, float? value, string unit) =>
-        rows.Add(new(device, name, Format(value, unit)));
+    private static void Add(List<ResourceReading> rows, string device, string name, string key, float? value, string unit) =>
+        rows.Add(new(device, name, Format(value, unit), (device == UiText.Get("Memory") ? "Memory" : device == UiText.Get("CpuCooling") ? "CpuCooling" : device) + "|" + key));
 
     private void CloseComputer()
     {

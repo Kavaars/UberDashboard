@@ -17,7 +17,11 @@ public partial class ShortcutsView : Wpf.UserControl
     }
     private void OnDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (DataContext is ShortcutsPanel { SingleClick: false } panel && IsItem(e.OriginalSource)) Open(panel);
+        if (e.ChangedButton == MouseButton.Left && DataContext is ShortcutsPanel { SingleClick: false } panel && IsItem(e.OriginalSource)) Open(panel);
+    }
+    private void OnItemRightClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is Wpf.ListBoxItem item) item.IsSelected = true;
     }
     private void OnMouseUp(object sender, MouseButtonEventArgs e)
     {

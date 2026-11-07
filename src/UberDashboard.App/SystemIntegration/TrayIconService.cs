@@ -11,6 +11,7 @@ public sealed class TrayIconService : ITrayIconService
     private NotifyIcon? _notifyIcon;
     private ContextMenuStrip? _menu;
     private bool _required;
+    private Icon? _icon;
 
     private bool ShouldShowIcon => _required || CurrentSettings.EnableTrayIcon;
 
@@ -44,12 +45,14 @@ public sealed class TrayIconService : ITrayIconService
         contextMenu.Items.Add(new ToolStripSeparator());
         contextMenu.Items.Add(UiText.Get("Quit"), null, (_, _) => exitApplication());
 
+        using var iconStream = typeof(TrayIconService).Assembly.GetManifestResourceStream("UberDashboard.TrayIcon.ico");
+        _icon = iconStream is null ? (Icon)SystemIcons.Application.Clone() : new Icon(iconStream);
         _notifyIcon = new NotifyIcon
         {
             Text = "UberDashboard",
             Visible = ShouldShowIcon,
             ContextMenuStrip = contextMenu,
-            Icon = ResolveIcon(),
+            Icon = _icon,
         };
 
         _notifyIcon.MouseClick += (_, e) =>
@@ -92,6 +95,8 @@ public sealed class TrayIconService : ITrayIconService
         _notifyIcon = null;
         _menu?.Dispose();
         _menu = null;
+        _icon?.Dispose();
+        _icon = null;
     }
 
     private static Color ThemeColor(string key, Color fallback) =>
@@ -108,14 +113,4 @@ public sealed class TrayIconService : ITrayIconService
         public override Color SeparatorLight => surface;
     }
 
-    private static Icon ResolveIcon()
-    {
-        var processPath = Environment.ProcessPath;
-        if (!string.IsNullOrWhiteSpace(processPath))
-        {
-            return Icon.ExtractAssociatedIcon(processPath) ?? SystemIcons.Application;
-        }
-
-        return SystemIcons.Application;
-    }
 }

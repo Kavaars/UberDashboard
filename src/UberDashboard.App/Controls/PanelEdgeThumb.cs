@@ -31,7 +31,7 @@ public sealed class PanelEdgeThumb : Thumb
     }
     private Task CommitAsync(double space)
     {
-        if (DataContext is not PanelLeafViewModel { IsEditMode: true } leaf || space < 12
+        if (DataContext is not PanelLeafViewModel { IsEditMode: true } leaf || leaf.Appearance?.LockHeight == true || space < 12
             || Window.GetWindow(this)?.DataContext is not ShellViewModel shell) return Task.CompletedTask;
         var element = this as FrameworkElement;
         while (element is not null && element is not PanelAppearanceBorder) element = element.Parent as FrameworkElement ?? System.Windows.Media.VisualTreeHelper.GetParent(element) as FrameworkElement;

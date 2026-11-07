@@ -72,6 +72,22 @@ public sealed class TodoPanelViewModelTests
         Assert.Equal(6, restored.EntrySpacing);
     }
 
+    [Fact]
+    public void Item_style_roundtrips_and_preserves_tasks()
+    {
+        var vm = new TodoPanelViewModel(new RecordingNotifier());
+        vm.Load(new TodoDocument { Items = [new("task", false)] });
+        vm.ItemStyle = 2;
+        var restored = new TodoPanelViewModel(new RecordingNotifier());
+        restored.Load(vm.Snapshot());
+        Assert.Equal(2, restored.ItemStyle);
+        Assert.Single(restored.Items);
+        restored.ItemStyle = 99;
+        Assert.Equal(2, restored.ItemStyle);
+        restored.Load(new TodoDocument());
+        Assert.Equal(0, restored.ItemStyle);
+    }
+
     private sealed class RecordingNotifier : IPanelNotifier
     {
         public void Publish(string message, PanelNotificationSeverity severity = PanelNotificationSeverity.Information)

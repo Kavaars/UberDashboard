@@ -121,6 +121,14 @@
        <Setter Property="RenderTransform"><Setter.Value><ScaleTransform/></Setter.Value></Setter>
 
        <Setter Property="AutomationProperties.HelpText" Value="{Binding Target}"/>
+       <EventSetter Event="PreviewMouseRightButtonDown" Handler="OnItemRightClick"/>
+       <Setter Property="ContextMenu"><Setter.Value>
+        <ContextMenu DataContext="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}">
+         <MenuItem Header="{loc:Text ShortcutEdit}" Command="{Binding EditCommand}"/>
+         <MenuItem Header="{loc:Text ShortcutRemove}" Command="{Binding RemoveCommand}" ToolTip="{loc:Text ShortcutRemoveTip}"/>
+        </ContextMenu>
+       </Setter.Value></Setter>
+       <Setter Property="Tag" Value="{Binding DataContext, RelativeSource={RelativeSource AncestorType={x:Type local:ShortcutsView}}}"/>
        <Style.Triggers><EventTrigger RoutedEvent="PreviewMouseLeftButtonDown"><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" To="0.96" Duration="0:0:0.08" AutoReverse="True"/><DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" To="0.96" Duration="0:0:0.08" AutoReverse="True"/></Storyboard></BeginStoryboard></EventTrigger><Trigger Property="IsMouseOver" Value="True"><Setter Property="Cursor" Value="Hand"/><Trigger.EnterActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" To="1.03" Duration="0:0:0.12"/><DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" To="1.03" Duration="0:0:0.12"/></Storyboard></BeginStoryboard></Trigger.EnterActions><Trigger.ExitActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" To="1" Duration="0:0:0.12"/><DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" To="1" Duration="0:0:0.12"/></Storyboard></BeginStoryboard></Trigger.ExitActions></Trigger></Style.Triggers>
       </Style>
      </ListBox.ItemContainerStyle>

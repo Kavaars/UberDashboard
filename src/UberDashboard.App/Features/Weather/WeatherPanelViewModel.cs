@@ -12,8 +12,10 @@ namespace UberDashboard.App.Features.Weather;
 public sealed record WeatherHourlyForecastDisplayItem(
     string TimeText,
     string Glyph,
+    string ColorGlyph,
     string TemperatureText,
-    string ConditionText);
+    string ConditionText,
+    double TemperatureCelsius);
 
 /// <summary>
 /// Model widoku panelu pogody z wyszukiwaniem lokalizacji, odświeżaniem i fallbackiem do cache.
@@ -115,6 +117,9 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
     private string conditionGlyph = "•";
 
     [ObservableProperty]
+    private string colorConditionGlyph = "•";
+
+    [ObservableProperty]
     private string windText = "—";
 
     [ObservableProperty]
@@ -146,6 +151,18 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
 
     [ObservableProperty]
     private int autoRefreshMinutes = 30;
+
+    [ObservableProperty]
+    private bool colorfulTheme;
+
+    [ObservableProperty] private bool showLocation = true;
+    [ObservableProperty] private bool showIcon = true;
+    [ObservableProperty] private bool showTemperature = true;
+    [ObservableProperty] private bool showCondition = true;
+    [ObservableProperty] private bool showDailyRange = true;
+    [ObservableProperty] private bool showSunrise = true;
+    [ObservableProperty] private bool showSunset = true;
+    [ObservableProperty] private bool showForecast = true;
 
     [ObservableProperty]
     private bool showWind = true;
@@ -208,6 +225,16 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
+    partial void OnColorfulThemeChanged(bool value) => Changed?.Invoke(this, EventArgs.Empty);
+    partial void OnShowLocationChanged(bool value) => Changed?.Invoke(this, EventArgs.Empty);
+    partial void OnShowIconChanged(bool value) => Changed?.Invoke(this, EventArgs.Empty);
+    partial void OnShowTemperatureChanged(bool value) => Changed?.Invoke(this, EventArgs.Empty);
+    partial void OnShowConditionChanged(bool value) => Changed?.Invoke(this, EventArgs.Empty);
+    partial void OnShowDailyRangeChanged(bool value) => Changed?.Invoke(this, EventArgs.Empty);
+    partial void OnShowSunriseChanged(bool value) => Changed?.Invoke(this, EventArgs.Empty);
+    partial void OnShowSunsetChanged(bool value) => Changed?.Invoke(this, EventArgs.Empty);
+    partial void OnShowForecastChanged(bool value) => Changed?.Invoke(this, EventArgs.Empty);
+
     partial void OnShowWindChanged(bool value) => Changed?.Invoke(this, EventArgs.Empty);
 
     partial void OnShowUpdatedTimeChanged(bool value) => Changed?.Invoke(this, EventArgs.Empty);
@@ -231,6 +258,10 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         _networkConsentGrantedAtUtc = document.NetworkConsentGrantedAtUtc;
         SelectedLocation = document.SelectedLocation;
         AutoRefreshMinutes = Math.Clamp(document.AutoRefreshMinutes, 5, 180);
+        ColorfulTheme = document.ColorfulTheme;
+        ShowLocation = document.ShowLocation; ShowIcon = document.ShowIcon; ShowTemperature = document.ShowTemperature;
+        ShowCondition = document.ShowCondition; ShowDailyRange = document.ShowDailyRange; ShowSunrise = document.ShowSunrise;
+        ShowSunset = document.ShowSunset; ShowForecast = document.ShowForecast;
         ShowWind = document.ShowWind;
         ShowUpdatedTime = document.ShowUpdatedTime;
         ClearSearchResults();
@@ -246,6 +277,10 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         NetworkConsentGrantedAtUtc = _networkConsentGrantedAtUtc,
         SelectedLocation = SelectedLocation,
         AutoRefreshMinutes = AutoRefreshMinutes,
+        ColorfulTheme = ColorfulTheme,
+        ShowLocation = ShowLocation, ShowIcon = ShowIcon, ShowTemperature = ShowTemperature,
+        ShowCondition = ShowCondition, ShowDailyRange = ShowDailyRange, ShowSunrise = ShowSunrise,
+        ShowSunset = ShowSunset, ShowForecast = ShowForecast,
         ShowWind = ShowWind,
         ShowUpdatedTime = ShowUpdatedTime,
     };
@@ -425,7 +460,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
                 .UpsertAsync(location.CacheKey, snapshot, snapshot.FetchedAtUtc.Add(DefaultCacheLifetime), cancellationToken)
                 .ConfigureAwait(true);
 
-            StatusText = UiText.Format("UpdatedFor", location.DisplayName);
+            StatusText = string.Empty;
         }
         catch (OperationCanceledException)
         {
@@ -460,6 +495,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         TemperatureCelsius = snapshot.TemperatureCelsius;
         ConditionText = WeatherConditionCatalog.Describe(snapshot.WeatherCode);
         ConditionGlyph = WeatherConditionCatalog.Glyph(snapshot.WeatherCode, snapshot.IsDay);
+        ColorConditionGlyph = WeatherConditionCatalog.ColorGlyph(snapshot.WeatherCode, snapshot.IsDay);
         WindText = $"{snapshot.WindSpeedKph:0.#} km/h";
         UpdatedText = snapshot.SourceTime.ToString("yyyy-MM-dd HH:mm zzz");
         DailyRangeText = snapshot.DailyHighCelsius.HasValue || snapshot.DailyLowCelsius.HasValue
@@ -478,6 +514,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         TemperatureCelsius = null;
         ConditionText = UiText.Get("NoData");
         ConditionGlyph = "•";
+        ColorConditionGlyph = "•";
         WindText = "—";
         UpdatedText = "—";
         DailyRangeText = "—";
@@ -526,8 +563,9 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
             HourlyForecast.Add(new WeatherHourlyForecastDisplayItem(
                 point.Time.ToString("HH:mm"),
                 WeatherConditionCatalog.Glyph(point.WeatherCode, point.IsDay),
+                WeatherConditionCatalog.ColorGlyph(point.WeatherCode, point.IsDay),
                 $"{point.TemperatureCelsius:0.#} °C",
-                WeatherConditionCatalog.Describe(point.WeatherCode)));
+                WeatherConditionCatalog.Describe(point.WeatherCode), point.TemperatureCelsius));
         }
 
         OnPropertyChanged(nameof(HasHourlyForecast));

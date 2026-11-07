@@ -22,5 +22,6 @@ public sealed record TodoDocument
     public int CompletedDisplayLimit { get; init; } = 50;
     public int CompletedKeepLimit { get; init; } = 50;
 
+    public int ItemStyle { get; init; }
     public bool ShowSummary { get; init; } = true;
 }
