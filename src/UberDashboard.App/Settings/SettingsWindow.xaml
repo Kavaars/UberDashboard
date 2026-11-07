@@ -43,7 +43,6 @@
     </Grid.RowDefinitions>
     <StackPanel Grid.Row="0" Margin="0,0,0,10">
       <TextBlock Foreground="{DynamicResource Brush.Text}" FontSize="20" FontWeight="SemiBold" Text="{loc:Text Settings}" TextWrapping="Wrap"/>
-      <TextBlock Margin="0,6,0,0" Foreground="{DynamicResource Brush.Text.Muted}" Text="{loc:Text ChangesTakeEffectImmediatelyAndSaveAutomatically}" TextWrapping="Wrap"/>
     </StackPanel>
     <TabControl Grid.Row="1" Background="Transparent" BorderBrush="{DynamicResource Brush.Border}" TabStripPlacement="Left" BorderThickness="0">
       <TabItem Header="{loc:Text Appearance}">
@@ -271,8 +270,6 @@
           <Border Margin="8" Style="{StaticResource SettingsCard}">
             <StackPanel>
               <TextBlock Style="{StaticResource SettingsSectionTitle}" Text="Microsoft To Do"/>
-              <TextBlock TextWrapping="Wrap" Margin="0,6,0,12"
-                         Text="{loc:Text ConnectAnAccountChooseListsToImport}"/>
               <Button HorizontalAlignment="Left" Content="{loc:Text OpenMicrosoftToDoSetup}" Style="{StaticResource ToolbarButton}" Click="OpenMicrosoftTodo_Click"
                       ToolTip="{loc:Text OpensAccountConfigurationAndMicrosoftToDo}"/>
               <TextBlock Margin="0,16,0,8" Text="{loc:Text PrivacyConnectionsNotice}" TextWrapping="Wrap"/>
@@ -294,7 +291,6 @@
           </Grid.RowDefinitions>
           <StackPanel>
             <TextBlock Text="{loc:Text PluginPanels}" Style="{StaticResource SettingsSectionTitle}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap"/>
-            <TextBlock Text="{loc:Text SelectAUdpluginPackageOrDropIt}" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Muted}"/>
             <WrapPanel Margin="0,12,0,0">
               <Button Content="{loc:Text InstallFromFile}" Command="{Binding InstallCommand}" Style="{StaticResource ToolbarButton}" ToolTip="{loc:Text ChecksThePackageAndMakesItsPanels}"/>
               <Button Content="{loc:Text CancelOperation}" Command="{Binding CancelCommand}" Style="{StaticResource ToolbarButton}" ToolTip="{loc:Text CancelsBeforeInstallationOrRemovalIsCommitted}"/>

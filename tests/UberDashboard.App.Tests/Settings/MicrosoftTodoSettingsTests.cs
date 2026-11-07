@@ -2,11 +2,24 @@ using System.Text.Json;
 using UberDashboard.App.Features.Todo;
 using UberDashboard.App.Panels;
 using UberDashboard.Core.Layout;
+using UberDashboard.Core.Synchronization;
 
 namespace UberDashboard.App.Tests.Settings;
 
 public sealed class MicrosoftTodoSettingsTests
 {
+    [Fact]
+    public void Uninitialized_sync_state_does_not_replace_cached_tasks_but_confirmed_empty_state_does()
+    {
+        var link = new MicrosoftTodoLink(Guid.NewGuid(), "account", "list");
+        var view = new MicrosoftTodoListViewModel(new TodoPanelViewModel(new UberDashboard.App.Tests.TestSupport.FakePanelNotifier()));
+        view.Load(link, MicrosoftTodoPreferences.Empty(link.ClientId).Refresh(link.ClientId, link.AccountId, [Snapshot(link, "cached")], DateTimeOffset.UtcNow));
+        var binding = new SyncBinding(Guid.NewGuid(), SyncProviderKind.MicrosoftTodo, link.ClientId.ToString("D"), link.AccountId, "lists/list/tasks", "list", true);
+        view.ApplyLocalState(new SyncState(binding));
+        Assert.Equal("cached", Assert.Single(view.Items).Text);
+        view.ApplyLocalState(new SyncState(binding, Cursor: "confirmed"));
+        Assert.Empty(view.Items);
+    }
     [Fact]
     public void Refresh_replaces_the_selected_snapshot_and_keeps_disabled_lists_readable()
     {

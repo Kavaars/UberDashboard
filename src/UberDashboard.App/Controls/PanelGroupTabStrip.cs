@@ -70,7 +70,7 @@ public sealed class PanelGroupTabStrip : ScrollViewer
         if (Session is not { } session) return;
         foreach (var tab in session.Group.Tabs)
         {
-            var button = new Button { Tag = tab, Content = tab.Name, Padding = new Thickness(10, 5, 10, 5), Margin = new Thickness(0, 0, 3, 0), AllowDrop = true, ToolTip = UiText.Get("SelectsTheTabDoubleClickOrPress") };
+            var button = new Button { Tag = tab, Content = tab.Name, Padding = new Thickness(10, 5, 10, 5), Margin = new Thickness(0, 0, 3, 0), AllowDrop = true };
             button.SetResourceReference(StyleProperty, "PanelActionButton");
             ApplyMicrosoftTodoBorder(button, session.IsMicrosoftTodoTab(tab.InstanceId));
             button.SetResourceReference(Control.ForegroundProperty, "Brush.Text");
@@ -106,7 +106,19 @@ public sealed class PanelGroupTabStrip : ScrollViewer
             button.Drop += async (_, e) => { if (e.Data.GetData(typeof(PanelTab)) is PanelTab moving) await Run(() => session.UpdateAsync(group => group.Move(moving.InstanceId, group.Tabs.IndexOf(tab)))); e.Handled = true; };
             var menu = new ContextMenu();
             var remove = new MenuItem { Header = UiText.Get("DeleteTab2"), IsEnabled = session.Group.Tabs.Length > 1 };
-            remove.Click += async (_, _) => { await Run(async () => { if (!await session.NeedsDeletionConfirmationAsync(tab.InstanceId) || ConfirmDeletion(tab)) await session.RemoveAsync(tab.InstanceId); }); };
+            if (session.IsMicrosoftTodoTab(tab.InstanceId))
+            {
+                var local = new MenuItem { Header = UiText.Get("TodoDeleteTabOnly") };
+                local.Click += async (_, _) => await Run(async () => { if (ConfirmDeletion(tab)) await session.RemoveAsync(tab.InstanceId); });
+                var remote = new MenuItem { Header = UiText.Get("TodoDeleteTabAndRemote") };
+                remote.Click += async (_, _) => await Run(async () =>
+                {
+                    if (ThemedMessageBox.Show(UiText.Format("TodoDeleteRemoteConfirm", tab.Name), UiText.Get("DeleteTab"), MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes)
+                        await session.RemoveMicrosoftTodoListAsync(tab.InstanceId);
+                });
+                remove.Items.Add(local); remove.Items.Add(remote);
+            }
+            else remove.Click += async (_, _) => { await Run(async () => { if (!await session.NeedsDeletionConfirmationAsync(tab.InstanceId) || ConfirmDeletion(tab)) await session.RemoveAsync(tab.InstanceId); }); };
             menu.Items.Add(remove);
             if (session.SupportsFileImport)
             {
@@ -131,7 +143,6 @@ public sealed class PanelGroupTabStrip : ScrollViewer
         {
             button.SetResourceReference(Control.BorderBrushProperty, "Brush.MicrosoftTodo.TabBorder");
             button.BorderThickness = new Thickness(1);
-            button.ToolTip = UiText.Get("MicrosoftTodoLinkedTabHelp");
         }
         else
         {

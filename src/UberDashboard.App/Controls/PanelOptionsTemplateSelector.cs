@@ -9,6 +9,7 @@ public sealed class PanelOptionsTemplateSelector : DataTemplateSelector
     {
         var key = item switch
         {
+            Features.Shortcuts.ShortcutsPanel => "ShortcutsOptionsTemplate",
             Features.Resources.ResourcePanel => "ResourceOptionsTemplate",
             Features.Calendar.CalendarPanel => "CalendarOptionsTemplate",
             Features.Affirmations.AffirmationPanelViewModel => "AffirmationOptionsTemplate",

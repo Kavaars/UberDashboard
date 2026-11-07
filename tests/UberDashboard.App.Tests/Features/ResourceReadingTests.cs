@@ -38,4 +38,32 @@ public sealed class ResourceReadingTests
         Assert.Empty(state!.Hidden);
         Assert.False(state.ShowTiles);
     }
+    [Fact]
+    public void Tile_view_round_trips_with_hidden_parameters()
+    {
+        var original = new ResourcePanelState { ShowTiles = true, Hidden = ["cpu|CpuUsage"] };
+        var restored = System.Text.Json.JsonSerializer.Deserialize<ResourcePanelState>(System.Text.Json.JsonSerializer.Serialize(original));
+        Assert.True(restored!.ShowTiles);
+        Assert.Equal(original.Hidden, restored.Hidden);
+    }
+
+    [Theory]
+    [InlineData("device|CpuTemperature", "°C")]
+    [InlineData("device|GpuUsage", "GPU")]
+    [InlineData("Memory|RamUsage", "RAM")]
+    [InlineData("device|VramUsed", "VRAM")]
+    public void Tile_symbol_follows_reading_type(string key, string expected)
+    {
+        Assert.Equal(expected, new ResourceReading("device", "reading", "value", key).Symbol);
+    }
+    [Theory]
+    [InlineData("device|CpuTemperature", "52.5 °C", "CPU °", "52.5")]
+    [InlineData("device|GpuTemperature", "Niedostępne", "GPU °", "Niedostępne")]
+    [InlineData("device|GpuUsage", "20 %", "GPU", "20 %")]
+    public void Compact_tiles_keep_context_and_unavailable_values(string key, string value, string label, string displayed)
+    {
+        var reading = new ResourceReading("device", "reading", value, key);
+        Assert.Equal(label, reading.TileLabel);
+        Assert.Equal(displayed, reading.TileValue);
+    }
 }

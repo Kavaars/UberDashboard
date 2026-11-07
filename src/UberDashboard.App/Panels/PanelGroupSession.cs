@@ -184,6 +184,16 @@ public sealed class PanelGroupSession : ObservableObject
         catch (System.Text.Json.JsonException) { return true; }
     }
 
+    internal async Task RemoveMicrosoftTodoListAsync(PanelInstanceId id, CancellationToken token = default)
+    {
+        if (!IsMicrosoftTodoTab(id)) throw new InvalidOperationException(UiText.Get("TodoDeleteRemoteUnavailable"));
+        await SelectAsync(id, token).ConfigureAwait(true);
+        if (ActiveViewModel is not Features.Todo.MicrosoftTodoListViewModel list)
+            throw new InvalidOperationException(UiText.Get("TodoDeleteRemoteUnavailable"));
+        await list.DeleteRemoteListAsync(token).ConfigureAwait(true);
+        await RemoveAsync(id, token).ConfigureAwait(true);
+    }
+
     public async Task RemoveAsync(PanelInstanceId id, CancellationToken token = default)
     {
         await _gate.WaitAsync(token).ConfigureAwait(true);

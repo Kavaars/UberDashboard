@@ -51,7 +51,7 @@ public sealed class NotesTabStrip : ScrollViewer
         if (_model is not { } model) return;
         foreach (var tab in model.Tabs)
         {
-            var button = new Button { Padding = new Thickness(10, 5, 10, 5), Margin = new Thickness(0, 0, 3, 0), DataContext = tab, AllowDrop = true, ToolTip = UiText.Get("ClickToSelectANoteDoubleClick") };
+            var button = new Button { Padding = new Thickness(10, 5, 10, 5), Margin = new Thickness(0, 0, 3, 0), DataContext = tab, AllowDrop = true };
             button.SetResourceReference(Control.ForegroundProperty, "Brush.Text");
             button.SetResourceReference(Control.BackgroundProperty, ReferenceEquals(tab, model.SelectedTab) ? "Brush.Surface.Alt" : "Brush.Surface");
             var title = new TextBlock(); title.SetBinding(TextBlock.TextProperty, new Binding(nameof(NotesTab.Title)));

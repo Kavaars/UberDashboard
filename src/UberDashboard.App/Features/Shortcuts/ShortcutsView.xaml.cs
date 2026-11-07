@@ -7,14 +7,6 @@ namespace UberDashboard.App.Features.Shortcuts;
 public partial class ShortcutsView : Wpf.UserControl
 {
     public ShortcutsView() => InitializeComponent();
-    private void OnOptionsClick(object sender, RoutedEventArgs e)
-    {
-        if (sender is Wpf.Button { ContextMenu: { } menu } button)
-        {
-            menu.PlacementTarget = button;
-            menu.IsOpen = true;
-        }
-    }
     private void OnDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (e.ChangedButton == MouseButton.Left && DataContext is ShortcutsPanel { SingleClick: false } panel && IsItem(e.OriginalSource)) Open(panel);

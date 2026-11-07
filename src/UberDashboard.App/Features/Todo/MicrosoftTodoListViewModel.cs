@@ -84,25 +84,63 @@ public sealed class MicrosoftTodoListViewModel : ObservableObject, IPanelOptions
             b.ClientId == _link.ClientId.ToString("D") && b.AccountId == _link.AccountId && b.ResourcePath == path)?.Id;
     }
 
+    internal async Task DeleteRemoteListAsync(CancellationToken token)
+    {
+        if (_sync is null || _link is null) throw new InvalidOperationException(UiText.Get("TodoDeleteRemoteUnavailable"));
+        var catalogId = await _sync.EnableAsync(SyncProviderKind.MicrosoftTodo, _link.ClientId.ToString("D"), _link.AccountId,
+            SyncContainers.CatalogPath(SyncProviderKind.MicrosoftTodo), UiText.Get("SyncManageLists"), token);
+        await _sync.Coordinator.SynchronizeAsync(catalogId, token);
+        var state = await _sync.Store.ReadAsync(catalogId, token) ?? throw new InvalidOperationException(UiText.Get("TodoDeleteRemoteUnavailable"));
+        var entity = state.Items.SingleOrDefault(item => item.RemoteId == _link.ListId && item.Local is not null);
+        if (entity is null || entity.Conflicts is { Length: > 0 } || !SyncContainers.CanDelete(SyncProviderKind.MicrosoftTodo, entity.Metadata))
+            throw new InvalidOperationException(UiText.Get("TodoDeleteRemoteUnavailable"));
+        await _sync.Coordinator.EditFromSnapshotAsync(catalogId, entity.LocalId, entity.Local, entity.Revision, null, token);
+        state = await _sync.Store.ReadAsync(catalogId, token) ?? throw new InvalidOperationException(UiText.Get("TodoDeleteRemoteUnavailable"));
+        var operation = state.Queue.Single(item => item.EntityId == entity.LocalId && item.Kind == SyncOperationKind.Delete && item.State == SyncOperationState.AwaitingApproval);
+        await _sync.Coordinator.ApproveAsync(catalogId, operation.Id, token, operation);
+        await _sync.Coordinator.SynchronizeAsync(catalogId, token);
+        state = await _sync.Store.ReadAsync(catalogId, token) ?? throw new InvalidOperationException(UiText.Get("TodoDeleteRemotePending"));
+        if (state.Queue.Any(item => item.Id == operation.Id) || state.Items.Any(item => item.LocalId == entity.LocalId && item.Baseline is not null))
+        {
+            _sync.Request(catalogId);
+            throw new InvalidOperationException(UiText.Get("TodoDeleteRemotePending"));
+        }
+    }
+
     private async Task RefreshLocalAsync()
     {
         if (_reading || _closeToken.IsCancellationRequested) return;
         _reading = true;
         try
         {
+            var link = _link;
             if (await FindBindingAsync() is not { } id || _sync is null) return;
             var state = await _sync.Store.ReadAsync(id, _closeToken);
-            if (state is null) return;
-            _state = state;
-            OnPropertyChanged(nameof(LastSyncText));
-            _localItems = state.Items.Where(e => e.Kind == SyncEntityKind.Item && e.Local is not null).Select(ToItem).ToArray();
-            Status = UiText.Format("SyncQueueSummary", _localItems.Count, state.Queue.Count,
-                state.Binding.Enabled ? UiText.Get("SyncEnabled") : UiText.Get("SyncPaused"));
-            OnPropertyChanged(nameof(Items));
+            if (state is null || link != _link) return;
+            ApplyLocalState(state);
         }
         catch (OperationCanceledException) when (_closeToken.IsCancellationRequested) { }
         catch (Exception) { Status = UiText.Get("SyncLocalReadFailed"); }
         finally { _reading = false; }
+    }
+
+    internal void ApplyLocalState(SyncState state)
+    {
+        _state = state;
+        OnPropertyChanged(nameof(LastSyncText));
+        var items = state.Items.Where(e => e.Kind == SyncEntityKind.Item && e.Local is not null).Select(ToItem).ToArray();
+        if (state.Cursor is null && state.LastSuccess is null && state.Items.Count == 0 && state.Queue.Count == 0)
+        {
+            _localItems = null;
+            Status = UiText.Get("TodoSyncAwaitingFirstDownload");
+        }
+        else
+        {
+            _localItems = items;
+            Status = UiText.Format("SyncQueueSummary", items.Length, state.Queue.Count,
+                state.Binding.Enabled ? UiText.Get("SyncEnabled") : UiText.Get("SyncPaused"));
+        }
+        OnPropertyChanged(nameof(Items));
     }
 
     private async Task ToggleTaskAsync(TodoItemState? item)

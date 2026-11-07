@@ -143,6 +143,22 @@
     </DockPanel>
   </DataTemplate>
 
+  <DataTemplate x:Key="ShortcutsOptionsTemplate">
+    <StackPanel>
+      <Button Content="{loc:Text ShortcutAdd}" Command="{Binding AddCommand}" Style="{StaticResource ToolbarButton}" ToolTip="{loc:Text ShortcutAddTip}"/>
+      <ComboBox ItemsSource="{Binding Modes}" SelectedValue="{Binding Mode}" SelectedValuePath="Value" Margin="0,8,0,0" Style="{StaticResource ThemedComboBox}" AutomationProperties.Name="{loc:Text ShortcutView}" ToolTip="{loc:Text ShortcutViewTip}">
+        <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}"/></DataTemplate></ComboBox.ItemTemplate>
+      </ComboBox>
+      <Button Content="{loc:Text Open}" Command="{Binding OpenCommand}" Style="{StaticResource ToolbarButton}" ToolTip="{loc:Text ShortcutOpenTip}" Margin="0,8,0,0"/>
+      <Button Content="{loc:Text ShortcutEdit}" Command="{Binding EditCommand}" Style="{StaticResource ToolbarButton}" Margin="0,8,0,0"/>
+      <Button Content="{loc:Text ShortcutRemove}" Command="{Binding RemoveCommand}" Style="{StaticResource ToolbarButton}" ToolTip="{loc:Text ShortcutRemoveTip}" Margin="0,8,0,0"/>
+      <Button Content="{loc:Text ShortcutMoveUp}" Command="{Binding MoveUpCommand}" Style="{StaticResource ToolbarButton}" Margin="0,8,0,0"/>
+      <Button Content="{loc:Text ShortcutMoveDown}" Command="{Binding MoveDownCommand}" Style="{StaticResource ToolbarButton}" Margin="0,8,0,0"/>
+      <CheckBox Content="{loc:Text ShortcutSingleClick}" IsChecked="{Binding SingleClick}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text ShortcutSingleClickHelp}" Margin="0,8,0,0"/>
+      <Button Content="{loc:Text ShortcutWallpaper}" Command="{Binding ChooseWallpaperCommand}" Style="{StaticResource ToolbarButton}" Margin="0,8,0,0"/>
+      <Button Content="{loc:Text ShortcutClearWallpaper}" Command="{Binding ClearWallpaperCommand}" Style="{StaticResource ToolbarButton}" Margin="0,8,0,0"/>
+    </StackPanel>
+  </DataTemplate>
   <DataTemplate x:Key="ResourceOptionsTemplate">
     <StackPanel>
       <CheckBox Content="{loc:Text ResourceTileView}" IsChecked="{Binding ShowTiles}" Style="{StaticResource ThemedCheckBox}" AutomationProperties.Name="{loc:Text ResourceTileView}" Margin="0,0,0,8"/>
@@ -172,8 +188,11 @@
                   </StackPanel>
                 </DockPanel>
               </Border>
-              <Border x:Name="TileReading" Visibility="Collapsed" Width="130" MinHeight="90" Margin="3" Padding="6" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" ToolTip="{Binding Device}">
-                <StackPanel><TextBlock Text="{Binding Symbol}" FontWeight="Bold" FontSize="17" HorizontalAlignment="Center"/><TextBlock Text="{Binding Value}" FontWeight="SemiBold" HorizontalAlignment="Center"/><TextBlock Text="{Binding Name}" TextWrapping="Wrap" TextAlignment="Center"/></StackPanel>
+              <Border x:Name="TileReading" Visibility="Collapsed" Width="100" Height="60" Margin="2" Padding="3" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" ToolTip="{Binding Name}" AutomationProperties.Name="{Binding Name}" AutomationProperties.HelpText="{Binding Device}">
+                <Grid ClipToBounds="True">
+                  <Viewbox Stretch="Uniform"><TextBlock Text="{Binding TileLabel}" FontWeight="Bold" Foreground="{DynamicResource Brush.Text.Muted}" Opacity="0.28"/></Viewbox>
+                  <Viewbox Stretch="Uniform" Margin="2"><TextBlock Text="{Binding TileValue}" FontWeight="Bold" Foreground="{DynamicResource Brush.Text}"/></Viewbox>
+                </Grid>
               </Border>
               </Grid>
               <DataTemplate.Triggers><DataTrigger Binding="{Binding DataContext.ShowTiles, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True"><Setter TargetName="TextReading" Property="Visibility" Value="Collapsed"/><Setter TargetName="TileReading" Property="Visibility" Value="Visible"/></DataTrigger></DataTemplate.Triggers>
@@ -230,7 +249,6 @@
 
         <TextBlock Text="{Binding CurrentStreak, StringFormat={loc:Text CurrentStreakDays}}" Foreground="{DynamicResource Brush.Text}"/>
 
-        <TextBlock Text="{loc:Text DailyHistoryAndStreaksCompletingASet}" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text}"/>
 
         <TextBlock Text="{Binding HistoryText}" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text}"/><TextBlock Text="{loc:Text StreakHistory}" Foreground="{DynamicResource Brush.Text}"/><TextBlock Text="{Binding StreakHistory}" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text}"/>
 
@@ -246,11 +264,11 @@
 
       <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
 
-      <DockPanel><Button DockPanel.Dock="Right" Content="{loc:Text Reset}" Style="{StaticResource ToolbarButton}" Command="{Binding ResetCommand}" ToolTip="{loc:Text RestartsAllAffirmationsAndResetsTheAutomatic}"/><Grid DockPanel.Dock="Right" Width="120" Height="32" Margin="4,0">
+      <DockPanel><Button DockPanel.Dock="Right" Content="{loc:Text Reset}" Style="{StaticResource ToolbarButton}" Command="{Binding ResetCommand}" ToolTip="{loc:Text RestartsAllAffirmationsAndResetsTheAutomatic}"/><Grid DockPanel.Dock="Right" Height="28" Margin="4,0">
 
-          <controls:AffirmationInput x:Name="AffirmationEditor" Padding="8,2" Style="{StaticResource ThemedTextBox}" IsEnabled="{Binding HasCurrent}" AutomationProperties.Name="{loc:Text TypeTheDisplayedAffirmation}" ToolTip="{loc:Text ClickHereOrOnTheAffirmationAnd}"/>
+          <controls:AffirmationInput x:Name="AffirmationEditor" Padding="4,2" Style="{StaticResource ThemedTextBox}" IsEnabled="{Binding HasCurrent}" AutomationProperties.Name="{loc:Text TypeTheDisplayedAffirmation}" ToolTip="{loc:Text ClickHereOrOnTheAffirmationAnd}"/>
 
-          <TextBlock Text="{loc:Text TypeHere}" Margin="9,0" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Text.Muted}" IsHitTestVisible="False">
+          <TextBlock Text="{loc:Text TypeHere}" Margin="5,0" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Text.Muted}" IsHitTestVisible="False">
 
             <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding IsKeyboardFocusWithin, ElementName=AffirmationEditor}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
 
@@ -328,13 +346,7 @@
 
             </DockPanel>
 
-            <TextBlock Margin="0,12,0,0"
 
-                       Foreground="{DynamicResource Brush.Text.Muted}"
-
-                       Text="{loc:Text PasteImagesIntoTheEditorWithCtrl}"
-
-                       TextWrapping="Wrap" />
 
           </StackPanel>
 
@@ -376,7 +388,7 @@
 </Style>
 
 <DataTemplate x:Key="TodoOptionsTemplate">
-  <ScrollViewer MaxHeight="480" VerticalScrollBarVisibility="Auto"><StackPanel>
+  <StackPanel>
     <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" Text="{loc:Text TaskListOptions}" />
     <CheckBox Margin="0,12,0,0" Content="{loc:Text ShowCompletedTaskSummary}" IsChecked="{Binding ShowSummary}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text ShowsTheNumberOfCompletedTasksAt}" />
     <CheckBox Margin="0,10,0,0" Content="{loc:Text TodoOnlyIncomplete}" IsChecked="{Binding ShowOnlyIncomplete}" Style="{StaticResource ThemedCheckBox}" />
@@ -387,11 +399,11 @@
     <Button Margin="0,8,0,0" Content="{loc:Text TodoKeepAction}" Command="{Binding KeepCompletedCommand}" Style="{StaticResource ToolbarButton}" />
     <Button Margin="0,8,0,0" Content="{loc:Text TodoClearAction}" Command="{Binding ClearCompletedCommand}" Style="{StaticResource ToolbarButton}" />
     <ContentControl Content="{Binding}" ContentTemplate="{StaticResource TodoSpacingOptionsTemplate}" />
-  </StackPanel></ScrollViewer>
+  </StackPanel>
 </DataTemplate>
 
 <DataTemplate x:Key="MicrosoftTodoOptionsTemplate">
-  <ScrollViewer MaxHeight="480" VerticalScrollBarVisibility="Auto"><StackPanel>
+  <StackPanel>
     <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" Text="{loc:Text TaskListOptions}" />
     <CheckBox Margin="0,10,0,0" Content="{loc:Text TodoOnlyIncomplete}" IsChecked="{Binding ShowOnlyIncomplete}" Style="{StaticResource ThemedCheckBox}" />
     <TextBlock Margin="0,10,0,2" Text="{loc:Text TodoDisplayLimit}" Foreground="{DynamicResource Brush.Text}" />
@@ -402,14 +414,14 @@
     <Button Margin="0,8,0,0" Content="{loc:Text TodoClearAction}" Command="{Binding ClearCompletedCommand}" Style="{StaticResource ToolbarButton}" />
     <ContentControl Content="{Binding}" ContentTemplate="{StaticResource TodoSpacingOptionsTemplate}" />
     <TextBlock Margin="0,8,0,0" Text="{loc:Text TodoSyncEnableFirst}" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Muted}" />
-  </StackPanel></ScrollViewer>
+  </StackPanel>
 </DataTemplate>
 
 <DataTemplate x:Key="WeatherOptionsTemplate">
 
         <Border>
 
-          <ScrollViewer MaxHeight="480" VerticalScrollBarVisibility="Auto"><Grid>
+          <Grid>
 
             <Grid.RowDefinitions>
 
@@ -620,7 +632,7 @@
 
             </StackPanel>
 
-          </Grid></ScrollViewer>
+          </Grid>
 
         </Border>
 
@@ -1545,11 +1557,13 @@
 
         </Border>
 
-        <Popup IsOpen="{Binding IsOptionsOpen, Mode=TwoWay}" Placement="MousePoint" AllowsTransparency="True" StaysOpen="False">
+        <Popup x:Name="OptionsPopup" IsOpen="{Binding IsOptionsOpen, Mode=TwoWay}" Placement="MousePoint" AllowsTransparency="True" StaysOpen="False">
 
           <Border Width="360" Style="{StaticResource PanelPopupCard}">
 
-            <ScrollViewer MaxHeight="540" VerticalScrollBarVisibility="Auto">
+            <DockPanel>
+              <controls:PopupDragHandle Target="{Binding ElementName=OptionsPopup}" Height="16" Cursor="SizeAll" Background="{DynamicResource Brush.Surface.Alt}" DockPanel.Dock="Top" AutomationProperties.Name="{loc:Text MoveMenu}"/>
+            <ScrollViewer MaxHeight="524" VerticalScrollBarVisibility="Auto">
 
               <StackPanel>
 
@@ -1605,6 +1619,7 @@
               </StackPanel></Expander></StackPanel>
 
             </ScrollViewer>
+            </DockPanel>
 
           </Border>
 

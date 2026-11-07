@@ -1,6 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:controls="clr-namespace:UberDashboard.App.Controls">
+                    xmlns:controls="clr-namespace:UberDashboard.App.Controls" xmlns:loc="clr-namespace:UberDashboard.App.Localization">
   <controls:SettingsValueLabelConverter x:Key="SettingsValueLabel" />
   <controls:PanelHeaderWidthConverter x:Key="PanelHeaderWidth" />
   <controls:CompactPanelConverter x:Key="CompactPanel" />
@@ -403,11 +403,12 @@
                       BorderBrush="{DynamicResource Brush.Border}"
                       BorderThickness="1"
                       CornerRadius="{DynamicResource Token.CornerRadius.M}">
-                <ScrollViewer CanContentScroll="True"
-                              MaxHeight="320"
-                              VerticalScrollBarVisibility="Auto">
-                  <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
-                </ScrollViewer>
+                <DockPanel>
+                  <controls:PopupDragHandle Target="{Binding ElementName=Popup}" Height="12" Cursor="SizeAll" Background="{DynamicResource Brush.Surface.Alt}" DockPanel.Dock="Top" AutomationProperties.Name="{loc:Text MoveMenu}"/>
+                  <ScrollViewer CanContentScroll="True" MaxHeight="308" VerticalScrollBarVisibility="Auto">
+                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+                  </ScrollViewer>
+                </DockPanel>
               </Border>
             </Popup>
           </Grid>
@@ -473,7 +474,7 @@
               <TextBlock x:Name="Arrow" Grid.Column="2" Text="›" Visibility="Collapsed" VerticalAlignment="Center" />
               <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsSubmenuOpen}" Placement="Right" AllowsTransparency="True" Focusable="False">
                 <Border Background="{DynamicResource Brush.Popup}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="{DynamicResource Token.CornerRadius.M}" Padding="4">
-                  <ScrollViewer MaxHeight="480" VerticalScrollBarVisibility="Auto" CanContentScroll="True"><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" /></ScrollViewer>
+                  <DockPanel><controls:PopupDragHandle Target="{Binding ElementName=PART_Popup}" Height="12" Cursor="SizeAll" Background="{DynamicResource Brush.Surface.Alt}" DockPanel.Dock="Top" AutomationProperties.Name="{loc:Text MoveMenu}"/><ScrollViewer MaxHeight="468" VerticalScrollBarVisibility="Auto" CanContentScroll="True"><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" /></ScrollViewer></DockPanel>
                 </Border>
               </Popup>
             </Grid>
@@ -501,7 +502,10 @@
       <Setter.Value>
         <ControlTemplate TargetType="ContextMenu">
           <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource Token.CornerRadius.M}" Padding="5">
-            <ScrollViewer MaxHeight="520" VerticalScrollBarVisibility="Auto" CanContentScroll="True"><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" /></ScrollViewer>
+            <DockPanel>
+              <controls:PopupDragHandle Target="{Binding RelativeSource={RelativeSource TemplatedParent}}" Height="12" Cursor="SizeAll" Background="{DynamicResource Brush.Surface.Alt}" DockPanel.Dock="Top" AutomationProperties.Name="{loc:Text MoveMenu}"/>
+              <ScrollViewer MaxHeight="508" VerticalScrollBarVisibility="Auto" CanContentScroll="True"><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" /></ScrollViewer>
+            </DockPanel>
           </Border>
         </ControlTemplate>
       </Setter.Value>

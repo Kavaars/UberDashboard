@@ -26,3 +26,6 @@ MSAL otwiera logowanie Microsoft w przeglądarce. Cache uwierzytelniania jest ch
 Schemat 3 przenosi zadania wbudowanych list ToDo z JSON do tabeli `TodoItem`. Przed migracją istniejącej bazy aplikacja zapisuje spójną kopię SQLite `pre-todo-v3-*.db` w katalogu `Backups` profilu. W bazie zachowuje też pierwotny JSON migrowanych list. Nieprawidłowe dane źródłowe przerywają transakcję.
 
 Powrót do aplikacji sprzed migracji wymaga przywrócenia kopii bazy sprzed aktualizacji. Przed przywróceniem należy zamknąć aplikację i zachować osobną kopię aktualnych danych.
+
+
+Zakładkę powiązanej listy można usunąć lokalnie albo wybrać usunięcie również listy Microsoft To Do po potwierdzeniu. Usunięcie z konta korzysta z kolejki synchronizacji; lista z oczekującymi zmianami lub bez odpowiednich uprawnień nie zostanie usunięta. W razie niepotwierdzonej operacji zakładka pozostaje, a stan operacji można sprawdzić w centrum synchronizacji.

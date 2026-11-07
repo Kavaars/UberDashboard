@@ -5,6 +5,11 @@ namespace UberDashboard.App.Features.Resources;
 
 public sealed record ResourceReading(string Device, string Name, string Value, string Key = "")
 {
+    public string TileLabel => Key.Contains("Temperature", StringComparison.Ordinal)
+        ? (Key.Contains("Gpu", StringComparison.Ordinal) ? "GPU °" : "CPU °")
+        : Symbol;
+    public string TileValue => Key.Contains("Temperature", StringComparison.Ordinal) && Value.EndsWith(" °C", StringComparison.Ordinal)
+        ? Value[..^3] : Value;
     public string Symbol => Key.Contains("Temperature", StringComparison.Ordinal) ? "°C" :
         Key.Contains("Fan", StringComparison.Ordinal) || Key.Contains("Control:", StringComparison.Ordinal) || Key.Contains("Speed:", StringComparison.Ordinal) ? "◉" :
         Key.Contains("Vram", StringComparison.Ordinal) ? "VRAM" :

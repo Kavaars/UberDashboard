@@ -1,3 +1,8 @@
+Monitor zasobów: większe wartości na kompaktowych kafelkach. Afirmacje: mniejsze pole wpisywania. Skróty: ustawienia i działania przeniesiono do opcji panelu.
+
+- Poprawiono wyświetlanie zapisanych zadań Microsoft To Do podczas oczekiwania na pierwsze pobranie oraz podwójne paski przewijania w opcjach paneli.
+Dodano uchwyty do przesuwania wybranych menu WPF oraz wybór usunięcia powiązanej listy Microsoft To Do. Usunięto część wskazówek obsługi.
+
 Monitor zasobów: dodano wybór widoku kafelkowego. Usunięto wskazówkę obsługi skrótów.
 
 

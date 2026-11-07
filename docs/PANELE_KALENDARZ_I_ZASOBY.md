@@ -23,3 +23,6 @@ Dostęp do części czujników płyty głównej i CPU zależy od sterownika, spr
 
 
 Monitor zasobów: w opcjach panelu pola wyboru pokazują lub ukrywają poszczególne wykryte odczyty. Wybór jest zapisywany osobno dla każdej instancji; nowo wykryte odczyty są domyślnie widoczne. Dostępność odczytów zależy od sprzętu i uprawnień.
+
+
+Monitor zasobów umożliwia w opcjach zakładki wybór widoku tekstowego lub kafelków; wybór jest zapisywany wraz z widocznością wskaźników.

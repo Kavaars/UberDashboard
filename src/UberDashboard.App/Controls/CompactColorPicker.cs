@@ -60,6 +60,7 @@ public sealed class CompactColorPicker : UserControl
             var picker = new ColorWheel();
             picker.SetBinding(ColorWheel.SelectedColorProperty, new Binding(nameof(SelectedColor)) { Source = this, Mode = BindingMode.TwoWay });
             var stack = new StackPanel();
+            stack.Children.Add(new PopupDragHandle { Target = _popup, Height = 16, Cursor = System.Windows.Input.Cursors.SizeAll, Background = System.Windows.Media.Brushes.Transparent });
             stack.Children.Add(picker);
             var close = new Button { Content = UiText.Get("Done"), Margin = new Thickness(0, 8, 0, 0), ToolTip = UiText.Get("ClosesTheEditorTheChosenColorIs") };
             close.SetResourceReference(StyleProperty, "ToolbarButton");

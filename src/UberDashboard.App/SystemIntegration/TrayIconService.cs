@@ -40,6 +40,18 @@ public sealed class TrayIconService : ITrayIconService
             contextMenu.Renderer = new ToolStripProfessionalRenderer(new TrayColors(surface, alternate, border)) { RoundedEdges = false };
         };
         _menu = contextMenu;
+        var grip = new Label { AutoSize = false, Height = 14, Cursor = Cursors.SizeAll, AccessibleName = UiText.Get("MoveMenu") };
+        Point? dragStart = null;
+        grip.MouseDown += (_, e) => { if (e.Button == MouseButtons.Left) dragStart = Cursor.Position; };
+        grip.MouseMove += (_, e) =>
+        {
+            if (dragStart is not { } start || e.Button != MouseButtons.Left) return;
+            var current = Cursor.Position;
+            contextMenu.Location = new Point(contextMenu.Left + current.X - start.X, contextMenu.Top + current.Y - start.Y);
+            dragStart = current;
+        };
+        grip.MouseUp += (_, _) => dragStart = null;
+        contextMenu.Items.Add(new ToolStripControlHost(grip) { AutoSize = false, Height = 14, Width = 180, Margin = Padding.Empty, Padding = Padding.Empty });
         contextMenu.Items.Add(UiText.Get("ShowUberdashboard"), null, (_, _) => restoreMainWindow());
         contextMenu.Items.Add(UiText.Get("ResetWindowToPrimaryMonitor"), null, (_, _) => resetMainWindow());
         contextMenu.Items.Add(new ToolStripSeparator());
