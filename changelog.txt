@@ -239,3 +239,5 @@ Zmiany robocze 1.8.0 (2026-11-04T10:28:00+01:00): Import notatki rozpoznaje plik
 - Synchronizacja źródeł nie stanowi nowego wydania instalatora.
 
 2026-11-03T11:00:00+01:00 | Panel afirmacji: czcionka, rozmiar, interlinia, kolory i statystyki serii.
+
+2026-11-07T08:32:45+01:00 | Panel Skróty: galeria 59 ikon Lucide offline, animacje i wybór pojedynczego lub podwójnego kliknięcia.

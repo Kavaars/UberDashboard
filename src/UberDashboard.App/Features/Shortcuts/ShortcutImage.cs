@@ -1,3 +1,9 @@
+using Color = System.Windows.Media.Color;
+using Brush = System.Windows.Media.Brush;
+using Brushes = System.Windows.Media.Brushes;
+using Pen = System.Windows.Media.Pen;
+using Point = System.Windows.Point;
+using Size = System.Windows.Size;
 using System.IO;
 using System.Windows;
 using System.Windows.Interop;
@@ -13,6 +19,10 @@ public sealed class ShortcutImage : System.Windows.Controls.Image
     public static readonly DependencyProperty FilePathProperty = DependencyProperty.Register(nameof(FilePath), typeof(string), typeof(ShortcutImage), new PropertyMetadata(null, Changed));
     public static readonly DependencyProperty TargetPathProperty = DependencyProperty.Register(nameof(TargetPath), typeof(string), typeof(ShortcutImage), new PropertyMetadata(null, Changed));
     public static readonly DependencyProperty DecodeWidthProperty = DependencyProperty.Register(nameof(DecodeWidth), typeof(int), typeof(ShortcutImage), new PropertyMetadata(96, Changed));
+    public static readonly DependencyProperty BuiltInIconProperty = DependencyProperty.Register(nameof(BuiltInIcon), typeof(string), typeof(ShortcutImage), new PropertyMetadata(null, Changed));
+    public static readonly DependencyProperty IconBrushProperty = DependencyProperty.Register(nameof(IconBrush), typeof(Brush), typeof(ShortcutImage), new PropertyMetadata(Brushes.Gray, Changed));
+    public string? BuiltInIcon { get => (string?)GetValue(BuiltInIconProperty); set => SetValue(BuiltInIconProperty, value); }
+    public Brush IconBrush { get => (Brush)GetValue(IconBrushProperty); set => SetValue(IconBrushProperty, value); }
     private int _revision;
     public string? FilePath { get => (string?)GetValue(FilePathProperty); set => SetValue(FilePathProperty, value); }
     public string? TargetPath { get => (string?)GetValue(TargetPathProperty); set => SetValue(TargetPathProperty, value); }
@@ -34,10 +44,12 @@ public sealed class ShortcutImage : System.Windows.Controls.Image
         ToolTip = null;
         var path = FilePath;
         var target = TargetPath;
+        var builtIn = BuiltInIcon;
+        var color = (IconBrush as SolidColorBrush)?.Color ?? Colors.Gray;
         var decodeWidth = Math.Clamp(DecodeWidth, 16, 2048);
         try
         {
-            var image = await Task.Run(() => Read(path, target, decodeWidth)).ConfigureAwait(true);
+            var image = await Task.Run(() => Read(path, target, builtIn, color, decodeWidth)).ConfigureAwait(true);
             if (revision == _revision) Source = image;
         }
         catch (Exception ex) when (ex is IOException or FormatException or UnauthorizedAccessException or ArgumentException or NotSupportedException or System.Runtime.InteropServices.ExternalException or InvalidOperationException or System.Security.SecurityException)
@@ -46,8 +58,9 @@ public sealed class ShortcutImage : System.Windows.Controls.Image
         }
     }
 
-    private static ImageSource? Read(string? path, string? target, int decodeWidth)
+    private static ImageSource? Read(string? path, string? target, string? builtIn, Color color, int decodeWidth)
     {
+        if (!string.IsNullOrWhiteSpace(builtIn)) return ShortcutIconCatalog.Render(builtIn, color);
         if (!string.IsNullOrWhiteSpace(path))
         {
             // File streams avoid WPF's URI image cache and release the file immediately.

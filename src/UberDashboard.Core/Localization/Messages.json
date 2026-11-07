@@ -1,4 +1,10 @@
 {
+  "ShortcutSingleClick": ["Otwieraj jednym kliknięciem", "Open with a single click"],
+  "ShortcutSingleClickHelp": ["Wyłącz, aby otwierać skróty podwójnym kliknięciem.", "Turn off to open shortcuts with a double click."],
+  "ShortcutIconGallery": ["Galeria ikon i obrazków", "Icon and image gallery"],
+  "ShortcutIconSearch": ["Szukaj ikony", "Search icons"],
+  "ShortcutIconSearchHelp": ["Filtruje galerię według angielskiej nazwy ikony.", "Filters the gallery by the icon’s English name."],
+  "ShortcutIconSelected": ["Wybrana ikona: {0}", "Selected icon: {0}"],
   "SyncSeriesPurge": ["Usuń zakończony plan i kopie", "Remove finished plan and copies"],
   "SyncSeriesPurgeHelp": ["Usuwa lokalny zakończony lub odrzucony plan wraz z kopiami wyjątków w tym oknie. Nie zmienia wydarzeń w usłudze. Zwykłą historię zmian usuwa się osobno; domyślna retencja zakończonych planów wynosi 30 dni.", "Removes the local finished or discarded plan and its exception copies in this window. Does not change cloud events. Regular edit history is removed separately; finished plans are retained for 30 days by default."],
   "SyncSeriesMissingNotice": ["W usłudze nie istnieje już ani stara, ani przygotowana nowa seria. Odrzucić plan bez tworzenia wydarzeń? Kopie wyjątków pozostaną dostępne do odzyskania.", "Neither the old nor the allocated following series exists in the service. Discard the plan without creating events? Exception copies remain available for recovery."],

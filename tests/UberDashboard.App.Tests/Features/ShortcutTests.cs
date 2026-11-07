@@ -66,6 +66,25 @@ public sealed class ShortcutTests
     }
 
     [Fact]
+    public void Click_preference_round_trips_and_old_documents_keep_legacy_default()
+    {
+        var model = new ShortcutsModel { SingleClick = true };
+        Assert.True(ShortcutsModel.Restore(model.Serialize()).SingleClick);
+        Assert.Null(ShortcutsModel.Restore("{}"u8).SingleClick);
+    }
+
+    [Fact]
+    public void Bundled_icon_survives_state_roundtrip_and_old_entries_remain_compatible()
+    {
+        var model = new ShortcutsModel();
+        model.Save(new() { Name = "Home", Target = "https://example.org", BuiltInIcon = "house" });
+        var restored = ShortcutsModel.Restore(model.Serialize());
+        Assert.Equal("house", restored.Items.Single().BuiltInIcon);
+        var old = ShortcutsModel.Restore("{\"Items\":[{\"Name\":\"Old\",\"Target\":\"https://example.org\"}]}"u8);
+        Assert.Null(old.Items.Single().BuiltInIcon);
+    }
+
+    [Fact]
     public void Restore_repairs_invalid_view_and_colors_without_dropping_missing_targets()
     {
         var state = JsonSerializer.SerializeToUtf8Bytes(new { Mode = 999, Items = new[] {

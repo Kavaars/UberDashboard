@@ -87,3 +87,5 @@
 - 2026-11-03T10:36:00+01:00 | v1.5.1 | Aktywowanie wpisywania przez kliknięcie afirmacji oraz czytelne pole ćwiczenia.
 
 2026-11-03T11:00:00+01:00 | Dodano formatowanie i statystyki panelu afirmacji.
+
+2026-11-07T08:32:45+01:00 | Dodano galerię ikon Lucide i ustawienie kliknięcia oraz animacje skrótów.

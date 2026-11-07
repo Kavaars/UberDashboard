@@ -89,3 +89,5 @@
 - 2026-11-03T10:39:00+01:00 | 1.5.1 / Release/Dev/v1.5.1_20261103-1036 | 291 testów, test wejścia i 57 renderów WPF, integracja pluginów oraz publikacja win-x64 PASS; instalacja bez zmian.
 
 2026-11-03T11:00:00+01:00 | Źródła 1.6.0: ustawienia tekstu i historia afirmacji.
+
+2026-11-07T08:32:45+01:00 | 1.9.0, zmiany robocze: galeria ikon i sposób otwierania skrótów; bez wydania.
