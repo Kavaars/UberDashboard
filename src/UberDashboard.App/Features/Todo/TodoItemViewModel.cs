@@ -9,11 +9,12 @@ public sealed class TodoItemViewModel : ObservableObject
     private bool _isDone;
 
     /// <summary>Tworzy zadanie o wskazanej treści i stanie wykonania.</summary>
-    public TodoItemViewModel(string text, bool isDone, Guid? id = null)
+    public TodoItemViewModel(string text, bool isDone, Guid? id = null, DateTimeOffset? completedAt = null)
     {
         _text = text;
         _isDone = isDone;
         Id = id ?? Guid.NewGuid();
+        CompletedAt = completedAt;
     }
 
     /// <summary>Treść zadania.</summary>
@@ -27,11 +28,13 @@ public sealed class TodoItemViewModel : ObservableObject
     public bool IsDone
     {
         get => _isDone;
-        set => SetProperty(ref _isDone, value);
+        set { if (_isDone != value) { CompletedAt = value ? DateTimeOffset.UtcNow : null; SetProperty(ref _isDone, value); } }
     }
 
     /// <summary>Zwraca niezmienny stan zadania do utrwalenia.</summary>
     public Guid Id { get; }
 
-    public TodoItemState ToState() => new(_text, _isDone, Id);
+    public DateTimeOffset? CompletedAt { get; private set; }
+
+    public TodoItemState ToState() => new(_text, _isDone, Id, CompletedAt);
 }

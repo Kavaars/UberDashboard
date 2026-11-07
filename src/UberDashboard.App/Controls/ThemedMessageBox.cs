@@ -34,8 +34,9 @@ public static class ThemedMessageBox
         heading.Children.Add(title);
         heading.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed && (ReferenceEquals(e.OriginalSource, heading) || ReferenceEquals(e.OriginalSource, title))) window.DragMove(); };
         root.Children.Add(heading);
-        var message = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, MaxWidth = 550, Margin = new Thickness(0, 0, 0, 20) };
-        message.SetResourceReference(TextBlock.ForegroundProperty, "Brush.Text");
+        var message = new System.Windows.Controls.TextBox { Text = text, IsReadOnly = true, BorderThickness = new Thickness(0), Background = System.Windows.Media.Brushes.Transparent, TextWrapping = TextWrapping.Wrap, MaxWidth = 550, MinWidth = 280, Margin = new Thickness(0, 0, 0, 20), AcceptsReturn = true };
+        message.SetResourceReference(System.Windows.Controls.TextBox.ForegroundProperty, "Brush.Text");
+        System.Windows.Automation.AutomationProperties.SetName(message, caption);
         root.Children.Add(message);
         var bar = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = System.Windows.HorizontalAlignment.Right };
         var result = defaultResult == MessageBoxResult.None ? MessageBoxResult.Cancel : defaultResult;

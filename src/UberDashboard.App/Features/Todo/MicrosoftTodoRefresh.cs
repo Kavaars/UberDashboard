@@ -36,7 +36,9 @@ internal sealed class MicrosoftTodoRefresh(MicrosoftTodoSession session, Microso
 
     public void Resume() => _paused = false;
 
-    private async void Tick(object? sender, EventArgs e)
+    private async void Tick(object? sender, EventArgs e) => await RefreshAsync();
+
+    public async Task RefreshAsync()
     {
         if (_paused || _pending is not null) return;
 

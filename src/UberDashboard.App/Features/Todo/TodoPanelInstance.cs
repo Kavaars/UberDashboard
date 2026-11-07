@@ -42,12 +42,12 @@ public sealed class TodoPanelInstance : IPanelInstance, IPanelPersistenceObserve
     public object ViewModel => (object?)_linkedViewModel ?? _viewModel;
 
     internal void AttachLink(MicrosoftTodoLink link, MicrosoftTodoSettings settings,
-        Features.Integrations.IntegrationSyncService? sync = null, MicrosoftTodoSession? session = null)
+        Features.Integrations.IntegrationSyncService? sync = null, MicrosoftTodoSession? session = null, MicrosoftTodoRefresh? refresh = null)
     {
         _link = link;
         _settings = settings;
-        _linkedViewModel = new();
-        if (sync is not null && session is not null) _linkedViewModel.Configure(sync, session, _context.Notifier, _context.CloseToken);
+        _linkedViewModel = new(_viewModel);
+        if (sync is not null && session is not null) _linkedViewModel.Configure(sync, session, _context.Notifier, _context.CloseToken, refresh);
     }
 
     private void OnIntegrationSaved(object? sender, MicrosoftTodoPreferences preferences) =>
@@ -56,14 +56,11 @@ public sealed class TodoPanelInstance : IPanelInstance, IPanelPersistenceObserve
     /// <inheritdoc />
     public async ValueTask InitializeAsync(CancellationToken cancellationToken)
     {
+        _viewModel.Changed += OnViewModelChanged;
         if (_settings is not null)
         {
             OnIntegrationSaved(this, await _settings.LoadAsync(cancellationToken));
             _settings.Saved += OnIntegrationSaved;
-        }
-        else
-        {
-            _viewModel.Changed += OnViewModelChanged;
         }
     }
 

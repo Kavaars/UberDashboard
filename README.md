@@ -14,7 +14,7 @@ Twój własny pulpit z notatkami, zadaniami, kalendarzem, pogodą i skrótami �
 - **Pogoda** — prognoza dla wybranej miejscowości, pobierana z Open-Meteo po włączeniu połączeń.
 - **Skróty** — uruchamianie aplikacji, otwieranie folderów, dokumentów i stron; widoki ikon, listy, przycisków oraz kafelków.
 - **Monitor zasobów** — wykorzystanie CPU, GPU, RAM i VRAM; temperatury i wentylatory zależą od dostępnych czujników.
-- **Afirmacje** — własne teksty do ćwiczenia i śledzenie postępów.
+- **Afirmacje** — własne teksty do ćwiczenia i śledzenie postępów; opcjonalny codzienny reset o wybranej godzinie lokalnej zachowuje historię. Starsze włączone interwały są przenoszone na 07:00.
 - **Wtyczki** — dodatkowe panele w paczkach `.udplugin`, między innymi ramka na zdjęcia PhotoFrame.
 - **Personalizacja** — motyw jasny, ciemny lub systemowy, kolory, fonty, tapety i wygląd poszczególnych paneli. Interfejs jest dostępny po polsku i angielsku.
 
@@ -34,6 +34,10 @@ Zmiany zapisują się automatycznie. Jeśli zapis się nie powiedzie, aplikacja 
 Microsoft To Do skonfigurujesz w **Ustawienia → Integracje**. Listę można zaimportować jako niezależną lokalną kopię albo powiązać z usługą. Google połączysz w opcjach panelu kalendarza; obecna konfiguracja wymaga lokalnego pliku JSON klienta OAuth typu Desktop.
 
 W bieżącym kodzie przycisk **Synchronizacja dwukierunkowa** otwiera edytor powiązanej listy lub kalendarza. Pierwsze włączenie wymaga osobnej zgody Microsoft lub Google na zapis. Edytor pozwala tworzyć, zmieniać i usuwać podstawowe zadania oraz wydarzenia. Zmiany trafiają najpierw do lokalnej kolejki, która zachowuje je także po restarcie. Synchronizacja działa podczas uruchomienia aplikacji, również w zasobniku.
+
+Zakładki list powiązanych z Microsoft To Do wyróżnia cienka niebieska ramka wokół nazwy.
+
+W opcjach panelu listy zadań suwaki regulują odstęp treści od krawędzi oraz odstęp nad i pod wpisami. Ustawienie zera pozwala uzyskać zwarty układ. Opcje są dostępne także dla list Microsoft To Do i zapisywane osobno dla każdej zakładki.
 
 W zadaniach Microsoft można także zmienić ważność, przypisane kategorie, daty, przypomnienie i sposób powtarzania. Widok Google Calendar zachowuje pobrane zakresy do przeglądania offline i pokazuje datę lokalnej kopii. Zakres, którego wcześniej nie pobrano, pozostaje niedostępny bez sieci. Niewysłane zmiany są dostępne w edytorze; siatka kalendarza pokazuje ostatni pobrany stan usługi.
 

@@ -16,9 +16,10 @@ public sealed class TrayIconService : ITrayIconService
 
     public ApplicationSettings CurrentSettings { get; private set; } = ApplicationSettings.Default.Normalize();
 
-    public void Initialize(Action restoreMainWindow, Action exitApplication)
+    public void Initialize(Action restoreMainWindow, Action resetMainWindow, Action exitApplication)
     {
         ArgumentNullException.ThrowIfNull(restoreMainWindow);
+        ArgumentNullException.ThrowIfNull(resetMainWindow);
         ArgumentNullException.ThrowIfNull(exitApplication);
 
         if (_notifyIcon is not null)
@@ -39,6 +40,7 @@ public sealed class TrayIconService : ITrayIconService
         };
         _menu = contextMenu;
         contextMenu.Items.Add(UiText.Get("ShowUberdashboard"), null, (_, _) => restoreMainWindow());
+        contextMenu.Items.Add(UiText.Get("ResetWindowToPrimaryMonitor"), null, (_, _) => resetMainWindow());
         contextMenu.Items.Add(new ToolStripSeparator());
         contextMenu.Items.Add(UiText.Get("Quit"), null, (_, _) => exitApplication());
 

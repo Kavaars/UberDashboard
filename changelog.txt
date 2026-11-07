@@ -1,3 +1,27 @@
+Prace robocze 1.9.0 (2026-11-07T07:58:53+01:00)
+- Afirmacje: opcjonalny codzienny reset postępu o wybranej godzinie lokalnej.
+
+Prace robocze 1.9.0 (2026-11-07T07:55:18+01:00)
+- W ustawieniach dodano informacje o aplikacji, kompilacji, autorze i liście zmian.
+
+Prace robocze 1.9.0 (2026-11-06T22:11:28+01:00)
+- Zakładki list powiązanych z Microsoft To Do mają cienką niebieską ramkę wokół nazwy.
+
+Prace robocze 1.9.0 (2026-11-06T22:01:00+01:00)
+- Listy zadań: suwaki odstępu od krawędzi oraz nad i pod wpisami, także dla Microsoft To Do.
+
+Prace robocze 1.9.0 (2026-11-06T21:40:00+01:00)
+- Listy Microsoft To Do: filtrowanie i limity ukończonych, sortowanie oraz potwierdzane usuwanie przez kolejkę synchronizacji.
+
+Prace robocze 1.9.0 (2026-11-06T21:33:00+01:00)
+- Lokalne listy zadań: nieukończone na górze, limit widocznych ukończonych oraz potwierdzane usuwanie z zachowaniem wybranej liczby.
+
+Prace robocze 1.9.0 (2026-11-06T21:11:00+01:00)
+- Pasek zachowuje wybrany monitor i oczekuje na jego ponowne podłączenie; menu ikony zasobnika przywraca zwykłe okno na główny ekran.
+
+Prace robocze 1.9.0 (2026-11-06T21:00:00+01:00)
+- Wstępna zmiana pobierania Microsoft To Do i możliwość kopiowania tekstu okien komunikatów. Przyczyna HTTP 400 niepotwierdzona.
+
 Prace robocze 1.9.0 (2026-11-06T13:00:00+01:00)
 - Załączniki Microsoft do 25 MB oraz pliki Google Drive z osobną zgodą: upload, pobranie, odpięcie i kopie lokalne.
 - Trwały postęp transferów, bezpieczne wznowienie i jawne uzgadnianie nieznanego wyniku Microsoft.
@@ -239,5 +263,7 @@ Zmiany robocze 1.8.0 (2026-11-04T10:28:00+01:00): Import notatki rozpoznaje plik
 - Synchronizacja źródeł nie stanowi nowego wydania instalatora.
 
 2026-11-03T11:00:00+01:00 | Panel afirmacji: czcionka, rozmiar, interlinia, kolory i statystyki serii.
+
+2026-11-07T08:16:16+01:00 | Listy zadań: regulacja szerokości wpisów i synchronizacja na żądanie z czasem ostatniej synchronizacji. Skróty: animacje i wybór pojedynczego lub podwójnego kliknięcia. O aplikacji: większy numer wersji.
 
 2026-11-07T08:32:45+01:00 | Panel Skróty: galeria 59 ikon Lucide offline, animacje i wybór pojedynczego lub podwójnego kliknięcia.

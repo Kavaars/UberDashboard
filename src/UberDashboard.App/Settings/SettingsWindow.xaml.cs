@@ -18,6 +18,7 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         DataContext = _viewModel;
         PluginsTab.DataContext = plugins;
+        AboutTab.DataContext = new AboutInfo();
         UberDashboard.App.Plugins.PluginFileDrop.Attach(this, plugins);
         Loaded += OnLoaded;
         Closing += async (_, e) =>

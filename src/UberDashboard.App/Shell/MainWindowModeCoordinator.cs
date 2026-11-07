@@ -79,7 +79,7 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
 
     {
 
-        get => _currentMode == WindowMode.DockedBar && !_appBar.IsRegistered ? WindowMode.Normal : _currentMode;
+        get => _currentMode;
 
         private set => _currentMode = value;
 
@@ -184,7 +184,13 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
 
             var monitor = ResolveMonitor(settings.MonitorId);
 
-            if (monitor is null) return WindowModeTransitionResult.Fail(CurrentMode, UiText.Get("NoDisplayIsAvailable"));
+            if (monitor is null)
+            {
+                if (settings.MonitorId is not null) _dockedWindow.Configure(_windowHandle, settings.MonitorId, settings.DockEdge, settings.DockThickness);
+                return _dockedWindow.WaitForMonitor() ? WindowModeTransitionResult.Success(WindowMode.DockedBar) : WindowModeTransitionResult.Fail(CurrentMode, UiText.Get("NoDisplayIsAvailable"));
+            }
+            _dockedWindow.Configure(_windowHandle, monitor.Id, settings.DockEdge, settings.DockThickness);
+            if (!_appBar.IsRegistered) return EnterDockedBar(settings);
 
             var updated = _appBar.UpdateConfiguration(settings.DockEdge, settings.DockThickness, monitor.Bounds);
 
@@ -250,8 +256,11 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
     {
 
         var settings = await _settingsService.GetAsync(cancellationToken).ConfigureAwait(false);
-
-        return await SwitchTemporarilyAsync(settings.LaunchMode, cancellationToken).ConfigureAwait(false);
+        var monitor = settings.LaunchMode == WindowMode.DockedBar && settings.MonitorId is null ? ResolveMonitor(null) : null;
+        var result = await SwitchTemporarilyAsync(settings.LaunchMode, cancellationToken).ConfigureAwait(false);
+        if (result.IsSuccess && monitor is not null)
+            await _settingsService.SetAsync(settings with { MonitorId = monitor.Id }, cancellationToken).ConfigureAwait(false);
+        return result;
 
     }
 
@@ -274,6 +283,13 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
 
 
         var monitor = ResolveMonitor(settings.MonitorId);
+        if (settings.MonitorId is { } preferred) _dockedWindow.Configure(_windowHandle, preferred, settings.DockEdge, settings.DockThickness);
+
+        if (monitor is null && settings.MonitorId is not null && _dockedWindow.WaitForMonitor())
+        {
+            CurrentMode = WindowMode.DockedBar;
+            return WindowModeTransitionResult.Success(WindowMode.DockedBar);
+        }
 
         if (monitor is null)
 
@@ -287,6 +303,7 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
 
 
 
+        _dockedWindow.Configure(_windowHandle, monitor.Id, settings.DockEdge, settings.DockThickness);
         var result = EnterDockedBar(_windowHandle, settings.MonitorId, settings.DockEdge, settings.DockThickness, monitor.Bounds);
 
         if (result.IsSuccess && !_dockedWindow.Apply(_windowHandle, result.Rect))
@@ -302,6 +319,8 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
             return WindowModeTransitionResult.Fail(WindowMode.Normal, UiText.Get("CouldNotPlaceTheWindowInThe"));
 
         }
+
+        if (!result.IsSuccess) _dockedWindow.Restore();
 
         return result.IsSuccess
 
@@ -430,6 +449,7 @@ public sealed class MainWindowModeCoordinator : IWindowModeCoordinator
                 }
 
             }
+            return null;
 
         }
 

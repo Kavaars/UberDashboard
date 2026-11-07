@@ -123,6 +123,9 @@ internal sealed class FakeDockedBarWindowHost : IDockedBarWindowHost
 {
     public bool ApplyResult { get; set; } = true;
     public PixelRect? AppliedBounds { get; private set; }
+    public string? WaitingMonitorId { get; private set; }
+    public void Configure(IntPtr handle, string monitorId, AppBarEdge edge, int thickness) => WaitingMonitorId = monitorId;
+    public bool WaitForMonitor() => true;
     public bool Apply(IntPtr handle, PixelRect bounds) { AppliedBounds = bounds; return ApplyResult; }
     public void Restore() { }
 }

@@ -95,27 +95,33 @@ internal sealed class MicrosoftTodoWizard(MicrosoftTodoSession session, Microsof
         {
             UpdateControls(true);
             status.Text = loading;
+            var failed = false;
             try { await operation(); }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { }
             catch (OperationCanceledException) { status.Text = UiText.Get("SignInWasCanceledOrTimedOut"); }
-            catch (MsalException) { status.Text = UiText.Get("CouldNotConnectTheAccountCheckThe"); }
-            catch (MsalCachePersistenceException) { status.Text = UiText.Get("CouldNotSecurelySaveTheMicrosoftSession"); }
-            catch (UnauthorizedAccessException) { status.Text = UiText.Get("WindowsDeniedAccessToTheMicrosoftSession"); }
+            catch (MsalException) { failed = true; status.Text = UiText.Get("CouldNotConnectTheAccountCheckThe"); }
+            catch (MsalCachePersistenceException) { failed = true; status.Text = UiText.Get("CouldNotSecurelySaveTheMicrosoftSession"); }
+            catch (UnauthorizedAccessException) { failed = true; status.Text = UiText.Get("WindowsDeniedAccessToTheMicrosoftSession"); }
             catch (HttpRequestException error)
             {
+                failed = true;
                 status.Text = error.StatusCode is { } code
                     ? UiText.Format("MicrosoftToDoReturnedErrorCheckAccess", (int)code)
                     : UiText.Get("CouldNotConnectToMicrosoftToDo");
             }
             catch (Exception error) when (error is IOException or JsonException)
             {
+                failed = true;
                 status.Text = UiText.Get("CouldNotReadOrSaveIntegrationData");
             }
             catch (Exception)
             {
+                failed = true;
                 status.Text = UiText.Get("CouldNotCompleteTheOperationCheckThe");
             }
             finally { if (!token.IsCancellationRequested) UpdateControls(false); }
+            if (failed && !token.IsCancellationRequested)
+                ThemedMessageBox.Show(window, status.Text, UiText.Get("MicrosoftToDoIntegration"), MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
         clientId.TextChanged += (_, _) => UpdateControls(false);

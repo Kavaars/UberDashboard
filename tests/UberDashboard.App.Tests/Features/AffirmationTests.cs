@@ -42,23 +42,65 @@ public sealed class AffirmationTests
     }
 
     [Fact]
-    public void Restores_progress_and_resets_after_interval()
+    public void Daily_reset_occurs_at_configured_local_time_and_only_once()
     {
-        var now = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
-        var vm = new AffirmationPanelViewModel(() => now);
-        vm.Texts = "Test";
-        vm.ResetHours = 4;
+        var now = new DateTimeOffset(2026, 1, 1, 6, 59, 0, TimeZoneInfo.Local.GetUtcOffset(new DateTime(2026, 1, 1, 6, 59, 0)));
+        var vm = new AffirmationPanelViewModel(() => now) { Texts = "Test", DailyResetEnabled = true };
         vm.Accept("Te");
         var state = vm.Snapshot();
-        var restored = new AffirmationPanelViewModel(() => now.AddHours(3));
-        restored.Load(state);
-        Assert.Equal("Te", restored.Typed);
-        now = now.AddHours(4);
+        now = now.AddMinutes(1);
         vm.CheckReset();
         Assert.Equal("", vm.Typed);
-        var expired = new AffirmationPanelViewModel(() => now);
-        expired.Load(state);
-        Assert.Equal("", expired.Typed);
+        vm.Accept("T");
+        vm.CheckReset();
+        Assert.Equal("T", vm.Typed);
+        var restored = new AffirmationPanelViewModel(() => now);
+        restored.Load(state);
+        Assert.Equal("", restored.Typed);
+        restored.Accept("T");
+        restored.Load(restored.Snapshot());
+        Assert.Equal("T", restored.Typed);
+    }
+
+    [Fact]
+    public void Legacy_settings_migrate_without_losing_progress_and_disabled_stays_disabled()
+    {
+        var now = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeZoneInfo.Local.GetUtcOffset(new DateTime(2026, 1, 1, 12, 0, 0)));
+        var vm = new AffirmationPanelViewModel(() => now);
+        vm.Load(new AffirmationDocument { Texts = "Test", Position = 2, ResetHours = 4, ResetAt = now.AddDays(-4) });
+        Assert.True(vm.DailyResetEnabled);
+        Assert.Equal(7, vm.ResetHour);
+        Assert.Equal("Te", vm.Typed);
+        now = now.AddDays(1);
+        vm.CheckReset();
+        Assert.Equal("", vm.Typed);
+        vm.Load(new AffirmationDocument { Texts = "Test", Position = 2, ResetHours = 0 });
+        Assert.False(vm.DailyResetEnabled);
+        now = now.AddDays(2);
+        vm.CheckReset();
+        Assert.Equal("Te", vm.Typed);
+    }
+
+    [Fact]
+    public void Changing_schedule_preserves_progress_and_round_trips()
+    {
+        var now = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeZoneInfo.Local.GetUtcOffset(new DateTime(2026, 1, 1, 12, 0, 0)));
+        var vm = new AffirmationPanelViewModel(() => now) { Texts = "Test" };
+        vm.Accept("Te");
+        vm.DailyResetEnabled = true;
+        vm.ResetHour = 13;
+        vm.ResetMinute = 30;
+        var restored = new AffirmationPanelViewModel(() => now);
+        restored.Load(vm.Snapshot());
+        Assert.Equal("Te", restored.Typed);
+        Assert.Equal(13, restored.ResetHour);
+        Assert.Equal(30, restored.ResetMinute);
+        now = now.AddMinutes(89);
+        restored.CheckReset();
+        Assert.Equal("Te", restored.Typed);
+        now = now.AddMinutes(1);
+        restored.CheckReset();
+        Assert.Equal("", restored.Typed);
     }
     [Fact]
     public void Completion_history_survives_reset_and_round_trip()

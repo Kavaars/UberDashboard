@@ -51,6 +51,7 @@ public sealed class PanelGroupTabStrip : ScrollViewer
         foreach (var button in _items.Children.OfType<Button>())
             if (button.Tag is PanelTab tab)
             {
+                ApplyMicrosoftTodoBorder(button, session.IsMicrosoftTodoTab(tab.InstanceId));
                 var selected = tab.InstanceId == session.Group.ActiveId;
                 button.SetResourceReference(Control.BackgroundProperty, selected ? "Brush.Surface.Alt" : "Brush.Surface");
                 System.Windows.Automation.AutomationProperties.SetItemStatus(button, selected ? UiText.Get("Active") : UiText.Get("Inactive"));
@@ -71,6 +72,7 @@ public sealed class PanelGroupTabStrip : ScrollViewer
         {
             var button = new Button { Tag = tab, Content = tab.Name, Padding = new Thickness(10, 5, 10, 5), Margin = new Thickness(0, 0, 3, 0), AllowDrop = true, ToolTip = UiText.Get("SelectsTheTabDoubleClickOrPress") };
             button.SetResourceReference(StyleProperty, "PanelActionButton");
+            ApplyMicrosoftTodoBorder(button, session.IsMicrosoftTodoTab(tab.InstanceId));
             button.SetResourceReference(Control.ForegroundProperty, "Brush.Text");
             button.SetResourceReference(Control.BackgroundProperty, tab.InstanceId == session.Group.ActiveId ? "Brush.Surface.Alt" : "Brush.Surface");
             System.Windows.Automation.AutomationProperties.SetName(button, UiText.Format("Tab2", tab.Name));
@@ -123,6 +125,21 @@ public sealed class PanelGroupTabStrip : ScrollViewer
         add.Click += async (_, _) => await Run(() => session.AddAsync());
         _items.Children.Add(add);
     }
+    private static void ApplyMicrosoftTodoBorder(Button button, bool linked)
+    {
+        if (linked)
+        {
+            button.SetResourceReference(Control.BorderBrushProperty, "Brush.MicrosoftTodo.TabBorder");
+            button.BorderThickness = new Thickness(1);
+            button.ToolTip = UiText.Get("MicrosoftTodoLinkedTabHelp");
+        }
+        else
+        {
+            button.ClearValue(Control.BorderBrushProperty);
+            button.ClearValue(Control.BorderThicknessProperty);
+        }
+    }
+
     private void Rename(Button button, PanelTab tab, PanelGroupSession session)
     {
         if (button.Content is TextBox) return;

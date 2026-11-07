@@ -29,6 +29,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private int _revision;
     private bool _windowDirty;
     private bool _launchModeDirty;
+    private bool _monitorDirty;
     private bool _integrationDirty;
     private Task _pendingSave = Task.CompletedTask;
     [ObservableProperty] private string saveStatus = UiText.Get("ChangesSaveAutomatically");
@@ -43,6 +44,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _integrationDirty |= e.PropertyName is nameof(StartWithWindows) or nameof(EnableTrayIcon) or nameof(SelectedCloseBehavior);
         _windowDirty |= e.PropertyName is nameof(SelectedLaunchMode) or nameof(SelectedMonitor) or nameof(SelectedDockEdge) or nameof(DockThickness) or nameof(WidgetOpacity) or nameof(DesktopWidgetFallbackToNormal);
         _launchModeDirty |= e.PropertyName == nameof(SelectedLaunchMode);
+        _monitorDirty |= e.PropertyName == nameof(SelectedMonitor);
         _themeService.Preview(SelectedTheme, CaptureSettings());
         _revision++;
         if (!_saving) _pendingSave = SaveChangesAsync();
@@ -300,8 +302,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         if (!string.IsNullOrWhiteSpace(windowSettings.MonitorId))
         {
             SelectedMonitor = Monitors.FirstOrDefault(
-                monitor => string.Equals(monitor.Id, windowSettings.MonitorId, StringComparison.OrdinalIgnoreCase))
-                ?? SelectedMonitor;
+                monitor => string.Equals(monitor.Id, windowSettings.MonitorId, StringComparison.OrdinalIgnoreCase));
         }
         _loaded = true;
     }
@@ -333,7 +334,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         var windowSettings = (currentWindowSettings with
         {
             LaunchMode = _launchModeDirty ? SelectedLaunchMode : currentWindowSettings.LaunchMode,
-            MonitorId = SelectedMonitor?.Id,
+            MonitorId = _monitorDirty ? SelectedMonitor?.Id : currentWindowSettings.MonitorId,
             DockEdge = SelectedDockEdge,
             DockThickness = DockThickness,
             WidgetOpacity = WidgetOpacity,
@@ -343,6 +344,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         await _windowModeSettingsService.SetAsync(windowSettings, CancellationToken.None).ConfigureAwait(true);
         var targetMode = _launchModeDirty ? windowSettings.LaunchMode : _windowModeCoordinator.CurrentMode;
         _launchModeDirty = false;
+        _monitorDirty = false;
         var result = await _windowModeCoordinator.SwitchAsync(targetMode, CancellationToken.None).ConfigureAwait(true);
         SyncShellWindowMode(result.ActiveMode);
 

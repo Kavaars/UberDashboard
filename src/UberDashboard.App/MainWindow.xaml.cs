@@ -37,6 +37,8 @@ public partial class MainWindow : Window
     private readonly IWindowModeCoordinator _windowModeCoordinator;
     private readonly IApplicationSettingsService _applicationSettingsService;
     private readonly ITrayIconService _trayIconService;
+    private readonly IMonitorProvider _monitorProvider;
+    private readonly IWindowModeSettingsService _windowSettings;
     private readonly IToastService _toasts;
     private bool _initialized;
     private bool _forceExit;
@@ -58,7 +60,7 @@ public partial class MainWindow : Window
         UberDashboard.App.Plugins.PluginManager plugins,
         UberDashboard.App.Plugins.PluginSettingsViewModel pluginSettings,
         IToastService toasts,
-        WindowPlacementTracker placement)
+        WindowPlacementTracker placement, IMonitorProvider monitorProvider, IWindowModeSettingsService windowSettings)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         ArgumentNullException.ThrowIfNull(theme);
@@ -66,6 +68,8 @@ public partial class MainWindow : Window
         ArgumentNullException.ThrowIfNull(applicationSettingsService);
         ArgumentNullException.ThrowIfNull(trayIconService);
 
+        _monitorProvider = monitorProvider;
+        _windowSettings = windowSettings;
         _plugins = plugins;
         _placement = placement;
         _toasts = toasts;
@@ -198,7 +202,8 @@ public partial class MainWindow : Window
         _placement.Start(this);
 
         var settings = (await _applicationSettingsService.LoadAsync(CancellationToken.None).ConfigureAwait(true)).Normalize();
-        _trayIconService.Initialize(RestoreFromTray, ExitFromTray);
+        _trayIconService.Initialize(RestoreFromTray, ResetFromTray, ExitFromTray);
+        _trayIconService.SetRequired(_viewModel.IsDockedBar);
         _trayIconService.ApplySettings(settings);
     }
 
@@ -251,10 +256,44 @@ public partial class MainWindow : Window
 
     private void RestoreFromTray()
     {
+        if (_viewModel.IsDockedBar && !IsVisible) return;
         ShowInTaskbar = !_viewModel.IsDockedBar;
         Show();
         WindowState = WindowState.Normal;
         Activate();
+    }
+
+    private async void ResetFromTray()
+    {
+        try
+        {
+            var primary = _monitorProvider.Enumerate().FirstOrDefault(m => m.IsUsable && m.IsPrimary);
+            if (primary is null) { _toasts.Show(UiText.Get("NoDisplayIsAvailable"), ToastSeverity.Error); return; }
+            var result = await _windowModeCoordinator.SwitchAsync(WindowMode.Normal);
+            _viewModel.SyncWindowMode(result.ActiveMode);
+            if (!result.IsSuccess) { _toasts.Show(result.Message ?? UiText.Get("CouldNotSaveData"), ToastSeverity.Error); return; }
+            var settings = await _windowSettings.GetAsync();
+            await _windowSettings.SetAsync(settings with { LaunchMode = WindowMode.Normal, MonitorId = primary.Id });
+            WindowState = WindowState.Normal;
+            var current = UberDashboard.Platform.Windows.Interop.ShellWindowInterop.ReadBounds(new WindowInteropHelper(this).Handle);
+            var area = primary.WorkArea.IsValid ? primary.WorkArea : primary.Bounds;
+            var width = Math.Min(current?.Width ?? 1000, area.Width);
+            var height = Math.Min(current?.Height ?? 700, area.Height);
+            var bounds = new PixelRect(area.Left + (area.Width - width) / 2, area.Top + (area.Height - height) / 2,
+                area.Left + (area.Width - width) / 2 + width, area.Top + (area.Height - height) / 2 + height);
+            if (!UberDashboard.Platform.Windows.Interop.ShellWindowInterop.ApplyBounds(new WindowInteropHelper(this).Handle, bounds))
+                throw new InvalidOperationException("Could not reset window placement.");
+            ShowInTaskbar = true;
+            Show();
+            Activate();
+            _placement.Capture();
+            await _placement.FlushAsync();
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "Could not reset window placement. Module={Module}", nameof(MainWindow));
+            _toasts.Show(UiText.Get("CouldNotSaveData"), ToastSeverity.Error);
+        }
     }
 
     private void ExitFromTray()

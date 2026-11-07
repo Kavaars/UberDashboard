@@ -6,7 +6,8 @@ using System.Text.Json.Serialization;
 namespace UberDashboard.Infrastructure.Integrations;
 
 public sealed record MicrosoftTodoList(string Id, string DisplayName);
-public sealed record MicrosoftTodoTask(string Id, string Title, string Status);
+public sealed record MicrosoftTodoDateTime(string? DateTime, string? TimeZone);
+public sealed record MicrosoftTodoTask(string Id, string Title, string Status, DateTimeOffset? CreatedDateTime = null, MicrosoftTodoDateTime? CompletedDateTime = null);
 
 /// <summary>Reads Microsoft To Do with delegated access and follows Graph pagination.</summary>
 public sealed class MicrosoftTodoReader(HttpClient client)
@@ -17,7 +18,7 @@ public sealed class MicrosoftTodoReader(HttpClient client)
         ReadAsync<MicrosoftTodoList>(new Uri(Graph, "lists"), token, cancellationToken);
 
     public Task<IReadOnlyList<MicrosoftTodoTask>> ReadTasksAsync(string listId, string token, CancellationToken cancellationToken) =>
-        ReadAsync<MicrosoftTodoTask>(new Uri(Graph, $"lists/{Uri.EscapeDataString(listId)}/tasks?$select=id,title,status"),
+        ReadAsync<MicrosoftTodoTask>(new Uri(Graph, $"lists/{Uri.EscapeDataString(listId)}/tasks"),
             token, cancellationToken);
 
     private async Task<IReadOnlyList<T>> ReadAsync<T>(Uri uri, string token, CancellationToken cancellationToken)

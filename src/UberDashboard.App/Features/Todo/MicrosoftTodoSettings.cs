@@ -65,9 +65,11 @@ internal sealed class MicrosoftTodoSettings(IAppSettingsStore store, IClock cloc
         Saved?.Invoke(this, preferences);
     }
 
+    private static DateTimeOffset? ParseDate(string? value) => DateTimeOffset.TryParse(value, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal, out var date) ? date : null;
+
     public static TodoDocument CreateDocument(IEnumerable<MicrosoftTodoTask> tasks) => new()
     {
         Items = tasks.Where(task => !string.IsNullOrWhiteSpace(task.Title))
-            .Select(task => new TodoItemState(task.Title, task.Status == "completed")).ToArray(),
+            .Select(task => new TodoItemState(task.Title, task.Status == "completed", CompletedAt: ParseDate(task.CompletedDateTime?.DateTime), CreatedAt: task.CreatedDateTime)).ToArray(),
     };
 }

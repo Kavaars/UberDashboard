@@ -9,6 +9,8 @@ namespace UberDashboard.App.Shell;
 public interface IDockedBarWindowHost
 {
     bool Apply(IntPtr handle, PixelRect bounds);
+    void Configure(IntPtr handle, string monitorId, AppBarEdge edge, int thickness);
+    bool WaitForMonitor();
     void Restore();
 }
 
@@ -20,31 +22,64 @@ public sealed class DockedBarWindowHost(AppBarController appBar, IMonitorProvide
     private Snapshot? _snapshot;
     private bool _pending;
     private bool _applying;
+    private string? _monitorId;
+    private AppBarEdge _edge;
+    private int _thickness;
+    private bool _waiting;
 
     public bool Apply(IntPtr handle, PixelRect bounds)
     {
         var dispatcher = System.Windows.Application.Current?.Dispatcher;
         if (dispatcher is null) return false;
         if (!dispatcher.CheckAccess()) return dispatcher.Invoke(() => Apply(handle, bounds));
-        _source = HwndSource.FromHwnd(handle);
-        if (_source?.RootVisual is not Window window) return false;
-        _window = window;
-        if (_snapshot is null)
-        {
-            _snapshot = new Snapshot(window.WindowStyle, window.ResizeMode, window.MinWidth, window.MinHeight,
-                window.Left, window.Top, window.Width, window.Height, window.WindowState, window.ShowInTaskbar);
-            _source.AddHook(WindowProc);
-            window.MinWidth = 0;
-            window.MinHeight = 0;
-            window.WindowState = WindowState.Normal;
-            window.SetValue(System.Windows.Shell.WindowChrome.WindowChromeProperty, null);
-            window.WindowStyle = WindowStyle.None;
-            window.ResizeMode = ResizeMode.NoResize;
-            window.ShowInTaskbar = false;
-        }
+        if (!Prepare(handle)) return false;
+        _waiting = false;
+        if (_window is { IsVisible: false } window) window.Show();
         _applying = true;
         try { return ShellWindowInterop.ApplyBounds(handle, bounds); }
         finally { _applying = false; }
+    }
+
+    public void Configure(IntPtr handle, string monitorId, AppBarEdge edge, int thickness)
+    {
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher is null) return;
+        if (!dispatcher.CheckAccess()) { dispatcher.Invoke(() => Configure(handle, monitorId, edge, thickness)); return; }
+        _monitorId = monitorId;
+        _edge = edge;
+        _thickness = thickness;
+        Prepare(handle);
+    }
+
+    private bool Prepare(IntPtr handle)
+    {
+        if (_snapshot is not null) return true;
+        _source = HwndSource.FromHwnd(handle);
+        if (_source?.RootVisual is not Window window) return false;
+        _window = window;
+        _snapshot = new Snapshot(window.WindowStyle, window.ResizeMode, window.MinWidth, window.MinHeight,
+            window.Left, window.Top, window.Width, window.Height, window.WindowState, window.ShowInTaskbar);
+        _source.AddHook(WindowProc);
+        window.MinWidth = 0;
+        window.MinHeight = 0;
+        window.WindowState = WindowState.Normal;
+        window.SetValue(System.Windows.Shell.WindowChrome.WindowChromeProperty, null);
+        window.WindowStyle = WindowStyle.None;
+        window.ResizeMode = ResizeMode.NoResize;
+        window.ShowInTaskbar = false;
+        return true;
+    }
+
+    public bool WaitForMonitor()
+    {
+        var dispatcher = System.Windows.Application.Current?.Dispatcher;
+        if (dispatcher is null) return false;
+        if (!dispatcher.CheckAccess()) return dispatcher.Invoke(WaitForMonitor);
+        if (_window is null) return false;
+        appBar.Remove();
+        _waiting = true;
+        _window.Hide();
+        return true;
     }
 
     public void Restore()
@@ -63,6 +98,8 @@ public sealed class DockedBarWindowHost(AppBarController appBar, IMonitorProvide
         window.Height = snapshot.Height;
         window.WindowState = snapshot.State;
         window.ShowInTaskbar = snapshot.ShowInTaskbar;
+        _waiting = false;
+        _monitorId = null;
         _snapshot = null;
         _source = null;
         _window = null;
@@ -91,22 +128,30 @@ public sealed class DockedBarWindowHost(AppBarController appBar, IMonitorProvide
         _window.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
         {
             _pending = false;
-            if (_window is null || !appBar.IsRegistered) return;
+            if (_window is null || _monitorId is null) return;
             _applying = true;
             try
             {
-                var monitor = monitors.GetByWindowHandle(appBar.WindowHandle);
-                var result = restart
-                    ? appBar.Restart(monitor?.Bounds)
-                    : updateMonitor && monitor is { IsUsable: true }
-                        ? appBar.UpdateWorkArea(monitor.Bounds)
-                        : appBar.Reapply();
+                var monitor = monitors.Enumerate().FirstOrDefault(m => m.IsUsable &&
+                    string.Equals(m.Id, _monitorId, StringComparison.OrdinalIgnoreCase));
+                if (monitor is null)
+                {
+                    WaitForMonitor();
+                    return;
+                }
+                var result = !appBar.IsRegistered
+                    ? appBar.Register(new WindowInteropHelper(_window).Handle, _edge, _thickness, monitor.Bounds)
+                    : restart ? appBar.Restart(monitor.Bounds)
+                    : updateMonitor ? appBar.UpdateWorkArea(monitor.Bounds) : appBar.Reapply();
                 if (!result.IsSuccess || !ShellWindowInterop.ApplyBounds(appBar.WindowHandle, result.Rect))
                 {
-                    appBar.Remove();
-                    var shell = _window.DataContext as ShellViewModel;
-                    Restore();
-                    shell?.SyncWindowMode(WindowMode.Normal);
+                    WaitForMonitor();
+                    return;
+                }
+                if (_waiting)
+                {
+                    _waiting = false;
+                    _window.Show();
                 }
             }
             finally { _applying = false; }

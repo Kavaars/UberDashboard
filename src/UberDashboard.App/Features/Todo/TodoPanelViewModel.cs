@@ -21,16 +21,26 @@ public sealed class TodoPanelViewModel : ObservableObject, IPanelOptionsPresente
     private bool _suppressNotifications;
     private bool _isOptionsOpen;
     private bool _showSummary = true;
+    private double _edgeSpacing = 12;
+    private double _entrySpacing = 6;
+    private bool _showOnlyIncomplete;
+    private int _completedDisplayLimit = 50;
+    private int _completedKeepLimit = 50;
+    private readonly Func<int, bool> _confirmRemoval;
 
     /// <summary>Tworzy model widoku listy zadań z kanałem powiadomień panelu.</summary>
-    public TodoPanelViewModel(IPanelNotifier notifier)
+    public TodoPanelViewModel(IPanelNotifier notifier, Func<int, bool>? confirmRemoval = null)
     {
         ArgumentNullException.ThrowIfNull(notifier);
         _notifier = notifier;
+        _confirmRemoval = confirmRemoval ?? (count => UberDashboard.App.Controls.ThemedMessageBox.Show(
+            UiText.Format("TodoConfirmRemoval", count), UiText.Get("TodoRemoveTitle"), System.Windows.MessageBoxButton.OKCancel,
+            System.Windows.MessageBoxImage.Warning, System.Windows.MessageBoxResult.Cancel) == System.Windows.MessageBoxResult.OK);
 
         AddItemCommand = new RelayCommand(AddItem, () => !string.IsNullOrWhiteSpace(_newItemText));
         RemoveItemCommand = new RelayCommand<TodoItemViewModel>(RemoveItem);
         ClearCompletedCommand = new RelayCommand(ClearCompleted, () => HasCompleted);
+        KeepCompletedCommand = new RelayCommand(() => RemoveCompleted(CompletedKeepLimit), () => CompletedCount > CompletedKeepLimit);
         ToggleOptionsCommand = new RelayCommand(() => IsOptionsOpen = !IsOptionsOpen);
     }
 
@@ -39,6 +49,26 @@ public sealed class TodoPanelViewModel : ObservableObject, IPanelOptionsPresente
 
     /// <summary>Zadania w kolejności dodania.</summary>
     public ObservableCollection<TodoItemViewModel> Items { get; } = [];
+    public ObservableCollection<TodoItemViewModel> VisibleItems { get; } = [];
+    public double EdgeSpacing
+    {
+        get => _edgeSpacing;
+        set { if (SetProperty(ref _edgeSpacing, NormalizeSpacing(value, 12))) { OnPropertyChanged(nameof(EdgePadding)); MarkChanged(); } }
+    }
+    public double EntrySpacing
+    {
+        get => _entrySpacing;
+        set { if (SetProperty(ref _entrySpacing, NormalizeSpacing(value, 6))) { OnPropertyChanged(nameof(EntryPadding)); MarkChanged(); } }
+    }
+    public System.Windows.Thickness EdgePadding => new(EdgeSpacing, 0, EdgeSpacing, 0);
+    public System.Windows.Thickness EntryPadding => new(0, EntrySpacing, 0, EntrySpacing);
+    private static double NormalizeSpacing(double value, double fallback) => double.IsFinite(value) ? Math.Clamp(value, 0, 24) : fallback;
+
+    public bool ShowOnlyIncomplete { get => _showOnlyIncomplete; set { if (SetProperty(ref _showOnlyIncomplete, value)) { RefreshVisible(); MarkChanged(); } } }
+    public int CompletedDisplayLimit { get => _completedDisplayLimit; set { if (value >= 0 && SetProperty(ref _completedDisplayLimit, value)) { RefreshVisible(); MarkChanged(); } } }
+    public int CompletedKeepLimit { get => _completedKeepLimit; set { if (value >= 0 && SetProperty(ref _completedKeepLimit, value)) { KeepCompletedCommand.NotifyCanExecuteChanged(); MarkChanged(); } } }
+    public IRelayCommand KeepCompletedCommand { get; }
+
 
     /// <summary>Treść zadania przygotowywana do dodania.</summary>
     public string NewItemText
@@ -129,6 +159,11 @@ public sealed class TodoPanelViewModel : ObservableObject, IPanelOptionsPresente
         {
             Items = states,
             ShowSummary = ShowSummary,
+            EdgeSpacing = EdgeSpacing,
+            EntrySpacing = EntrySpacing,
+            ShowOnlyIncomplete = ShowOnlyIncomplete,
+            CompletedDisplayLimit = CompletedDisplayLimit,
+            CompletedKeepLimit = CompletedKeepLimit,
         };
     }
 
@@ -150,10 +185,16 @@ public sealed class TodoPanelViewModel : ObservableObject, IPanelOptionsPresente
                     continue;
                 }
 
-                AttachItem(new TodoItemViewModel(state.Text, state.IsDone, state.Id));
+                AttachItem(new TodoItemViewModel(state.Text, state.IsDone, state.Id, state.CompletedAt));
             }
 
             ShowSummary = document.ShowSummary;
+            EdgeSpacing = document.EdgeSpacing;
+            EntrySpacing = document.EntrySpacing;
+            ShowOnlyIncomplete = document.ShowOnlyIncomplete;
+            CompletedDisplayLimit = Math.Max(0, document.CompletedDisplayLimit);
+            CompletedKeepLimit = Math.Max(0, document.CompletedKeepLimit);
+            RefreshVisible();
             NewItemText = string.Empty;
             RaiseCounters();
         }
@@ -178,6 +219,7 @@ public sealed class TodoPanelViewModel : ObservableObject, IPanelOptionsPresente
 
         AttachItem(new TodoItemViewModel(text, false));
         NewItemText = string.Empty;
+        RefreshVisible();
         MarkChanged();
     }
 
@@ -191,34 +233,33 @@ public sealed class TodoPanelViewModel : ObservableObject, IPanelOptionsPresente
         }
 
         item.PropertyChanged -= OnItemPropertyChanged;
+        RefreshVisible();
+        RaiseCounters();
         MarkChanged();
     }
 
-    private void ClearCompleted()
+    private IEnumerable<TodoItemViewModel> CompletedNewest() => Items.Select((item, index) => (item, index))
+        .Where(x => x.item.IsDone).OrderByDescending(x => x.item.CompletedAt).ThenByDescending(x => x.index).Select(x => x.item);
+
+    private void RefreshVisible()
     {
-        var removedCount = 0;
+        var visible = Items.Reverse().Where(item => !item.IsDone)
+            .Concat(ShowOnlyIncomplete ? [] : CompletedNewest().Take(CompletedDisplayLimit)).ToArray();
+        VisibleItems.Clear();
+        foreach (var item in visible) VisibleItems.Add(item);
+    }
 
-        for (var index = Items.Count - 1; index >= 0; index--)
-        {
-            if (!Items[index].IsDone)
-            {
-                continue;
-            }
+    private void ClearCompleted() => RemoveCompleted(0);
 
-            Items[index].PropertyChanged -= OnItemPropertyChanged;
-            Items.RemoveAt(index);
-            removedCount++;
-        }
-
-        if (removedCount == 0)
-        {
-            return;
-        }
-
+    private void RemoveCompleted(int keep)
+    {
+        var removed = CompletedNewest().Skip(keep).ToArray();
+        if (removed.Length == 0 || !_confirmRemoval(removed.Length)) return;
+        foreach (var item in removed) { item.PropertyChanged -= OnItemPropertyChanged; Items.Remove(item); }
+        RefreshVisible();
+        RaiseCounters();
         MarkChanged();
-        _notifier.Publish(
-            UiText.Format("RemovedCompletedTasks", removedCount),
-            PanelNotificationSeverity.Information);
+        _notifier.Publish(UiText.Format("RemovedCompletedTasks", removed.Length), PanelNotificationSeverity.Information);
     }
 
     private void AttachItem(TodoItemViewModel item)
@@ -238,6 +279,7 @@ public sealed class TodoPanelViewModel : ObservableObject, IPanelOptionsPresente
     private void OnItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         RaiseCounters();
+        if (e.PropertyName == nameof(TodoItemViewModel.IsDone)) RefreshVisible();
         MarkChanged();
     }
 
@@ -246,6 +288,7 @@ public sealed class TodoPanelViewModel : ObservableObject, IPanelOptionsPresente
         OnPropertyChanged(nameof(CompletedCount));
         OnPropertyChanged(nameof(HasCompleted));
         ClearCompletedCommand.NotifyCanExecuteChanged();
+        KeepCompletedCommand.NotifyCanExecuteChanged();
     }
 
     private void MarkChanged()

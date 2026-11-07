@@ -12,6 +12,7 @@ public sealed class PanelOptionsTemplateSelector : DataTemplateSelector
             Features.Calendar.CalendarPanel => "CalendarOptionsTemplate",
             Features.Affirmations.AffirmationPanelViewModel => "AffirmationOptionsTemplate",
             Features.Notes.NotesPanelViewModel => "NotesOptionsTemplate",
+            Features.Todo.MicrosoftTodoListViewModel => "MicrosoftTodoOptionsTemplate",
             Features.Todo.TodoPanelViewModel => "TodoOptionsTemplate",
             Features.Weather.WeatherPanelViewModel => "WeatherOptionsTemplate",
             _ => "ExtensionOptionsTemplate",

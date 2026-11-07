@@ -132,6 +132,9 @@ internal static class Program
                         todo.NewItemText = "Gotowe zadanie";
                         todo.AddItemCommand.Execute(null);
                         todo.Items[1].IsDone = true;
+                        await leaf.TabSession!.ImportTabsAsync([new("Microsoft To Do", "{}", 3,
+                            new UberDashboard.App.Features.Todo.MicrosoftTodoLink(Guid.Parse("44c153ca-a8f3-446e-8ec5-1bc56f5c65ba"), "visual-account", "visual-list"))], CancellationToken.None);
+
                     }
                     if (leaf.ViewModel is UberDashboard.App.Features.Notes.NotesPanelViewModel notes)
                     {
@@ -373,6 +376,13 @@ internal static class Program
                         if (leaf.PanelTypeId == "calendar" &&
                             !Descendants(card).OfType<System.Windows.Controls.Primitives.UniformGrid>().Any(grid => grid.Columns == 7))
                             throw new InvalidOperationException("Calendar grid was not rendered.");
+                        if (leaf.PanelTypeId == "todo")
+                        {
+                            var linkedButtons = Descendants(card).OfType<Button>().Where(b => b.Tag is UberDashboard.Core.Panels.PanelTab tab && leaf.TabSession!.IsMicrosoftTodoTab(tab.InstanceId)).ToArray();
+                            if (linkedButtons.Length != 1 || linkedButtons[0].BorderThickness != new Thickness(1) ||
+                                linkedButtons[0].BorderBrush is not SolidColorBrush brush || brush.Color != Color.FromRgb(0x46, 0x8f, 0xd6))
+                                throw new InvalidOperationException("Microsoft To Do tab border was not rendered.");
+                        }
                         DrawBackground(bitmap, app, size); bitmap.Render(card);
                         var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
                         var filename = $"{kind}-{leaf.PanelTypeId}-{size.Width}x{size.Height}.png";
