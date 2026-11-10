@@ -20,7 +20,7 @@ using TextBox = System.Windows.Controls.TextBox;
 
 namespace UberDashboard.App.Settings;
 
-internal sealed class MicrosoftTodoWizard(MicrosoftTodoSession session, MicrosoftTodoSettings settings, MicrosoftTodoRefresh refresh, IntegrationSyncService syncService)
+internal sealed class MicrosoftTodoWizard(MicrosoftTodoSession session, MicrosoftTodoSettings settings, MicrosoftTodoRefresh refresh, IntegrationSyncService syncService, UberDashboard.Application.Synchronization.IIntegrationDiagnostics? diagnostics = null)
 {
     public void Show(Window owner, IReadOnlyList<PanelGroupSession> groups)
     {
@@ -101,11 +101,12 @@ internal sealed class MicrosoftTodoWizard(MicrosoftTodoSession session, Microsof
             try { await operation(); }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { }
             catch (OperationCanceledException) { status.Text = UiText.Get("SignInWasCanceledOrTimedOut"); }
-            catch (MsalException) { failed = true; status.Text = UiText.Get("CouldNotConnectTheAccountCheckThe"); }
-            catch (MsalCachePersistenceException) { failed = true; status.Text = UiText.Get("CouldNotSecurelySaveTheMicrosoftSession"); }
-            catch (UnauthorizedAccessException) { failed = true; status.Text = UiText.Get("WindowsDeniedAccessToTheMicrosoftSession"); }
+            catch (MsalException error) { diagnostics?.Report("MicrosoftTodo", "setup", error); failed = true; status.Text = UiText.Get("CouldNotConnectTheAccountCheckThe"); }
+            catch (MsalCachePersistenceException error) { diagnostics?.Report("MicrosoftTodo", "setup", error); failed = true; status.Text = UiText.Get("CouldNotSecurelySaveTheMicrosoftSession"); }
+            catch (UnauthorizedAccessException error) { diagnostics?.Report("MicrosoftTodo", "setup", error); failed = true; status.Text = UiText.Get("WindowsDeniedAccessToTheMicrosoftSession"); }
             catch (HttpRequestException error)
             {
+                diagnostics?.Report("MicrosoftTodo", "setup", error);
                 failed = true;
                 status.Text = error.StatusCode is { } code
                     ? UiText.Format("MicrosoftToDoReturnedErrorCheckAccess", (int)code)
@@ -113,11 +114,13 @@ internal sealed class MicrosoftTodoWizard(MicrosoftTodoSession session, Microsof
             }
             catch (Exception error) when (error is IOException or JsonException)
             {
+                diagnostics?.Report("MicrosoftTodo", "setup", error);
                 failed = true;
                 status.Text = UiText.Get("CouldNotReadOrSaveIntegrationData");
             }
-            catch (Exception)
+            catch (Exception error)
             {
+                diagnostics?.Report("MicrosoftTodo", "setup", error);
                 failed = true;
                 status.Text = UiText.Get("CouldNotCompleteTheOperationCheckThe");
             }

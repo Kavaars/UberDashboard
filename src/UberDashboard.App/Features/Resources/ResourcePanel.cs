@@ -1,4 +1,6 @@
 using UberDashboard.Core.Localization;
+using UberDashboard.App.Panels;
+using UberDashboard.Core.ModularPanels;
 using System.Text.Json;
 using System.Collections.ObjectModel;
 using System.Windows.Threading;
@@ -24,12 +26,35 @@ internal sealed class ResourcePanelDescriptor(HardwareSampler sampler) : IPanelD
         ValueTask.FromResult<IPanelInstance>(new ResourcePanel(context, sampler));
 }
 
-public sealed partial class ResourcePanel : ObservableObject, IPanelInstance, IPanelStateNotifications
+public sealed partial class ResourcePanel : ObservableObject, IPanelInstance, IPanelStateNotifications, IModularPanel
 {
     private readonly PanelContext _context;
     private readonly HardwareSampler _sampler;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(2) };
     private bool _reportedError;
+    private readonly List<string> _moduleOrder = [];
+    private IReadOnlyList<ModulePosition> _modulePositions = [];
+    public IReadOnlyList<ModulePosition> ModulePositions => ModuleGrid.Restore(_moduleOrder, _modulePositions, 4);
+    public string? GetModuleId(object item) => (item as ResourceReading)?.Key;
+    public void MoveModuleToCell(string id, int column, int row)
+    {
+        if (!IsModuleEditMode || ModulePositions.All(position => position.Id != id)) return;
+        var positions = ModuleGrid.Move(ModulePositions, id, column, row, 4);
+        if (positions.SequenceEqual(ModulePositions)) return;
+        _modulePositions = positions;
+        OnPropertyChanged(nameof(ModulePositions));
+        ChangeVersion++; StateChanged?.Invoke(this, EventArgs.Empty);
+    }
+    [ObservableProperty] private bool _isModuleEditMode;
+    public void MoveModule(object source, object target)
+    {
+        if (!IsModuleEditMode || source is not ResourceReading from || target is not ResourceReading to || from.Key == to.Key) return;
+        var oldIndex = _moduleOrder.IndexOf(from.Key); var newIndex = _moduleOrder.IndexOf(to.Key);
+        if (oldIndex < 0 || newIndex < 0) return;
+        _moduleOrder.RemoveAt(oldIndex); _moduleOrder.Insert(newIndex, from.Key);
+        UpdateReadings();
+        ChangeVersion++; StateChanged?.Invoke(this, EventArgs.Empty);
+    }
     private readonly HashSet<string> _hidden = new(StringComparer.Ordinal);
     private IReadOnlyList<ResourceReading> _allReadings = [];
     public ObservableCollection<ResourceOption> Options { get; } = [];
@@ -39,6 +64,12 @@ public sealed partial class ResourcePanel : ObservableObject, IPanelInstance, IP
 
     [ObservableProperty] private IReadOnlyList<ResourceReading> _readings = [];
     [ObservableProperty] private bool _showTiles;
+    [ObservableProperty] private double _moduleSpacing;
+    partial void OnModuleSpacingChanged(double value)
+    {
+        if (_restoring) return;
+        ChangeVersion++; StateChanged?.Invoke(this, EventArgs.Empty);
+    }
     private bool _restoring;
     partial void OnShowTilesChanged(bool value)
     {
@@ -65,8 +96,12 @@ public sealed partial class ResourcePanel : ObservableObject, IPanelInstance, IP
         {
             var document = JsonSerializer.Deserialize<ResourcePanelState>(state.Span);
             _hidden.Clear();
+            _moduleOrder.Clear();
+            _modulePositions = document?.ModulePositions ?? [];
+            _moduleOrder.AddRange((document?.ModuleOrder ?? []).Where(key => !string.IsNullOrWhiteSpace(key)).Distinct(StringComparer.Ordinal));
             _restoring = true;
             ShowTiles = document?.ShowTiles ?? false;
+            ModuleSpacing = Math.Clamp(document?.ModuleSpacing ?? 0, -8, 24);
             _restoring = false;
             foreach (var key in document?.Hidden ?? []) _hidden.Add(key);
             UpdateReadings();
@@ -75,7 +110,7 @@ public sealed partial class ResourcePanel : ObservableObject, IPanelInstance, IP
         return ValueTask.CompletedTask;
     }
     public ValueTask<ReadOnlyMemory<byte>> CaptureStateAsync(CancellationToken cancellationToken) =>
-        ValueTask.FromResult<ReadOnlyMemory<byte>>(JsonSerializer.SerializeToUtf8Bytes(new ResourcePanelState { Hidden = [.. _hidden], ShowTiles = ShowTiles }));
+        ValueTask.FromResult<ReadOnlyMemory<byte>>(JsonSerializer.SerializeToUtf8Bytes(new ResourcePanelState { Hidden = [.. _hidden], ShowTiles = ShowTiles, ModuleSpacing = ModuleSpacing, ModuleOrder = [.. _moduleOrder], ModulePositions = [.. ModulePositions] }));
 
     private void UpdateReadings()
     {
@@ -83,7 +118,11 @@ public sealed partial class ResourcePanel : ObservableObject, IPanelInstance, IP
             if (!Options.Any(option => option.Key == reading.Key))
                 Options.Add(new ResourceOption(reading.Key, $"{reading.Name} — {reading.Device}", !_hidden.Contains(reading.Key), OptionChanged));
         foreach (var option in Options) option.SetVisible(!_hidden.Contains(option.Key));
-        Readings = _allReadings.Where(reading => !_hidden.Contains(reading.Key)).ToArray();
+        foreach (var reading in _allReadings)
+            if (!_moduleOrder.Contains(reading.Key, StringComparer.Ordinal)) _moduleOrder.Add(reading.Key);
+        OnPropertyChanged(nameof(ModulePositions));
+        var ranks = _moduleOrder.Select((key, index) => (key, index)).ToDictionary(x => x.key, x => x.index, StringComparer.Ordinal);
+        Readings = _allReadings.Where(reading => !_hidden.Contains(reading.Key)).OrderBy(reading => ranks[reading.Key]).ToArray();
     }
 
     private void OptionChanged(ResourceOption option)
@@ -154,6 +193,9 @@ internal sealed class ResourcePanelState
 {
     public string[] Hidden { get; set; } = [];
     public bool ShowTiles { get; set; }
+    public double ModuleSpacing { get; set; }
+    public string[] ModuleOrder { get; set; } = [];
+    public ModulePosition[] ModulePositions { get; set; } = [];
 }
 
 public sealed partial class ResourceOption : ObservableObject

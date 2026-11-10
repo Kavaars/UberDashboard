@@ -7,6 +7,64 @@ namespace UberDashboard.App.Tests.Weather;
 public sealed class WeatherPanelViewModelTests
 {
     [Fact]
+    public void Legacy_weather_modules_are_combined_without_losing_saved_positions()
+    {
+        using var vm = new WeatherPanelViewModel(new FakeWeatherService(), new FakeWeatherLocationSearchService(), new FakeWeatherCacheStore(), new FakePanelNotifier());
+        vm.Load(new WeatherPanelDocument { ModulePositions = [new("sunrise", 2, 3), new("sunset", 1, 2), new("condition", 0, 2)] });
+        Assert.DoesNotContain(vm.Modules, m => m.Id is "sunset" or "condition");
+        Assert.Equal((2, 3), (vm.ModulePositions.Single(p => p.Id == "sunrise").Column, vm.ModulePositions.Single(p => p.Id == "sunrise").Row));
+        Assert.Contains(vm.Modules, m => m.Id == "forecast");
+    }
+
+    [Fact]
+    public void Legacy_sunset_position_is_used_when_sunrise_position_is_missing()
+    {
+        using var vm = new WeatherPanelViewModel(new FakeWeatherService(), new FakeWeatherLocationSearchService(), new FakeWeatherCacheStore(), new FakePanelNotifier());
+        vm.Load(new WeatherPanelDocument { ModulePositions = [new("sunset", 3, 2)] });
+        var position = vm.ModulePositions.Single(p => p.Id == "sunrise");
+        Assert.Equal((3, 2), (position.Column, position.Row));
+    }
+
+    [Fact]
+    public void Module_spacing_round_trips_and_old_state_defaults_to_zero()
+    {
+        using var vm = new WeatherPanelViewModel(new FakeWeatherService(), new FakeWeatherLocationSearchService(), new FakeWeatherCacheStore(), new FakePanelNotifier());
+        vm.Load(new WeatherPanelDocument());
+        Assert.Equal(0, vm.ModuleSpacing);
+        vm.ModuleSpacing = -8;
+        using var restored = new WeatherPanelViewModel(new FakeWeatherService(), new FakeWeatherLocationSearchService(), new FakeWeatherCacheStore(), new FakePanelNotifier());
+        restored.Load(System.Text.Json.JsonSerializer.Deserialize<WeatherPanelDocument>(System.Text.Json.JsonSerializer.Serialize(vm.Snapshot()))!);
+        Assert.Equal(-8, restored.ModuleSpacing);
+    }
+
+    [Fact]
+    public void Modular_positions_preserve_empty_cells_and_round_trip()
+    {
+        using var vm = new WeatherPanelViewModel(new FakeWeatherService(), new FakeWeatherLocationSearchService(), new FakeWeatherCacheStore(), new FakePanelNotifier());
+        var initial = vm.ModulePositions.Single(position => position.Id == "icon");
+        vm.MoveModuleToCell("icon", 3, 5);
+        Assert.Equal(initial, vm.ModulePositions.Single(position => position.Id == "icon"));
+        vm.IsModuleEditMode = true;
+        vm.MoveModuleToCell("icon", 3, 5);
+        using var restored = new WeatherPanelViewModel(new FakeWeatherService(), new FakeWeatherLocationSearchService(), new FakeWeatherCacheStore(), new FakePanelNotifier());
+        restored.Load(System.Text.Json.JsonSerializer.Deserialize<WeatherPanelDocument>(System.Text.Json.JsonSerializer.Serialize(vm.Snapshot()))!);
+        var position = restored.ModulePositions.Single(item => item.Id == "icon");
+        Assert.Equal((3, 5), (position.Column, position.Row));
+        Assert.False(restored.IsModuleEditMode);
+    }
+
+    [Fact]
+    public void Modular_collision_moves_the_existing_weather_element()
+    {
+        using var vm = new WeatherPanelViewModel(new FakeWeatherService(), new FakeWeatherLocationSearchService(), new FakeWeatherCacheStore(), new FakePanelNotifier());
+        vm.IsModuleEditMode = true;
+        var location = vm.ModulePositions.Single(p => p.Id == "location");
+        vm.MoveModuleToCell("icon", location.Column, location.Row);
+        Assert.Equal((location.Column, location.Row), (vm.ModulePositions.Single(p => p.Id == "icon").Column, vm.ModulePositions.Single(p => p.Id == "icon").Row));
+        Assert.Equal((1, 0), (vm.ModulePositions.Single(p => p.Id == "location").Column, vm.ModulePositions.Single(p => p.Id == "location").Row));
+    }
+
+    [Fact]
     public void Weather_visibility_options_round_trip_and_legacy_defaults_are_visible()
     {
         var legacy = System.Text.Json.JsonSerializer.Deserialize<WeatherPanelDocument>("{}");

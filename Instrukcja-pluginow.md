@@ -1,6 +1,6 @@
 # Pluginy paneli UberDashboard
 
-Dotyczy aplikacji **1.8.0**, kontraktu paneli **1.2.0** i pluginu **Ramka na zdjęcia 1.1.0**.
+Dotyczy bieżącej wersji roboczej **1.9.0**, kontraktu paneli **1.3.0** i pluginu **Ramka na zdjęcia 1.1.0**.
 
 
 ## Zakładki paneli od wersji 1.8.0
@@ -125,3 +125,8 @@ To automatyczna integracja WPF i SQLite. Odbiór ręcznego przeciągnięcia z Ek
 # Dostosowanie do rozmiaru panelu
 
 Wtyczka może zaimplementować opcjonalny `UberDashboard.Contracts.Panels.IResponsivePanel` na własnym widoku (`IPanelContent.Content`) lub modelu widoku. Host wywołuje `OnPanelSizeChanged(double width, double height)` na wątku interfejsu po zmianie dostępnego rozmiaru treści; wymiary są podane w DIP. Wtyczka powinna zmieniać układ szybko, zachowywać stan i umożliwić przewijanie przy małym rozmiarze. Starsze wtyczki działają bez implementacji tego interfejsu; host nie może automatycznie przebudować ich wewnętrznych kontrolek. Przykładem jest `plugins/PhotoFrame/PhotoFrameView.cs`.
+
+
+## Rodzaje paneli i wzory
+
+W katalogu [`plugins/PanelTemplates`](plugins/PanelTemplates/README.md) znajdują się kompilowalne wzory panelu zwykłego i modułowego. Dokumentacja opisuje wspólne obowiązki obu rodzajów, osobny kontrakt modułów, zapis stanu, przygotowanie paczki i listę odbioru. Zwykły panel dostarcza własną treść; modułowy udostępnia też układ elementów i tryb edycji przez `IModularPanel`. Oba korzystają z tej samej karty, zakładek i cyklu życia hosta. Aktualne API modułowe wymaga kontraktu **1.3.0**.

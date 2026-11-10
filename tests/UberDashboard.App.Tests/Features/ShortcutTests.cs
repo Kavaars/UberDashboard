@@ -51,6 +51,16 @@ public sealed class ShortcutTests
     }
 
     [Fact]
+    public void Module_spacing_round_trips_and_old_state_defaults_to_zero()
+    {
+        var model = new ShortcutsModel { ModuleSpacing = 13 };
+        Assert.Equal(13, ShortcutsModel.Restore(model.Serialize()).ModuleSpacing);
+        model.ModuleSpacing = -8;
+        Assert.Equal(-8, ShortcutsModel.Restore(model.Serialize()).ModuleSpacing);
+        Assert.Equal(0, ShortcutsModel.Restore("{}"u8).ModuleSpacing);
+    }
+
+    [Fact]
     public void Order_and_appearance_survive_serialization()
     {
         var model = new ShortcutsModel { Mode = ShortcutViewMode.Tiles, Wallpaper = @"C:\wall.jpg" };
@@ -63,6 +73,35 @@ public sealed class ShortcutTests
         Assert.Equal(ShortcutViewMode.Tiles, restored.Mode);
         Assert.Equal(model.Wallpaper, restored.Wallpaper);
         Assert.Equal(a, restored.Items[1]);
+    }
+
+    [Fact]
+    public async Task Module_reordering_requires_edit_mode_and_round_trips()
+    {
+        await using var scheduler = new PanelStateScheduler(NullLogger<PanelStateScheduler>.Instance);
+        await using var panel = CreatePanel(scheduler, new Notifications());
+        var first = panel.Model.Save(new() { Name = "A", Target = "https://example.org/a" });
+        var second = panel.Model.Save(new() { Name = "B", Target = "https://example.org/b" });
+        var third = panel.Model.Save(new() { Name = "C", Target = "https://example.org/c" });
+        panel.MoveModule(third, first);
+        Assert.Equal(new[] { first.Id, second.Id, third.Id }, panel.Model.Items.Select(item => item.Id));
+        panel.IsModuleEditMode = true;
+        panel.MoveModule(third, first);
+        var saved = ShortcutsModel.Restore((await panel.CaptureStateAsync(CancellationToken.None)).Span);
+        Assert.Equal(new[] { third.Id, first.Id, second.Id }, saved.Items.Select(item => item.Id));
+    }
+
+    [Fact]
+    public async Task Module_grid_preserves_empty_cell_after_restore()
+    {
+        await using var scheduler = new PanelStateScheduler(NullLogger<PanelStateScheduler>.Instance);
+        await using var panel = CreatePanel(scheduler, new Notifications());
+        var first = panel.Model.Save(new() { Name = "A", Target = "https://example.org/a" });
+        panel.Model.Save(new() { Name = "B", Target = "https://example.org/b" });
+        panel.IsModuleEditMode = true;
+        panel.MoveModuleToCell(first.Id.ToString("D"), 3, 4);
+        var saved = ShortcutsModel.Restore((await panel.CaptureStateAsync(CancellationToken.None)).Span);
+        Assert.Contains(saved.ModulePositions, position => position.Id == first.Id.ToString("D") && position.Column == 3 && position.Row == 4);
     }
 
     [Fact]

@@ -21,6 +21,23 @@ public sealed class MicrosoftTodoSettingsTests
         Assert.Empty(view.Items);
     }
     [Fact]
+    public void Sync_errors_and_paused_state_remain_visible_after_preferences_reload()
+    {
+        var link = new MicrosoftTodoLink(Guid.NewGuid(), "account", "list");
+        var preferences = MicrosoftTodoPreferences.Empty(link.ClientId).Refresh(link.ClientId, link.AccountId, [Snapshot(link, "cached")], DateTimeOffset.UtcNow);
+        var view = new MicrosoftTodoListViewModel(new TodoPanelViewModel(new UberDashboard.App.Tests.TestSupport.FakePanelNotifier()));
+        view.Load(link, preferences);
+        var binding = new SyncBinding(Guid.NewGuid(), SyncProviderKind.MicrosoftTodo, link.ClientId.ToString("D"), link.AccountId, "lists/list/tasks", "list", true);
+        view.ApplyLocalState(new SyncState(binding, ConnectionStatus: SyncConnectionStatus.AuthenticationRequired));
+        Assert.Equal(UberDashboard.Core.Localization.UiText.Get("SyncReconnectRequired"), view.Status);
+        Assert.Equal("cached", Assert.Single(view.Items).Text);
+        view.Load(link, preferences);
+        Assert.Equal(UberDashboard.Core.Localization.UiText.Get("SyncReconnectRequired"), view.Status);
+        view.ApplyLocalState(new SyncState(binding with { Enabled = false }));
+        Assert.Equal(UberDashboard.Core.Localization.UiText.Get("SyncPaused"), view.Status);
+    }
+
+    [Fact]
     public void Refresh_replaces_the_selected_snapshot_and_keeps_disabled_lists_readable()
     {
         var client = Guid.NewGuid();
@@ -80,6 +97,21 @@ public sealed class MicrosoftTodoSettingsTests
             new("new open", false, CreatedAt: date.AddDays(1)), new("new done", true, CompletedAt: date.AddDays(1))];
         Assert.Equal(new[] { "new open", "old open", "new done" }, MicrosoftTodoListViewModel.SortItems(tasks, false, 1).Select(x => x.Text));
         Assert.Equal(new[] { "new open", "old open" }, MicrosoftTodoListViewModel.SortItems(tasks, true, 50).Select(x => x.Text));
+    }
+
+    [Fact]
+    public void Newly_created_pending_task_appears_before_older_remote_tasks()
+    {
+        var now = DateTimeOffset.Parse("2026-11-07T12:00:00Z");
+        var binding = new SyncBinding(Guid.NewGuid(), SyncProviderKind.MicrosoftTodo, "client", "account", "lists/list/tasks", "list", true);
+        var old = new SyncEntity(Guid.NewGuid(), "remote", null, new System.Text.Json.Nodes.JsonObject { ["title"] = "old" },
+            Metadata: new System.Text.Json.Nodes.JsonObject { ["createdDateTime"] = now.AddDays(-1).ToString("O") });
+        var state = UberDashboard.Application.Synchronization.SyncEdits.Edit(new SyncState(binding, Entities: [old]), Guid.NewGuid(),
+            new System.Text.Json.Nodes.JsonObject { ["title"] = "new" }, now);
+        var view = new MicrosoftTodoListViewModel(new TodoPanelViewModel(new UberDashboard.App.Tests.TestSupport.FakePanelNotifier()));
+        view.ApplyLocalState(state);
+        Assert.Equal(new[] { "new", "old" }, view.Items.Select(item => item.Text));
+        Assert.Equal(SyncOperationKind.Create, Assert.Single(state.Queue).Kind);
     }
 
     private static MicrosoftTodoSnapshot Snapshot(MicrosoftTodoLink link, string task) =>

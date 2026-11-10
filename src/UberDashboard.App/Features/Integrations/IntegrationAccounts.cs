@@ -11,7 +11,7 @@ using UberDashboard.Core.Synchronization;
 namespace UberDashboard.App.Features.Integrations;
 
 /// <summary>Only credential references are stored in settings; bearer/refresh tokens stay in protected stores.</summary>
-internal sealed class IntegrationAccounts(MicrosoftTodoSession microsoft, IAppSettingsStore settings, IAppPaths paths, IClock clock)
+internal sealed class IntegrationAccounts(MicrosoftTodoSession microsoft, IAppSettingsStore settings, IAppPaths paths, IClock clock, IIntegrationDiagnostics? diagnostics = null)
     : IIntegrationAccountService, IIntegrationFileAccountService
 {
     private const string Key = "integration.google.sessions";
@@ -42,7 +42,7 @@ internal sealed class IntegrationAccounts(MicrosoftTodoSession microsoft, IAppSe
             if (selected is null || selected.ClientId != clientId || selected.AccountId != binding.AccountId ||
                 binding.ResourcePath != "lists" && !selected.SelectedLists.Any(id => MicrosoftTodoRelations.TaskCollectionPath(binding.ResourcePath) == "lists/" + Uri.EscapeDataString(id) + "/tasks")) return null;
             try { return (await microsoft.TrySignInSilentlyAsync(clientId, binding.AccountId, token, write).ConfigureAwait(false))?.AccessToken; }
-            catch (Microsoft.Identity.Client.MsalException) { throw new SyncAuthenticationException(); }
+            catch (Microsoft.Identity.Client.MsalException error) { diagnostics?.Report("MicrosoftTodo", "oauth", error); throw new SyncAuthenticationException(); }
         }
         foreach (var reference in (await ReadReferencesAsync(token).ConfigureAwait(false))
             .Where(r => r.ClientId == binding.ClientId && r.AccountId == binding.AccountId))
@@ -54,7 +54,7 @@ internal sealed class IntegrationAccounts(MicrosoftTodoSession microsoft, IAppSe
             try { access = await client.GetAccessTokenAsync(binding.ClientId, binding.AccountId, write, token,
                 files ? [GoogleCalendarClient.FileScope] : GoogleCalendarClient.RequiredScopes(binding, write)).ConfigureAwait(false); }
             catch (Exception error) when (error is Google.Apis.Auth.OAuth2.Responses.TokenResponseException or System.Security.Cryptography.CryptographicException)
-            { throw new SyncAuthenticationException(); }
+            { diagnostics?.Report("GoogleCalendar", "oauth", error); throw new SyncAuthenticationException(); }
             if (access is not null) return access;
         }
         return null;

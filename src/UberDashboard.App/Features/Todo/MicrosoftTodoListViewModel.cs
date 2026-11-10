@@ -13,6 +13,7 @@ public sealed class MicrosoftTodoListViewModel : ObservableObject, IPanelOptions
 {
     private MicrosoftTodoSnapshot? _snapshot;
     private string _status = "";
+    private string _newItemText = "";
     private MicrosoftTodoLink? _link;
     private IntegrationSyncService? _sync;
     private MicrosoftTodoSession? _session;
@@ -52,13 +53,17 @@ public sealed class MicrosoftTodoListViewModel : ObservableObject, IPanelOptions
     private static DateTimeOffset? Date(string? value) => DateTimeOffset.TryParse(value, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal, out var date) ? date : null;
     private static TodoItemState ToItem(SyncEntity e) => new(e.Local!["title"]?.GetValue<string>() ?? "", e.Local["status"]?.GetValue<string>() == "completed", e.LocalId,
         Date(e.Local["completedDateTime"]?["dateTime"]?.GetValue<string>()), Date(e.Metadata?["createdDateTime"]?.GetValue<string>()));
-    public string Status { get => _status; private set => SetProperty(ref _status, value); }
+    public string Status { get => _status; private set { if (SetProperty(ref _status, value)) OnPropertyChanged(nameof(SyncStatusText)); } }
+    public string SyncStatusText => string.IsNullOrWhiteSpace(Status) ? LastSyncText : $"{Status} · {LastSyncText}";
+    public string NewItemText { get => _newItemText; set => SetProperty(ref _newItemText, value); }
+    public IAsyncRelayCommand AddItemCommand { get; }
     public IAsyncRelayCommand OpenSyncEditorCommand { get; }
 
     internal MicrosoftTodoListViewModel(TodoPanelViewModel options)
     {
         _options = options;
         ToggleTaskCommand = new AsyncRelayCommand<TodoItemState>(ToggleTaskAsync);
+        AddItemCommand = new AsyncRelayCommand(AddItemAsync);
         ToggleOptionsCommand = new RelayCommand(() => IsOptionsOpen = !IsOptionsOpen);
         ClearCompletedCommand = new AsyncRelayCommand(() => RemoveCompletedAsync(0));
         KeepCompletedCommand = new AsyncRelayCommand(() => RemoveCompletedAsync(CompletedKeepLimit));
@@ -128,6 +133,7 @@ public sealed class MicrosoftTodoListViewModel : ObservableObject, IPanelOptions
     {
         _state = state;
         OnPropertyChanged(nameof(LastSyncText));
+        OnPropertyChanged(nameof(SyncStatusText));
         var items = state.Items.Where(e => e.Kind == SyncEntityKind.Item && e.Local is not null).Select(ToItem).ToArray();
         if (state.Cursor is null && state.LastSuccess is null && state.Items.Count == 0 && state.Queue.Count == 0)
         {
@@ -140,7 +146,38 @@ public sealed class MicrosoftTodoListViewModel : ObservableObject, IPanelOptions
             Status = UiText.Format("SyncQueueSummary", items.Length, state.Queue.Count,
                 state.Binding.Enabled ? UiText.Get("SyncEnabled") : UiText.Get("SyncPaused"));
         }
+        Status = state.Binding.Enabled ? state.ConnectionStatus switch
+        {
+            SyncConnectionStatus.AuthenticationRequired => UiText.Get("SyncReconnectRequired"),
+            SyncConnectionStatus.Forbidden => UiText.Get("TodoSyncAccessDenied"),
+            SyncConnectionStatus.Offline => UiText.Get("SyncOffline"),
+            SyncConnectionStatus.Throttled => UiText.Get("SyncThrottled"),
+            SyncConnectionStatus.Failed => UiText.Get("SyncFailedCachedDataAvailable"),
+            SyncConnectionStatus.Synchronizing => UiText.Get("SyncWorking"),
+            _ => Status,
+        } : UiText.Get("SyncPaused");
         OnPropertyChanged(nameof(Items));
+    }
+
+    private async Task AddItemAsync()
+    {
+        var title = NewItemText.Trim();
+        if (title.Length == 0) return;
+        if (_sync is null || _state is null || !_state.Binding.Enabled)
+        {
+            _notifier?.Publish(UiText.Get("TodoSyncEnableFirst"), PanelNotificationSeverity.Warning);
+            return;
+        }
+        var state = _state;
+        try
+        {
+            await _sync.Coordinator.EditAsync(state.Binding.Id, Guid.NewGuid(), new JsonObject { ["title"] = title, ["status"] = "notStarted" }, _closeToken);
+            if (NewItemText.Trim() == title) NewItemText = "";
+            _sync.Request(state.Binding.Id);
+            await RefreshLocalAsync();
+        }
+        catch (OperationCanceledException) when (_closeToken.IsCancellationRequested) { }
+        catch (Exception) { _notifier?.Publish(UiText.Get("SyncLocalReadFailed"), PanelNotificationSeverity.Warning); }
     }
 
     private async Task ToggleTaskAsync(TodoItemState? item)
@@ -273,9 +310,11 @@ public sealed class MicrosoftTodoListViewModel : ObservableObject, IPanelOptions
         _snapshot = preferences.Snapshots.FirstOrDefault(item => item.Link == link);
         _snapshotTime = _snapshot?.RefreshedAt;
         OnPropertyChanged(nameof(LastSyncText));
+        OnPropertyChanged(nameof(SyncStatusText));
         OnPropertyChanged(nameof(Items));
         var enabled = preferences.ClientId == link.ClientId && preferences.AccountId == link.AccountId &&
             preferences.SelectedLists.Contains(link.ListId);
+        if (_state is not null) { ApplyLocalState(_state); return; }
         Status = enabled
             ? UiText.Format("MicrosoftToDoReadOnlyLastRefreshed", (_snapshot?.RefreshedAt ?? preferences.LastSync)?.ToLocalTime())
             : UiText.Get("MicrosoftToDoLatestCopySyncIs");

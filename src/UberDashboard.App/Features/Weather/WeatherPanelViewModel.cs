@@ -5,6 +5,8 @@ using CommunityToolkit.Mvvm.Input;
 using UberDashboard.App.Panels;
 using UberDashboard.Application.Weather;
 using UberDashboard.Contracts.Host;
+using UberDashboard.Contracts.Panels;
+using UberDashboard.Core.ModularPanels;
 
 namespace UberDashboard.App.Features.Weather;
 
@@ -20,8 +22,28 @@ public sealed record WeatherHourlyForecastDisplayItem(
 /// <summary>
 /// Model widoku panelu pogody z wyszukiwaniem lokalizacji, odświeżaniem i fallbackiem do cache.
 /// </summary>
-public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposable, IPanelOptionsPresenter
+public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposable, IPanelOptionsPresenter, IModularPanel
 {
+    private static readonly string[] DefaultModuleIds = ["location", "icon", "temperature", "range", "sunrise", "wind", "updated", "forecast"];
+    private IReadOnlyList<ModulePosition> _modulePositions = [];
+    [ObservableProperty] private bool _isModuleEditMode;
+    [ObservableProperty] private double _moduleSpacing;
+    partial void OnModuleSpacingChanged(double value) => Changed?.Invoke(this, EventArgs.Empty);
+    public IReadOnlyList<WeatherModule> Modules { get; }
+    public IReadOnlyList<ModulePosition> ModulePositions => ModuleGrid.Restore(DefaultModuleIds, _modulePositions, 4);
+    public string? GetModuleId(object item) => (item as WeatherModule)?.Id;
+    public void MoveModuleToCell(string id, int column, int row)
+    {
+        if (!IsModuleEditMode || ModulePositions.All(position => position.Id != id)) return;
+        var moved = ModuleGrid.Move(ModulePositions, id, column, row, 4);
+        if (moved.SequenceEqual(ModulePositions)) return;
+        _modulePositions = moved; OnPropertyChanged(nameof(ModulePositions)); Changed?.Invoke(this, EventArgs.Empty);
+    }
+    public void MoveModule(object source, object target)
+    {
+        if (source is not WeatherModule from || target is not WeatherModule to) return;
+        if (ModulePositions.FirstOrDefault(position => position.Id == to.Id) is { } position) MoveModuleToCell(from.Id, position.Column, position.Row);
+    }
     private static readonly TimeSpan SearchDebounceDelay = TimeSpan.FromMilliseconds(350);
     private static readonly TimeSpan DefaultCacheLifetime = TimeSpan.FromMinutes(30);
 
@@ -73,6 +95,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         _cacheStore = cacheStore;
         _notifier = notifier;
 
+        Modules = DefaultModuleIds.Select(id => new WeatherModule(id, this)).ToArray();
         SearchResults = [];
         HourlyForecast = [];
         RefreshCommand = new AsyncRelayCommand(
@@ -243,6 +266,12 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
     public void Load(WeatherPanelDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
+        var savedPositions = (document.ModulePositions ?? []).OfType<ModulePosition>().ToArray();
+        _modulePositions = savedPositions.Any(position => position.Id == "sunrise")
+            ? savedPositions
+            : savedPositions.Select(position => position.Id == "sunset" ? position with { Id = "sunrise" } : position).ToArray();
+        ModuleSpacing = Math.Clamp(document.ModuleSpacing, -8, 24);
+        OnPropertyChanged(nameof(ModulePositions));
 
         _suppressSearch = true;
         try
@@ -274,6 +303,8 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
     /// <summary>Zwraca stan wymagający zapisu.</summary>
     public WeatherPanelDocument Snapshot() => new()
     {
+        ModulePositions = [.. ModulePositions],
+        ModuleSpacing = ModuleSpacing,
         NetworkConsentGrantedAtUtc = _networkConsentGrantedAtUtc,
         SelectedLocation = SelectedLocation,
         AutoRefreshMinutes = AutoRefreshMinutes,

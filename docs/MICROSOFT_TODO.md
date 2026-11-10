@@ -6,7 +6,7 @@ Otwórz **Menu → Ustawienia → Integracje → Otwórz kreator Microsoft To Do
 2. Wskaż panel **Lista zadań** na aktywnym pulpicie. Jeśli nie ma takiego panelu, dodaj go z menu pulpitu.
 3. Zaznacz przy wybranych listach **Importuj kopię**, **Synchronizuj** lub obie opcje. Wybierz **Zapisz wybór i pobierz zadania**.
 
-Import tworzy lokalną edytowalną kopię. Połączenie konta wymaga zgody `Tasks.ReadWrite`. Zapisanie wyboru list włącza dla nich synchronizację dwukierunkową; przycisk **Synchronizacja dwukierunkowa** otwiera edytor zadań. Wcześniej ręcznie wstrzymane synchronizacje pozostają wstrzymane. Lokalne importy nie są automatycznie publikowane. Dokładne statusy Microsoft są zachowywane, również poza prostym wykonane/niewykonane.
+Import tworzy lokalną edytowalną kopię. Połączenie konta wymaga zgody `Tasks.ReadWrite`. Zapisanie wyboru list włącza dla nich synchronizację dwukierunkową; pozycja **Synchronizacja dwukierunkowa** w menu kontekstowym zakładki otwiera edytor zadań; pole i przycisk + w panelu dodają zadania do kolejki synchronizacji. Wcześniej ręcznie wstrzymane synchronizacje pozostają wstrzymane. Lokalne importy nie są automatycznie publikowane. Dokładne statusy Microsoft są zachowywane, również poza prostym wykonane/niewykonane.
 
 Zmiana jest najpierw zapisywana lokalnie wraz z kolejką. Edytor pokazuje oczekujące operacje, konflikty, ponowienie i wstrzymanie. **Centrum synchronizacji** w Integracjach umożliwia powrót do powiązań. Usunięcie samej karty nie wysyła usunięcia zadań do usługi. Powiązanie dwukierunkowe należy wstrzymać w jego edytorze; dotychczasowy kreator wyboru odczytu nie zarządza jeszcze wszystkimi nowymi powiązaniami. Pełny zakres API, odłączenie z kopiami oraz testy kont pozostają opisane jako otwarte w [stanie wdrożenia](SYNCHRONIZACJA_DWUKIERUNKOWA.md).
 
@@ -29,3 +29,7 @@ Powrót do aplikacji sprzed migracji wymaga przywrócenia kopii bazy sprzed aktu
 
 
 Zakładkę powiązanej listy można usunąć lokalnie albo wybrać usunięcie również listy Microsoft To Do po potwierdzeniu. Usunięcie z konta korzysta z kolejki synchronizacji; lista z oczekującymi zmianami lub bez odpowiednich uprawnień nie zostanie usunięta. W razie niepotwierdzonej operacji zakładka pozostaje, a stan operacji można sprawdzić w centrum synchronizacji.
+
+### Dziennik integracji
+
+W Ustawieniach → Integracje można włączyć lub wyłączyć logowanie zdarzeń, odświeżyć kopiowalny dziennik i wyczyścić jego wpisy. Logowanie jest domyślnie włączone; ustawienie pozostaje zapisane po ponownym uruchomieniu. Dziennik obejmuje wybrane błędy synchronizacji w tle i uruchamianej w edytorze, odświeżania oraz logowania Microsoft i Google. Zawiera czas, usługę, etap, typ błędu, kod HTTP oraz bezpieczny kod przyczyny i moduł, jeżeli są dostępne. Nie zapisuje komunikatów wyjątków, tokenów, adresów kont ani treści zadań. Plik `LOGS/integration.txt` w profilu aplikacji jest ograniczony do około 1 MB; po osiągnięciu limitu starsze wpisy są zastępowane. Wyłączenie zatrzymuje nowe wpisy, nie usuwa istniejących.

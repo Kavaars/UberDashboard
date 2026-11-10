@@ -388,6 +388,110 @@ internal static class Program
                         var filename = $"{kind}-{leaf.PanelTypeId}-{size.Width}x{size.Height}.png";
                         using var stream = File.Create(Path.Combine(output, filename)); encoder.Save(stream);
                         Console.WriteLine($"RENDER PASS {filename}");
+                        if (kind == ThemeKind.Light && size.Width == 900 && leaf.ViewModel is UberDashboard.Contracts.Panels.IModularPanel modular)
+                        {
+                            modular.IsModuleEditMode = true;
+                            var editCard = new ContentControl { Content = leaf, ContentTemplate = (DataTemplate)app.FindResource("PanelLeafTemplate") };
+                            editCard.Measure(size); editCard.Arrange(new Rect(size)); editCard.UpdateLayout();
+                            await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+                            var grid = Descendants(editCard).OfType<UberDashboard.App.Controls.ModularItemsPanel>().SingleOrDefault()
+                                ?? throw new InvalidOperationException($"Modular grid missing from {leaf.PanelTypeId}");
+                            var list = Descendants(editCard).OfType<ListBox>().First(control => ReferenceEquals(control.DataContext, leaf.ViewModel));
+                            if (leaf.ViewModel is UberDashboard.App.Features.Resources.ResourcePanel resourceLayout && list.Items.Count > 0)
+                            {
+                                var savedTiles = resourceLayout.ShowTiles;
+                                var originalFontSize = list.FontSize;
+                                foreach (var tiles in new[] { false, true })
+                                {
+                                    resourceLayout.ShowTiles = tiles;
+                                    list.FontSize = 14; editCard.UpdateLayout();
+                                    var reading = (FrameworkElement)list.ItemContainerGenerator.ContainerFromIndex(0);
+                                    var normalHeight = reading.ActualHeight;
+                                    if (normalHeight >= 74 || normalHeight < reading.DesiredSize.Height - 0.1)
+                                        throw new InvalidOperationException($"Resource field did not fit its content: tiles={tiles}, height={normalHeight}, desired={reading.DesiredSize.Height}.");
+                                    if (tiles && reading.ActualWidth > 112)
+                                        throw new InvalidOperationException($"Resource tile field is too wide: {reading.ActualWidth}.");
+                                    var textBlocks = Descendants(reading).OfType<TextBlock>().Where(text => text.Visibility == Visibility.Visible).ToArray();
+                                    foreach (var text in textBlocks) text.FontSize = 24;
+                                    editCard.UpdateLayout();
+                                    if (reading.ActualHeight < reading.DesiredSize.Height - 0.1 || (!tiles && reading.ActualHeight <= normalHeight))
+                                        throw new InvalidOperationException($"Resource field did not accommodate larger text: tiles={tiles}, normal={normalHeight}, actual={reading.ActualHeight}, desired={reading.DesiredSize.Height}.");
+                                    foreach (var text in textBlocks) text.ClearValue(TextBlock.FontSizeProperty);
+                                }
+                                list.FontSize = originalFontSize;
+                                resourceLayout.ShowTiles = savedTiles;
+                                editCard.UpdateLayout();
+                            }
+                            if (leaf.ViewModel is UberDashboard.App.Features.Weather.WeatherPanelViewModel weatherLayout)
+                            {
+                                var temperature = list.Items.Cast<object>().Single(value => modular.GetModuleId(value) == "temperature");
+                                var range = list.Items.Cast<object>().Single(value => modular.GetModuleId(value) == "range");
+                                var tempContainer = (FrameworkElement)list.ItemContainerGenerator.ContainerFromItem(temperature);
+                                var rangeContainer = (FrameworkElement)list.ItemContainerGenerator.ContainerFromItem(range);
+                                var tempFrame = Descendants(tempContainer).OfType<Border>().Single(border => Equals(border.Tag, "WeatherModuleFrame"));
+                                var rangeFrame = Descendants(rangeContainer).OfType<Border>().Single(border => Equals(border.Tag, "WeatherModuleFrame"));
+                                var originalSpacing = weatherLayout.ModuleSpacing;
+                                weatherLayout.ModuleSpacing = -8; editCard.UpdateLayout();
+                                var near = rangeContainer.TranslatePoint(new Point(), grid);
+                                var width = tempFrame.ActualWidth; var height = tempFrame.ActualHeight;
+                                if (Math.Abs(width - rangeFrame.ActualWidth) > 1 || Math.Abs(height - rangeFrame.ActualHeight) > 1 ||
+                                    width / tempContainer.ActualWidth < .97 || height / tempContainer.ActualHeight < .97)
+                                    throw new InvalidOperationException("Weather frames do not fill equal-sized cells uniformly.");
+                                weatherLayout.ModuleSpacing = 16; editCard.UpdateLayout();
+                                var far = rangeContainer.TranslatePoint(new Point(), grid);
+                                if (far.X <= near.X || Math.Abs(width - tempFrame.ActualWidth) > 1 || Math.Abs(height - tempFrame.ActualHeight) > 1)
+                                    throw new InvalidOperationException("Module spacing did not move cells without resizing frames.");
+                                weatherLayout.ModuleSpacing = originalSpacing; editCard.UpdateLayout();
+                            }
+                            if (leaf.PanelTypeId == "weather")
+                            {
+                                var wideSize = new Size(1500, 400);
+                                var factory = new FrameworkElementFactory(typeof(UberDashboard.App.Controls.ModularItemsPanel));
+                                var wideList = new ListBox { DataContext = modular, ItemsSource = list.ItemsSource, ItemsPanel = new ItemsPanelTemplate(factory), Template = list.Template };
+                                UberDashboard.App.Controls.ModuleReorderBehavior.SetManaged(wideList, true);
+                                UberDashboard.App.Controls.ModuleReorderBehavior.SetEnabled(wideList, true);
+                                wideList.Measure(wideSize); wideList.Arrange(new Rect(wideSize)); wideList.UpdateLayout();
+                                await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+                                var wideGrid = Descendants(wideList).OfType<UberDashboard.App.Controls.ModularItemsPanel>().Single();
+                                var wideItem = wideList.Items.Cast<object>().First(value => modular.GetModuleId(value) is not null);
+                                var wideId = modular.GetModuleId(wideItem)!;
+                                var originalPosition = modular.ModulePositions.Single(position => position.Id == wideId);
+                                var wideCell = wideGrid.CellAt(new Point(6 * 188 + 10, 10));
+                                modular.MoveModuleToCell(wideId, wideCell.Column, wideCell.Row); wideList.UpdateLayout();
+                                var wideContainer = (FrameworkElement)wideList.ItemContainerGenerator.ContainerFromItem(wideItem);
+                                var widePoint = wideContainer.TranslatePoint(new Point(), wideGrid);
+                                if (widePoint.X < 6 * 188 - 1) throw new InvalidOperationException($"Module could not reach the seventh visible column: grid={wideGrid.RenderSize}, target={wideCell}, result={widePoint}.");
+                                wideList.SelectedItem = wideItem;
+                                if (wideList.SelectedItem is null) throw new InvalidOperationException("Module selection is unavailable in edit mode.");
+                                modular.IsModuleEditMode = false;
+                                UberDashboard.App.Controls.ModuleReorderBehavior.SetEnabled(wideList, false);
+                                if (wideList.SelectedItem is not null) throw new InvalidOperationException("Module selection remained after editing.");
+                                wideList.SelectedItem = wideItem;
+                                if (wideList.SelectedItem is not null) throw new InvalidOperationException("Module selection is available outside edit mode.");
+                                modular.IsModuleEditMode = true;
+                                modular.MoveModuleToCell(wideId, originalPosition.Column, originalPosition.Row);
+                                editCard.UpdateLayout();
+                            }
+                            var item = list.Items.Cast<object>().FirstOrDefault(value => modular.GetModuleId(value) is not null);
+                            if (item is not null && modular.GetModuleId(item) is { } id && list.ItemContainerGenerator.ContainerFromItem(item) is FrameworkElement container)
+                            {
+                                var original = modular.ModulePositions.Single(position => position.Id == id);
+                                modular.MoveModuleToCell(id, 3, 4);
+                                editCard.UpdateLayout();
+                                var moved = container.TranslatePoint(new Point(), grid);
+                                var mappedCell = grid.CellAt(new Point(moved.X + 10, moved.Y + 10));
+                                if (mappedCell != (3, 4))
+                                    throw new InvalidOperationException($"Modular cell layout failed for {leaf.PanelTypeId}: {moved}, mapped to {mappedCell}");
+                                modular.MoveModuleToCell(id, original.Column, original.Row);
+                                editCard.UpdateLayout();
+                            }
+                            var editBitmap = new RenderTargetBitmap((int)size.Width, (int)size.Height, 96, 96, PixelFormats.Pbgra32);
+                            DrawBackground(editBitmap, app, size); editBitmap.Render(editCard);
+                            var editEncoder = new PngBitmapEncoder(); editEncoder.Frames.Add(BitmapFrame.Create(editBitmap));
+                            using (var editStream = File.Create(Path.Combine(output, $"Light-{leaf.PanelTypeId}-module-edit.png"))) editEncoder.Save(editStream);
+                            modular.IsModuleEditMode = false;
+                            Console.WriteLine($"MODULAR EDIT RENDER PASS {leaf.PanelTypeId}");
+                        }
                     }
                 }
                 settingsWindow.Close();

@@ -61,6 +61,8 @@ public static class AppServiceCollectionExtensions
         services.AddSingleton<UberDashboard.Application.Synchronization.IIntegrationFileAccountService>(provider => provider.GetRequiredService<Features.Integrations.IntegrationAccounts>());
         services.AddSingleton<UberDashboard.Application.Synchronization.ISyncSessionProtector, Features.Integrations.DpapiSyncSessionProtector>();
         UberDashboard.Infrastructure.DependencyInjection.SynchronizationServiceCollectionExtensions.AddUberDashboardFileSynchronization(services);
+        services.AddSingleton<Features.Integrations.IntegrationDiagnostics>();
+        services.AddSingleton<UberDashboard.Application.Synchronization.IIntegrationDiagnostics>(p => p.GetRequiredService<Features.Integrations.IntegrationDiagnostics>());
         services.AddSingleton<Features.Integrations.IntegrationSyncService>();
         services.AddHostedService<IntegrationSyncWorker>();
         services.AddSingleton<Features.Todo.MicrosoftTodoRefresh>();
@@ -96,7 +98,8 @@ public static class AppServiceCollectionExtensions
             CalendarPanelDescriptor.Id, new CalendarPanelDescriptor(provider.GetRequiredService<PanelStateScheduler>(),
                 provider.GetService<UberDashboard.Application.Synchronization.ISyncStore>() is null ? null : provider.GetRequiredService<Features.Integrations.IntegrationSyncService>(),
                 provider.GetService<UberDashboard.Application.Synchronization.ISyncStore>() is null ? null : provider.GetRequiredService<Features.Integrations.IntegrationAccounts>(),
-                provider.GetService<UberDashboard.Application.Synchronization.ICalendarViewCache>())));
+                provider.GetService<UberDashboard.Application.Synchronization.ICalendarViewCache>(),
+                provider.GetService<UberDashboard.Application.Synchronization.ISyncStore>() is null ? null : provider.GetRequiredService<UberDashboard.Application.Synchronization.IIntegrationDiagnostics>())));
         services.AddSingleton<BuiltInPanelRegistration>(provider => new BuiltInPanelRegistration(
             ResourcePanelDescriptor.Id, new ResourcePanelDescriptor(provider.GetRequiredService<HardwareSampler>())));
 

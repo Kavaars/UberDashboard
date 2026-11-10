@@ -2,7 +2,8 @@
  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
  xmlns:local="clr-namespace:UberDashboard.App.Features.Shortcuts"
- xmlns:loc="clr-namespace:UberDashboard.App.Localization">
+ xmlns:loc="clr-namespace:UberDashboard.App.Localization"
+ xmlns:controls="clr-namespace:UberDashboard.App.Controls">
  <UserControl.Resources>
   <DataTemplate x:Key="ShortcutCard">
    <Border CornerRadius="8" Padding="8" Margin="2" ToolTip="{Binding Target}">
@@ -77,18 +78,11 @@
       <DataTrigger Binding="{Binding Model.Items.Count}" Value="0"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
      </Style.Triggers></Style></TextBlock.Style>
     </TextBlock>
-    <ListBox x:Name="ShortcutList" ItemsSource="{Binding Model.Items}" SelectedItem="{Binding Selected}" ItemTemplate="{StaticResource ShortcutCard}"
-     Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+    <ListBox x:Name="ShortcutList" ItemsSource="{Binding Model.Items}" ItemTemplate="{StaticResource ShortcutCard}"
+     controls:ModuleReorderBehavior.Managed="True" controls:ModuleReorderBehavior.Enabled="{Binding IsModuleEditMode}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
      MouseDoubleClick="OnDoubleClick" PreviewKeyDown="OnKeyDown" PreviewMouseLeftButtonUp="OnMouseUp"
-     AutomationProperties.Name="{loc:Text Shortcuts}">
-     <ListBox.Style>
-      <Style TargetType="ListBox">
-       <Setter Property="ItemsPanel"><Setter.Value><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></Setter.Value></Setter>
-       <Style.Triggers>
-        <DataTrigger Binding="{Binding Mode}" Value="List"><Setter Property="ItemsPanel"><Setter.Value><ItemsPanelTemplate><VirtualizingStackPanel/></ItemsPanelTemplate></Setter.Value></Setter></DataTrigger>
-       </Style.Triggers>
-      </Style>
-     </ListBox.Style>
+     AutomationProperties.Name="{loc:Text Shortcuts}" AutomationProperties.HelpText="{loc:Text ModuleKeyboardHelp}">
+     <ListBox.ItemsPanel><ItemsPanelTemplate><controls:ModularItemsPanel Spacing="{Binding ModuleSpacing}"><controls:ModularItemsPanel.Style><Style TargetType="controls:ModularItemsPanel"><Style.Triggers><DataTrigger Binding="{Binding Mode}" Value="List"><Setter Property="MaximumColumns" Value="1"/><Setter Property="CellHeight" Value="64"/></DataTrigger></Style.Triggers></Style></controls:ModularItemsPanel.Style></controls:ModularItemsPanel></ItemsPanelTemplate></ListBox.ItemsPanel>
      <ListBox.ItemContainerStyle>
       <Style TargetType="ListBoxItem" BasedOn="{StaticResource ThemedListBoxItem}">
        <Setter Property="Padding" Value="2"/>

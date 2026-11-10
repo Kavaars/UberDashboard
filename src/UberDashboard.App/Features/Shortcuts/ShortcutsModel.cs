@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using UberDashboard.Core.ModularPanels;
 using System.IO;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -46,6 +47,8 @@ public sealed class ShortcutsModel
     public ShortcutViewMode Mode { get; set; }
     public string? Wallpaper { get; set; }
     public bool? SingleClick { get; set; }
+    public double ModuleSpacing { get; set; }
+    public IReadOnlyList<ModulePosition> ModulePositions { get; set; } = [];
 
     public ShortcutEntry Save(ShortcutEntry draft, ShortcutEntry? original = null)
     {
@@ -68,7 +71,7 @@ public sealed class ShortcutsModel
         if (index >= 0 && index + offset >= 0 && index + offset < Items.Count) Items.Move(index, index + offset);
     }
 
-    public byte[] Serialize() => JsonSerializer.SerializeToUtf8Bytes(new Document(Mode, Wallpaper, Items.ToArray(), SingleClick));
+    public byte[] Serialize() => JsonSerializer.SerializeToUtf8Bytes(new Document(Mode, Wallpaper, Items.ToArray(), SingleClick, ModulePositions.ToArray(), ModuleSpacing));
 
     public static ShortcutsModel Restore(ReadOnlySpan<byte> state)
     {
@@ -78,6 +81,8 @@ public sealed class ShortcutsModel
             Mode = Enum.IsDefined(document.Mode) ? document.Mode : ShortcutViewMode.Icons,
             Wallpaper = document.Wallpaper,
             SingleClick = document.SingleClick,
+            ModuleSpacing = Math.Clamp(document.ModuleSpacing, -8, 24),
+            ModulePositions = document.ModulePositions ?? [],
         };
         var ids = new HashSet<Guid>();
         foreach (var item in document.Items ?? [])
@@ -95,5 +100,5 @@ public sealed class ShortcutsModel
     }
 
     private static string? Color(string? value) => value is not null && Regex.IsMatch(value, "^#(?:[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$") ? value : null;
-    private sealed record Document(ShortcutViewMode Mode, string? Wallpaper, ShortcutEntry?[]? Items, bool? SingleClick = null);
+    private sealed record Document(ShortcutViewMode Mode, string? Wallpaper, ShortcutEntry?[]? Items, bool? SingleClick = null, ModulePosition[]? ModulePositions = null, double ModuleSpacing = 0);
 }

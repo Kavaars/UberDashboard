@@ -34,7 +34,10 @@ public sealed partial class MicrosoftTodoProvider(HttpClient http, IIntegrationA
         var delta = path == "lists" || path.EndsWith("/tasks", StringComparison.Ordinal);
         var uri = page is not null ? Trusted(new Uri(page, UriKind.Absolute)) : cursor is not null
             ? Trusted(new Uri(cursor, UriKind.Absolute)) : new Uri(CollectionUri(binding).AbsoluteUri + (delta ? "/delta" : ""));
-        if (uri.AbsolutePath != CollectionUri(binding).AbsolutePath + (delta ? "/delta" : ""))
+        var expectedPath = CollectionUri(binding).AbsolutePath + (delta ? "/delta" : "");
+        // Compare path segments after decoding, without letting an encoded slash change the hierarchy.
+        if (!uri.AbsolutePath.Split('/').Select(Uri.UnescapeDataString)
+            .SequenceEqual(expectedPath.Split('/').Select(Uri.UnescapeDataString), StringComparer.Ordinal))
             throw new InvalidDataException("Continuation does not belong to this collection.");
         if (page is null && path.EndsWith("/attachments", StringComparison.Ordinal)) uri = new Uri(uri + "?$select=id,name,contentType,size,lastModifiedDateTime");
         using var response = await SendAsync(binding, HttpMethod.Get, uri, null, null, false, token).ConfigureAwait(false);

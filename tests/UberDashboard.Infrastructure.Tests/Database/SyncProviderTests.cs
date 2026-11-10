@@ -135,6 +135,30 @@ public sealed class SyncProviderTests
         Assert.NotNull(page.Cursor);
     }
 
+    [Theory]
+    [InlineData("https://graph.microsoft.com/v1.0/me/todo/lists/gDbc8U7HGwADDZocJgAAAA==/tasks/delta?$deltatoken=x")]
+    [InlineData("https://graph.microsoft.com/v1.0/me/todo/lists/gDbc8U7HGwADDZocJgAAAA%3d%3d/tasks/delta?$deltatoken=x")]
+    public async Task Graph_delta_link_accepts_equivalent_encoded_list_id(string continuation)
+    {
+        using var transport = new Transport((_, _) => Json("""{"value":[],"@odata.deltaLink":"https://graph.microsoft.com/v1.0/me/todo/lists/gDbc8U7HGwADDZocJgAAAA==/tasks/delta?$deltatoken=y"}"""));
+        using var http = new HttpClient(transport);
+        var binding = Binding(SyncProviderKind.MicrosoftTodo) with { ResourcePath = "lists/gDbc8U7HGwADDZocJgAAAA%3D%3D/tasks" };
+        var page = await new MicrosoftTodoProvider(http, new Accounts()).ReadPageAsync(binding, continuation, null, default);
+        Assert.Empty(page.Items);
+        Assert.NotNull(page.Cursor);
+    }
+
+    [Theory]
+    [InlineData("https://graph.microsoft.com/v1.0/me/todo/lists/other==/tasks/delta?$deltatoken=x")]
+    [InlineData("https://graph.microsoft.com/v1.0/me/todo/lists/gDbc8U7HGwADDZocJgAAAA%3D%3D%2Fother/tasks/delta?$deltatoken=x")]
+    public async Task Graph_delta_link_rejects_other_resource_even_with_encoding(string continuation)
+    {
+        using var transport = new Transport((_, _) => throw new InvalidOperationException("HTTP must not be called."));
+        using var http = new HttpClient(transport);
+        var binding = Binding(SyncProviderKind.MicrosoftTodo) with { ResourcePath = "lists/gDbc8U7HGwADDZocJgAAAA%3D%3D/tasks" };
+        await Assert.ThrowsAsync<InvalidDataException>(() => new MicrosoftTodoProvider(http, new Accounts()).ReadPageAsync(binding, continuation, null, default));
+    }
+
     [Fact]
     public async Task Continuation_cannot_forward_credentials_to_another_origin()
     {

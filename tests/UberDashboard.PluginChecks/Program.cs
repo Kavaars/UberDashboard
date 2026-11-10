@@ -243,6 +243,42 @@ internal static class Program
             Check(Value<ImageSource?>(model, "CurrentPhoto") is not null, "Source retry recovers after error");
         }
         Check(true, "Plugin host disposal flushes and closes panels");
+        await CheckTemplatesAsync(output, app);
+    }
+    private static async Task CheckTemplatesAsync(string output, System.Windows.Application app)
+    {
+        var package = Path.Combine(output, "PanelTemplates.udplugin");
+        using (var zip = ZipFile.Open(package, ZipArchiveMode.Create))
+        {
+            zip.CreateEntryFromFile(typeof(PanelTemplates.Plugin.TemplateModule).Assembly.Location, "PanelTemplates.Plugin.dll");
+            zip.CreateEntryFromFile(Path.Combine(AppContext.BaseDirectory, "templates-plugin.json"), "plugin.json");
+        }
+        await using var provider = Provider(Path.Combine(output, "templates-profile"));
+        var manager = provider.GetRequiredService<PluginManager>();
+        await manager.InitializeAsync();
+        var shell = provider.GetRequiredService<ShellViewModel>();
+        manager.RefreshPanelsAsync = shell.RefreshPluginPanelsAsync;
+        await shell.InitializeAsync();
+        await manager.InstallAsync(package);
+        await shell.AddPanelCommand.ExecuteAsync("pl.uberdashboard.paneltemplates.modular");
+        var leaf = Leaves(shell.Root).Single();
+        Check(leaf.HasModularEditing && leaf.ViewModel is IModularPanel, "Modular plugin exposes host edit menu");
+        leaf.ToggleModuleEditCommand.Execute(null);
+        var modular = (IModularPanel)leaf.ViewModel;
+        var id = modular.ModulePositions[0].Id;
+        modular.MoveModuleToCell(id, 3, 4);
+        Check(modular.ModulePositions.Any(p => p.Id == id && p.Column == 3 && p.Row == 4), "Modular plugin moves to an empty cell");
+        var card = new System.Windows.Controls.ContentControl { Content = leaf, ContentTemplate = (DataTemplate)app.FindResource("PanelLeafTemplate") };
+        await RenderAsync(card, Path.Combine(output, "modular-template.png"), 540, 360);
+        Check(Descendants(card).OfType<FrameworkElement>().Any(element => element.GetType().Name == "ModularItemsPanel"), "Modular plugin grid renders in host");
+        Check(Descendants(card).OfType<System.Windows.Controls.TextBlock>().Any(text => text.Text == "Element 2" || text.Text == "Item 2"), "Modular plugin item label renders");
+        await shell.HidePanelCommand.ExecuteAsync(leaf);
+        await shell.RestorePanelCommand.ExecuteAsync(shell.HiddenPanels.Single());
+        var restored = (IModularPanel)Leaves(shell.Root).Single().ViewModel;
+        Check(restored.ModulePositions.Any(p => p.Id == id && p.Column == 3 && p.Row == 4), "Modular plugin position survives hide and restore");
+        Check(!restored.IsModuleEditMode, "Modular plugin edit mode is not persisted");
+        await shell.AddPanelCommand.ExecuteAsync("pl.uberdashboard.paneltemplates.simple");
+        Check(Leaves(shell.Root).Any(item => item.PanelTypeId == "pl.uberdashboard.paneltemplates.simple" && !item.HasModularEditing), "Simple template renders without modular menu");
     }
     private static DragEventArgs DragArgs(Window window, System.Windows.IDataObject data, RoutedEvent routedEvent)
     {

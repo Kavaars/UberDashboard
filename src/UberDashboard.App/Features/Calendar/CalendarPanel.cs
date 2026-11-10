@@ -12,7 +12,8 @@ namespace UberDashboard.App.Features.Calendar;
 internal sealed class CalendarPanelDescriptor(PanelStateScheduler scheduler,
     UberDashboard.App.Features.Integrations.IntegrationSyncService? sync = null,
     UberDashboard.App.Features.Integrations.IntegrationAccounts? accounts = null,
-    UberDashboard.Application.Synchronization.ICalendarViewCache? viewCache = null) : IPanelDescriptor, IPanelFactory
+    UberDashboard.Application.Synchronization.ICalendarViewCache? viewCache = null,
+    UberDashboard.Application.Synchronization.IIntegrationDiagnostics? diagnostics = null) : IPanelDescriptor, IPanelFactory
 {
     public const string Id = "calendar";
     public string TypeId => Id;
@@ -23,7 +24,7 @@ internal sealed class CalendarPanelDescriptor(PanelStateScheduler scheduler,
     public IPanelFactory Factory => this;
 
     public ValueTask<IPanelInstance> CreateAsync(PanelContext context, CancellationToken cancellationToken) =>
-        ValueTask.FromResult<IPanelInstance>(new CalendarPanel(context, scheduler, sync, accounts, viewCache));
+        ValueTask.FromResult<IPanelInstance>(new CalendarPanel(context, scheduler, sync, accounts, viewCache, diagnostics));
 }
 
 public sealed partial class CalendarPanel : ObservableObject, IPanelInstance, IPanelOptionsPresenter
@@ -32,6 +33,7 @@ public sealed partial class CalendarPanel : ObservableObject, IPanelInstance, IP
     private readonly PanelContext _context;
     private readonly PanelStateScheduler _scheduler;
     private readonly GoogleCalendarClient _client;
+    private readonly UberDashboard.Application.Synchronization.IIntegrationDiagnostics? _diagnostics;
     private readonly UberDashboard.App.Features.Integrations.IntegrationSyncService? _sync;
     private readonly UberDashboard.App.Features.Integrations.IntegrationAccounts? _accounts;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(250) };
@@ -78,8 +80,10 @@ public sealed partial class CalendarPanel : ObservableObject, IPanelInstance, IP
     internal CalendarPanel(PanelContext context, PanelStateScheduler scheduler,
         UberDashboard.App.Features.Integrations.IntegrationSyncService? sync = null,
         UberDashboard.App.Features.Integrations.IntegrationAccounts? accounts = null,
-        UberDashboard.Application.Synchronization.ICalendarViewCache? viewCache = null)
+        UberDashboard.Application.Synchronization.ICalendarViewCache? viewCache = null,
+        UberDashboard.Application.Synchronization.IIntegrationDiagnostics? diagnostics = null)
     {
+        _diagnostics = diagnostics;
         _context = context;
         _scheduler = scheduler;
         _client = new(context.Storage, viewCache: viewCache);
@@ -304,6 +308,7 @@ public sealed partial class CalendarPanel : ObservableObject, IPanelInstance, IP
         }
         catch (System.Net.Http.HttpRequestException ex)
         {
+            _diagnostics?.Report("GoogleCalendar", "oauth", ex);
             Status = ex.StatusCode switch
             {
                 System.Net.HttpStatusCode.NotFound => UiText.Get("TheCalendarIsUnavailableCheckItsId"),
@@ -312,12 +317,14 @@ public sealed partial class CalendarPanel : ObservableObject, IPanelInstance, IP
                 _ => UiText.Get("CouldNotFetchEventsCheckYourConnection"),
             };
         }
-        catch (Google.Apis.Auth.OAuth2.Responses.TokenResponseException)
+        catch (Google.Apis.Auth.OAuth2.Responses.TokenResponseException error)
         {
+            _diagnostics?.Report("GoogleCalendar", "oauth", error);
             Status = UiText.Get("GoogleRejectedAuthorizationCheckTheConfigurationAnd");
         }
-        catch (Exception)
+        catch (Exception error)
         {
+            _diagnostics?.Report("GoogleCalendar", "oauth", error);
             Status = UiText.Get("CouldNotConnectOrReadDataCheck");
         }
         finally

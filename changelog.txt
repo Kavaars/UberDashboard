@@ -1,3 +1,13 @@
+2026-11-07T17:59:05+01:00 | Pogoda: czytelniejsze odczyty i pionowy układ godzin prognozy.
+2026-11-07T16:06:41+01:00 | Pogoda, Monitor zasobów i Skróty: układanie elementów na siatce z zapisem i obsługą klawiatury. Dodano wzory paneli pluginów.
+2026-11-07T15:39:35+01:00 | Skróty i Monitor zasobów: tryb edycji kolejności elementów dostępny w menu panelu.
+2026-11-07T15:26:44+01:00 | Microsoft To Do: nowe zadania oczekujące na synchronizację są sortowane według czasu dodania.
+2026-11-07T15:09:08+01:00 | Listy Microsoft To Do: dodawanie zadań w panelu, status na dole i synchronizacja w menu zakładki.
+- Dziennik integracji obejmuje również błędy synchronizacji uruchamianej z edytora i sygnalizuje nieudany zapis.
+- Microsoft To Do: poprawiono obsługę równoważnych postaci identyfikatorów list w adresach synchronizacji.
+- Dziennik integracji podaje kody przyczyn znanych błędów walidacji.
+- Ustawienia integracji: dodano przełączany, kopiowalny dziennik błędów z możliwością wyczyszczenia.
+- Microsoft To Do: panel pokazuje błędy połączenia i wstrzymanie synchronizacji, zachowując zapisaną kopię zadań.
 Monitor zasobów: większe wartości na kompaktowych kafelkach. Afirmacje: mniejsze pole wpisywania. Skróty: ustawienia i działania przeniesiono do opcji panelu.
 
 - Poprawiono wyświetlanie zapisanych zadań Microsoft To Do podczas oczekiwania na pierwsze pobranie oraz podwójne paski przewijania w opcjach paneli.
@@ -297,3 +307,13 @@ Zmiany robocze 1.8.0 (2026-11-04T10:28:00+01:00): Import notatki rozpoznaje plik
 2026-11-07T08:32:45+01:00 | Panel Skróty: galeria 59 ikon Lucide offline, animacje i wybór pojedynczego lub podwójnego kliknięcia.
 Prace robocze 1.9.0 (2026-11-07T08:55:37+01:00)
 - Prawy przycisk skrótu otwiera menu edycji i usuwania; usunięto zbędny komunikat o lokalizacji po aktualizacji pogody.
+
+2026-11-07 — Poprawiono tło monitora zasobów i skrótów; dodano regulację odstępu modułów w opcjach.
+
+2026-11-07 — Szersza prognoza godzinowa, wspólny moduł świtu i zmierzchu oraz opis pogody przy ikonie.
+
+2026-11-07 — Ujednolicono ramki pogody; suwak odstępu przesuwa moduły bez zmniejszania ich zawartości.
+
+2026-11-07 — Poprawiono przeciąganie modułów na dalsze pola szerokiego panelu oraz usunięto zaznaczanie modułów poza trybem edycji.
+
+2026-11-07 — Dopasowano rozmiar pól monitora zasobów do zawartości, ograniczając pustą przestrzeń wokół odczytów.

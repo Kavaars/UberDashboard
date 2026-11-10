@@ -7,6 +7,8 @@
   <ItemGroup>
     <ProjectReference Include="../../src/UberDashboard.App/UberDashboard.App.csproj" />
     <ProjectReference Include="../../plugins/PhotoFrame/PhotoFrame.Plugin.csproj" />
+    <ProjectReference Include="../../plugins/PanelTemplates/PanelTemplates.Plugin.csproj" />
+    <None Include="../../plugins/PanelTemplates/plugin.json" Link="templates-plugin.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../../plugins/PhotoFrame/plugin.json" Link="photo-plugin.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

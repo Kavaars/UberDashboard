@@ -8,7 +8,7 @@ using UberDashboard.Infrastructure.Integrations;
 namespace UberDashboard.App.Features.Todo;
 
 /// <summary>Odświeża zatwierdzone listy bez otwierania logowania w tle.</summary>
-internal sealed class MicrosoftTodoRefresh(MicrosoftTodoSession session, MicrosoftTodoSettings settings, ILogger<MicrosoftTodoRefresh> logger) : IDisposable
+internal sealed class MicrosoftTodoRefresh(MicrosoftTodoSession session, MicrosoftTodoSettings settings, ILogger<MicrosoftTodoRefresh> logger, UberDashboard.Application.Synchronization.IIntegrationDiagnostics? diagnostics = null) : IDisposable
 {
     private static readonly HttpClient Http = new(new HttpClientHandler { AllowAutoRedirect = false })
     {
@@ -53,6 +53,7 @@ internal sealed class MicrosoftTodoRefresh(MicrosoftTodoSession session, Microso
             var credential = await session.TrySignInSilentlyAsync(saved.ClientId, accountId, token);
             if (credential is null)
             {
+                diagnostics?.Report("MicrosoftTodo", "oauth", new UberDashboard.Application.Synchronization.SyncAuthenticationException());
                 LastError = UiText.Get("ReconnectTheMicrosoftAccountInTheSetup");
                 return;
             }
@@ -72,6 +73,7 @@ internal sealed class MicrosoftTodoRefresh(MicrosoftTodoSession session, Microso
                 catch (HttpRequestException error) when (error.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Forbidden)
                 {
                     unavailable = true;
+                    diagnostics?.Report("MicrosoftTodo", "refresh", error);
                 }
             }
             token.ThrowIfCancellationRequested();
@@ -82,6 +84,7 @@ internal sealed class MicrosoftTodoRefresh(MicrosoftTodoSession session, Microso
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (Exception error)
         {
+            diagnostics?.Report("MicrosoftTodo", "refresh", error);
             if (LastError is null) logger.LogWarning("Microsoft To Do refresh failed with {ErrorType}", error.GetType().Name);
             LastError = UiText.Get("CouldNotRefreshTheListsAutomaticallyThe");
         }

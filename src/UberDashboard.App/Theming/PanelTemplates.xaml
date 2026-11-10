@@ -145,6 +145,7 @@
 
   <DataTemplate x:Key="ShortcutsOptionsTemplate">
     <StackPanel>
+      <TextBlock Text="{loc:Text ModuleSpacing}" Foreground="{DynamicResource Brush.Text}" Margin="0,8,0,0"/><Slider Minimum="-8" Maximum="24" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding ModuleSpacing}" AutomationProperties.Name="{loc:Text ModuleSpacing}" ToolTip="{loc:Text ModuleSpacingHelp}"/>
       <Button Content="{loc:Text ShortcutAdd}" Command="{Binding AddCommand}" Style="{StaticResource ToolbarButton}" ToolTip="{loc:Text ShortcutAddTip}"/>
       <ComboBox ItemsSource="{Binding Modes}" SelectedValue="{Binding Mode}" SelectedValuePath="Value" Margin="0,8,0,0" Style="{StaticResource ThemedComboBox}" AutomationProperties.Name="{loc:Text ShortcutView}" ToolTip="{loc:Text ShortcutViewTip}">
         <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}"/></DataTemplate></ComboBox.ItemTemplate>
@@ -161,6 +162,7 @@
   </DataTemplate>
   <DataTemplate x:Key="ResourceOptionsTemplate">
     <StackPanel>
+      <TextBlock Text="{loc:Text ModuleSpacing}" Foreground="{DynamicResource Brush.Text}" Margin="0,8,0,0"/><Slider Minimum="-8" Maximum="24" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding ModuleSpacing}" AutomationProperties.Name="{loc:Text ModuleSpacing}" ToolTip="{loc:Text ModuleSpacingHelp}"/>
       <CheckBox Content="{loc:Text ResourceTileView}" IsChecked="{Binding ShowTiles}" Style="{StaticResource ThemedCheckBox}" AutomationProperties.Name="{loc:Text ResourceTileView}" Margin="0,0,0,8"/>
       <TextBlock Text="{loc:Text ResourceVisibleParameters}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap"/>
       <ItemsControl ItemsSource="{Binding Options}">
@@ -174,16 +176,18 @@
     <DockPanel Margin="{DynamicResource Token.Padding.Panel}">
       <TextBlock DockPanel.Dock="Top" Text="{Binding Status}" TextWrapping="Wrap" Margin="0,0,0,6"/>
       <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <ItemsControl ItemsSource="{Binding Readings}" x:Name="ResourceList">
-          <ItemsControl.Style><Style TargetType="ItemsControl"><Style.Triggers><DataTrigger Binding="{Binding ShowTiles}" Value="True"><Setter Property="ItemsPanel"><Setter.Value><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></Setter.Value></Setter></DataTrigger></Style.Triggers></Style></ItemsControl.Style>
-          <ItemsControl.ItemTemplate>
+        <ListBox ItemsSource="{Binding Readings}" x:Name="ResourceList" AutomationProperties.Name="{loc:Text ResourceMonitor}" AutomationProperties.HelpText="{loc:Text ModuleKeyboardHelp}" controls:ModuleReorderBehavior.Managed="True" controls:ModuleReorderBehavior.Enabled="{Binding IsModuleEditMode}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+          <ListBox.ItemsPanel><ItemsPanelTemplate><controls:ModularItemsPanel CellHeight="24" AutoCellHeight="True" Spacing="{Binding ModuleSpacing}">
+            <controls:ModularItemsPanel.Style><Style TargetType="controls:ModularItemsPanel"><Style.Triggers><DataTrigger Binding="{Binding ShowTiles}" Value="True"><Setter Property="CellWidth" Value="108"/></DataTrigger></Style.Triggers></Style></controls:ModularItemsPanel.Style>
+          </controls:ModularItemsPanel></ItemsPanelTemplate></ListBox.ItemsPanel>
+          <ListBox.ItemTemplate>
             <DataTemplate>
               <Grid>
-              <Border x:Name="TextReading" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" Padding="0,4" MinWidth="240">
+              <Border x:Name="TextReading" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" Padding="0,4">
                 <DockPanel>
                   <TextBlock DockPanel.Dock="Right" Text="{Binding Value}" FontWeight="SemiBold" Margin="8,0,0,0"/>
                   <StackPanel>
-                    <TextBlock Text="{Binding Name}" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}"/>
                     <TextBlock Text="{Binding Device}" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip="{Binding Device}"/>
                   </StackPanel>
                 </DockPanel>
@@ -197,8 +201,8 @@
               </Grid>
               <DataTemplate.Triggers><DataTrigger Binding="{Binding DataContext.ShowTiles, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True"><Setter TargetName="TextReading" Property="Visibility" Value="Collapsed"/><Setter TargetName="TileReading" Property="Visibility" Value="Visible"/></DataTrigger></DataTemplate.Triggers>
             </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
+          </ListBox.ItemTemplate>
+        </ListBox>
       </ScrollViewer>
     </DockPanel>
   </DataTemplate>
@@ -574,7 +578,7 @@
 
                       Value="{Binding AutoRefreshMinutes}" />
 
-              <CheckBox Content="{loc:Text WeatherShowLocation}" IsChecked="{Binding ShowLocation}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowIcon}" IsChecked="{Binding ShowIcon}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowTemperature}" IsChecked="{Binding ShowTemperature}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowCondition}" IsChecked="{Binding ShowCondition}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowDailyRange}" IsChecked="{Binding ShowDailyRange}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowSunrise}" IsChecked="{Binding ShowSunrise}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowSunset}" IsChecked="{Binding ShowSunset}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowForecast}" IsChecked="{Binding ShowForecast}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Margin="0,10,0,0"
+              <TextBlock Text="{loc:Text ModuleSpacing}" Foreground="{DynamicResource Brush.Text}" Margin="0,8,0,0"/><Slider Minimum="-8" Maximum="24" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding ModuleSpacing}" AutomationProperties.Name="{loc:Text ModuleSpacing}" ToolTip="{loc:Text ModuleSpacingHelp}"/><CheckBox Content="{loc:Text WeatherShowLocation}" IsChecked="{Binding ShowLocation}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowIcon}" IsChecked="{Binding ShowIcon}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowTemperature}" IsChecked="{Binding ShowTemperature}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowCondition}" IsChecked="{Binding ShowCondition}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowDailyRange}" IsChecked="{Binding ShowDailyRange}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowSunrise}" IsChecked="{Binding ShowSunrise}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowSunset}" IsChecked="{Binding ShowSunset}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowForecast}" IsChecked="{Binding ShowForecast}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Margin="0,10,0,0"
 
                         Content="{loc:Text ShowWindSpeed}"
 
@@ -788,10 +792,13 @@
 
   <DataTemplate DataType="{x:Type todo:MicrosoftTodoListViewModel}">
     <DockPanel>
-      <TextBlock DockPanel.Dock="Bottom" Margin="0,4,0,0" Text="{Binding LastSyncText}" TextWrapping="Wrap" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Text.Muted}"/>
-      <Button DockPanel.Dock="Top" HorizontalAlignment="Left" Command="{Binding OpenSyncEditorCommand}" Content="{loc:Text SyncEditorTitle}" ToolTip="{loc:Text SyncEnableHelp}" AutomationProperties.Name="{loc:Text SyncEditorTitle}" Style="{StaticResource ToolbarButton}"/>
-      <TextBlock DockPanel.Dock="Top" Text="{Binding Status}" TextWrapping="Wrap"
-                 Foreground="{DynamicResource Brush.Text.Muted}" Margin="0,0,0,6"/>
+      <TextBlock DockPanel.Dock="Bottom" Margin="0,4,0,0" Text="{Binding SyncStatusText}" TextWrapping="Wrap" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Text.Muted}"/>
+      <DockPanel DockPanel.Dock="Top">
+        <Button DockPanel.Dock="Right" AutomationProperties.Name="{loc:Text AddTask}" Command="{Binding AddItemCommand}" Content="&#xE710;" Style="{StaticResource PanelActionGlyphButton}" ToolTip="{loc:Text AddsTheTextAsANewTask}"/>
+        <TextBox Style="{StaticResource ThemedTextBox}" Text="{Binding NewItemText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{loc:Text AddTask}" ToolTip="{loc:Text NewTaskTextPressEnterOrThe}">
+          <TextBox.InputBindings><KeyBinding Key="Enter" Command="{Binding AddItemCommand}"/></TextBox.InputBindings>
+        </TextBox>
+      </DockPanel>
       <ListBox Margin="{Binding EdgePadding}" ItemsSource="{Binding Items}" Background="Transparent" BorderThickness="0"
                ItemContainerStyle="{StaticResource TodoListBoxItem}" AutomationProperties.Name="{loc:Text MicrosoftToDoTasks}"
                ScrollViewer.HorizontalScrollBarVisibility="Disabled">
@@ -1020,508 +1027,278 @@
 
 
   <DataTemplate DataType="{x:Type weather:WeatherPanelViewModel}">
-
-    <Grid x:Name="WeatherSize"><ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><ScrollViewer.Style><Style TargetType="ScrollViewer"><Style.Triggers><DataTrigger Value="True"><DataTrigger.Binding><MultiBinding Converter="{StaticResource CompactPanel}"><Binding ElementName="WeatherSize" Path="ActualWidth" /><Binding ElementName="WeatherSize" Path="ActualHeight" /></MultiBinding></DataTrigger.Binding><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></ScrollViewer.Style><Grid Margin="{DynamicResource Token.Padding.Panel}">
-
-      <Grid.RowDefinitions>
-
-        <RowDefinition Height="Auto" />
-
-        <RowDefinition Height="*" />
-
-      </Grid.RowDefinitions>
-
-
-
-      <Border x:Name="WeatherOptionsAnchor"
-
-              Width="1"
-
-              Height="1"
-
-              HorizontalAlignment="Right"
-
-              VerticalAlignment="Top" />
-
-
-
-
-
-
-
-
-
-
-
-      <Border Grid.Row="1"
-
-              Margin="0,8,0,0"
-
-              Padding="12"
-
-              Background="{DynamicResource Brush.Surface.Alt}"
-
-              BorderBrush="{DynamicResource Brush.Border}"
-
-              BorderThickness="1"
-
-              CornerRadius="{DynamicResource Token.CornerRadius.M}">
-
-        <Grid>
-
-          <Grid.RowDefinitions>
-
-            <RowDefinition Height="Auto" />
-
-            <RowDefinition Height="Auto" />
-
-            <RowDefinition Height="Auto" />
-
-            <RowDefinition Height="Auto" />
-
-            <RowDefinition Height="Auto" />
-
-          </Grid.RowDefinitions>
-
-
-
-          <TextBlock Grid.Row="0"
-
-                     Margin="0,0,0,10"
-
-                     FontWeight="SemiBold"
-
-                     Foreground="{DynamicResource Brush.Text}"
-
-                     Visibility="{Binding ShowLocation, Converter={StaticResource BoolToVisibility}}" Text="{Binding SelectedLocation.DisplayName, FallbackValue=Brak lokalizacji}"
-
-                     TextWrapping="Wrap" />
-
-
-
-          <Grid Grid.Row="1"
-
-                Visibility="{Binding HasSnapshot, Converter={StaticResource BoolToVisibility}}">
-
-            <Grid.ColumnDefinitions>
-
-              <ColumnDefinition Width="Auto" />
-
-              <ColumnDefinition Width="*" />
-
-            </Grid.ColumnDefinitions>
-
-
-
-            <Border Visibility="{Binding ShowIcon, Converter={StaticResource BoolToVisibility}}" Width="88"
-
-                    Height="88"
-
-                    Margin="0,0,16,0"
-
-                    Background="{DynamicResource Brush.Surface}"
-
-                    BorderBrush="{DynamicResource Brush.Border}"
-
-                    BorderThickness="1"
-
-                    CornerRadius="44">
-
-              <TextBlock HorizontalAlignment="Center"
-
-                         VerticalAlignment="Center"
-
-                         FontSize="52"
-
-                         Foreground="{DynamicResource Brush.Accent}"
-
-                         ToolTip="{loc:Text LargeIconForTheCurrentWeatherConditions}"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="FontFamily" Value="Segoe UI Symbol"/><Setter Property="Text" Value="{Binding ConditionGlyph}"/><Style.Triggers><DataTrigger Binding="{Binding ColorfulTheme}" Value="True"><Setter Property="Text" Value="{Binding ColorConditionGlyph}"/><Setter Property="FontFamily" Value="Segoe UI Emoji"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
-
-            </Border>
-
-
-
-            <StackPanel Grid.Column="1"
-
-                        VerticalAlignment="Center">
-
-              <TextBlock Visibility="{Binding ShowTemperature, Converter={StaticResource BoolToVisibility}}" FontSize="34" FontWeight="SemiBold" Text="{Binding TemperatureCelsius, StringFormat={}{0:0.#} °C}">
-                <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/><Style.Triggers><DataTrigger Binding="{Binding ColorfulTheme}" Value="True"><Setter Property="Foreground" Value="{Binding TemperatureCelsius, Converter={StaticResource WeatherTemperatureBrush}}"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
-              </TextBlock>
-
-              <TextBlock Margin="0,4,0,0"
-
-                         FontSize="15"
-
-                         Foreground="{DynamicResource Brush.Text.Muted}"
-
-                         Visibility="{Binding ShowCondition, Converter={StaticResource BoolToVisibility}}" Text="{Binding ConditionText}"
-
-                         TextWrapping="Wrap" />
-
-              <TextBlock Margin="0,8,0,0"
-
-                         Foreground="{DynamicResource Brush.Text}"
-
-                         Visibility="{Binding ShowDailyRange, Converter={StaticResource BoolToVisibility}}" Text="{Binding DailyRangeText}" />
-
-            </StackPanel>
-
-          </Grid>
-
-
-
-          <TextBlock Grid.Row="1"
-
-                     Foreground="{DynamicResource Brush.Text.Muted}"
-
-                     Text="{loc:Text ChooseALocationInThePanelOptions}"
-
-                     TextWrapping="Wrap">
-
-            <TextBlock.Style>
-
-              <Style TargetType="TextBlock">
-
-                <Setter Property="Visibility" Value="Visible" />
-
-                <Style.Triggers>
-
-                  <DataTrigger Binding="{Binding HasSnapshot}" Value="True">
-
-                    <Setter Property="Visibility" Value="Collapsed" />
-
-                  </DataTrigger>
-
-                </Style.Triggers>
-
-              </Style>
-
-            </TextBlock.Style>
-
-          </TextBlock>
-
-
-
-          <WrapPanel ItemWidth="128" Grid.Row="2"
-
-                       Margin="0,12,0,0"
-
-
-
-                      Visibility="{Binding HasSnapshot, Converter={StaticResource BoolToVisibility}}">
-
-            <Border Visibility="{Binding ShowSunrise, Converter={StaticResource BoolToVisibility}}" Margin="0,0,8,0"
-
-                    Padding="10,8"
-
-                    Background="{DynamicResource Brush.Surface}"
-
-                    BorderBrush="{DynamicResource Brush.Border}"
-
-                    BorderThickness="1"
-
-                    CornerRadius="{DynamicResource Token.CornerRadius.S}">
-
-              <StackPanel>
-
-                <TextBlock Foreground="{DynamicResource Brush.Text.Muted}"
-
-                           Text="{loc:Text Sunrise}" />
-
-                <TextBlock FontWeight="SemiBold"
-
-                           Foreground="{DynamicResource Brush.Text}"
-
-                           Text="{Binding SunriseText}" />
-
-              </StackPanel>
-
-            </Border>
-
-            <Border Visibility="{Binding ShowSunset, Converter={StaticResource BoolToVisibility}}" Margin="0,0,8,0"
-
-                    Padding="10,8"
-
-                    Background="{DynamicResource Brush.Surface}"
-
-                    BorderBrush="{DynamicResource Brush.Border}"
-
-                    BorderThickness="1"
-
-                    CornerRadius="{DynamicResource Token.CornerRadius.S}">
-
-              <StackPanel>
-
-                <TextBlock Foreground="{DynamicResource Brush.Text.Muted}"
-
-                           Text="{loc:Text Sunset}" />
-
-                <TextBlock FontWeight="SemiBold"
-
-                           Foreground="{DynamicResource Brush.Text}"
-
-                           Text="{Binding SunsetText}" />
-
-              </StackPanel>
-
-            </Border>
-
-            <Border Visibility="{Binding ShowDailyRange, Converter={StaticResource BoolToVisibility}}" Margin="0,0,8,0"
-
-                    Padding="10,8"
-
-                    Background="{DynamicResource Brush.Surface}"
-
-                    BorderBrush="{DynamicResource Brush.Border}"
-
-                    BorderThickness="1"
-
-                    CornerRadius="{DynamicResource Token.CornerRadius.S}">
-
-              <StackPanel>
-
-                <TextBlock Foreground="{DynamicResource Brush.Text.Muted}"
-
-                           Text="{loc:Text HighLow}" />
-
-                <TextBlock FontWeight="SemiBold"
-
-                           Foreground="{DynamicResource Brush.Text}"
-
-                           Text="{Binding DailyRangeText}" 
-
-                           TextWrapping="Wrap" />
-
-              </StackPanel>
-
-            </Border>
-
-            <Border Visibility="{Binding ShowCondition, Converter={StaticResource BoolToVisibility}}" Padding="10,8"
-
-                    Background="{DynamicResource Brush.Surface}"
-
-                    BorderBrush="{DynamicResource Brush.Border}"
-
-                    BorderThickness="1"
-
-                    CornerRadius="{DynamicResource Token.CornerRadius.S}">
-
-              <StackPanel>
-
-                <TextBlock Foreground="{DynamicResource Brush.Text.Muted}"
-
-                           Text="{loc:Text Status}" />
-
-                <TextBlock FontWeight="SemiBold"
-
-                           Foreground="{DynamicResource Brush.Text}"
-
-                           Text="{Binding ConditionText}"
-
-                           TextWrapping="Wrap" />
-
-              </StackPanel>
-
-            </Border>
-
-          </WrapPanel>
-
-
-
-          <WrapPanel Grid.Row="3"
-
-                     Margin="0,12,0,0"
-
-                     Visibility="{Binding HasSnapshot, Converter={StaticResource BoolToVisibility}}">
-
-            <Border Margin="0,0,8,8"
-
-                    Padding="8,6"
-
-                    Background="{DynamicResource Brush.Surface}"
-
-                    BorderBrush="{DynamicResource Brush.Border}"
-
-                    BorderThickness="1"
-
-                    CornerRadius="{DynamicResource Token.CornerRadius.S}"
-
-                    Visibility="{Binding ShowWind, Converter={StaticResource BoolToVisibility}}">
-
-              <TextBlock Foreground="{DynamicResource Brush.Text}"
-
-                         Text="{Binding WindText, StringFormat={loc:Text Wind}}"
-
-                         ToolTip="{loc:Text WindSpeedReportedByTheWeatherProvider}" />
-
-            </Border>
-
-            <Border Margin="0,0,8,8"
-
-                    Padding="8,6"
-
-                    Background="{DynamicResource Brush.Surface}"
-
-                    BorderBrush="{DynamicResource Brush.Border}"
-
-                    BorderThickness="1"
-
-                    CornerRadius="{DynamicResource Token.CornerRadius.S}"
-
-                    Visibility="{Binding ShowUpdatedTime, Converter={StaticResource BoolToVisibility}}">
-
-              <TextBlock Foreground="{DynamicResource Brush.Text}"
-
-                         MaxWidth="210" TextWrapping="Wrap" Text="{Binding UpdatedText, StringFormat={loc:Text Data}}"
-
-                         ToolTip="{loc:Text TimeOfTheLatestSuccessfulWeatherReading}" />
-
-            </Border>
-
-            <Border Margin="0,0,8,8"
-
-                    Padding="8,6"
-
-                    Background="{DynamicResource Brush.Surface}"
-
-                    BorderBrush="{DynamicResource Brush.Warning}"
-
-                    BorderThickness="1"
-
-                    CornerRadius="{DynamicResource Token.CornerRadius.S}"
-
-                    Visibility="{Binding IsStale, Converter={StaticResource BoolToVisibility}}">
-
-              <TextBlock Foreground="{DynamicResource Brush.Text}"
-
-                         Text="{loc:Text ShowingTheMostRecentCachedData}"
-
-                         ToolTip="{loc:Text ThePanelIsShowingCachedDataBecause}" />
-
-            </Border>
-
-          </WrapPanel>
-
-
-
-          <StackPanel Grid.Row="4"
-
-                      Margin="0,4,0,0"
-
-                      Visibility="{Binding HasHourlyForecast, Converter={StaticResource BoolToVisibility}}">
-
-            <TextBlock Margin="0,0,0,8"
-
-                       FontWeight="SemiBold"
-
-                       Foreground="{DynamicResource Brush.Text}"
-
-                       Text="{loc:Text HourlyForecast}" Visibility="{Binding ShowForecast, Converter={StaticResource BoolToVisibility}}" />
-
-            <ItemsControl ItemsSource="{Binding HourlyForecast}" Visibility="{Binding ShowForecast, Converter={StaticResource BoolToVisibility}}">
-
-              <ItemsControl.ItemsPanel>
-
-                <ItemsPanelTemplate>
-
-                  <WrapPanel />
-
-                </ItemsPanelTemplate>
-
-              </ItemsControl.ItemsPanel>
-
-              <ItemsControl.ItemTemplate>
-
-                <DataTemplate>
-
-                  <Border Width="118"
-
-                          Margin="0,0,8,8"
-
-                          Padding="10,8"
-
-                          Background="{DynamicResource Brush.Surface}"
-
-                          BorderBrush="{DynamicResource Brush.Border}"
-
-                          BorderThickness="1"
-
-                          CornerRadius="{DynamicResource Token.CornerRadius.S}">
-
-                    <StackPanel>
-
-                      <TextBlock FontWeight="SemiBold"
-
-                                 Foreground="{DynamicResource Brush.Text}"
-
-                                 Text="{Binding TimeText}" />
-
-                      <TextBlock Margin="0,6,0,0"
-
-                                         FontSize="24"
-
-                                 Foreground="{DynamicResource Brush.Accent}"
-
-                                 ><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="FontFamily" Value="Segoe UI Symbol"/><Setter Property="Text" Value="{Binding Glyph}"/><Style.Triggers><DataTrigger Binding="{Binding DataContext.ColorfulTheme, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True"><Setter Property="Text" Value="{Binding ColorGlyph}"/><Setter Property="FontFamily" Value="Segoe UI Emoji"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
-
-                      <TextBlock Margin="0,4,0,0"
-
-                                 FontWeight="SemiBold"
-
-                                 Text="{Binding TemperatureText}"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/><Style.Triggers><DataTrigger Binding="{Binding DataContext.ColorfulTheme, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True"><Setter Property="Foreground" Value="{Binding TemperatureCelsius, Converter={StaticResource WeatherTemperatureBrush}}"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
-
-                      <TextBlock Margin="0,2,0,0"
-
-                                 Foreground="{DynamicResource Brush.Text.Muted}"
-
-                                 Text="{Binding ConditionText}"
-
-                                 TextWrapping="Wrap" />
-
-                    </StackPanel>
-
-                  </Border>
-
-
-
-  </DataTemplate>
-
-              </ItemsControl.ItemTemplate>
-
-            </ItemsControl>
-
+    <DockPanel Margin="{DynamicResource Token.Padding.Panel}">
+      <StackPanel DockPanel.Dock="Bottom">
+          <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Muted}"/>
+          <ProgressBar Height="3" IsIndeterminate="True" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}"/>
           </StackPanel>
-
-        </Grid>
-
-      </Border>
-
-    </Grid></ScrollViewer>
-
-<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-
-<ScrollViewer.Style><Style TargetType="ScrollViewer"><Setter Property="Visibility" Value="Collapsed" /><Style.Triggers><DataTrigger Value="True"><DataTrigger.Binding><MultiBinding Converter="{StaticResource CompactPanel}"><Binding ElementName="WeatherSize" Path="ActualWidth" /><Binding ElementName="WeatherSize" Path="ActualHeight" /></MultiBinding></DataTrigger.Binding><Setter Property="Visibility" Value="Visible" /></DataTrigger></Style.Triggers></Style></ScrollViewer.Style>
-
-<Border Background="{DynamicResource Brush.Surface.Alt}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="{DynamicResource Token.CornerRadius.M}" Margin="12,8" Padding="2,0"><StackPanel Orientation="Horizontal" Margin="0" VerticalAlignment="Top">
-
-<Border Visibility="{Binding HasSnapshot, Converter={StaticResource BoolToVisibility}}"><TextBlock Margin="0,0,12,0" VerticalAlignment="Center" FontSize="36" Visibility="{Binding ShowIcon, Converter={StaticResource BoolToVisibility}}" ToolTip="{loc:Text CurrentWeatherConditions}"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="FontFamily" Value="Segoe UI Symbol"/><Setter Property="Text" Value="{Binding ConditionGlyph}"/><Style.Triggers><DataTrigger Binding="{Binding ColorfulTheme}" Value="True"><Setter Property="Text" Value="{Binding ColorConditionGlyph}"/><Setter Property="FontFamily" Value="Segoe UI Emoji"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock></Border>
-
-<StackPanel Margin="0,0,18,0"><TextBlock Visibility="{Binding ShowTemperature, Converter={StaticResource BoolToVisibility}}" FontSize="28" Text="{Binding TemperatureCelsius, StringFormat={}{0:0.#} °C}"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/><Style.Triggers><DataTrigger Binding="{Binding ColorfulTheme}" Value="True"><Setter Property="Foreground" Value="{Binding TemperatureCelsius, Converter={StaticResource WeatherTemperatureBrush}}"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock><TextBlock Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding ConditionText}" Visibility="{Binding ShowCondition, Converter={StaticResource BoolToVisibility}}" /></StackPanel>
-
-<StackPanel Width="190" Margin="0,0,18,0"><TextBlock FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" Text="{Binding SelectedLocation.DisplayName}" Visibility="{Binding ShowLocation, Converter={StaticResource BoolToVisibility}}" TextTrimming="CharacterEllipsis" /><TextBlock Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding DailyRangeText}" Visibility="{Binding ShowDailyRange, Converter={StaticResource BoolToVisibility}}" /><TextBlock Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding StatusText}" TextWrapping="Wrap" /><ProgressBar Height="3" IsIndeterminate="True" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}" /></StackPanel>
-
-<StackPanel Margin="0,0,18,0"><TextBlock Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding WindText, StringFormat={loc:Text Wind}}" Visibility="{Binding ShowWind, Converter={StaticResource BoolToVisibility}}" /><TextBlock Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding UpdatedText}" Visibility="{Binding ShowUpdatedTime, Converter={StaticResource BoolToVisibility}}" /></StackPanel>
-
-<StackPanel Margin="0,0,18,0" Visibility="{Binding HasSnapshot, Converter={StaticResource BoolToVisibility}}"><TextBlock Foreground="{DynamicResource Brush.Text}" Visibility="{Binding ShowSunrise, Converter={StaticResource BoolToVisibility}}" Text="{Binding SunriseText, StringFormat={loc:Text Sunrise2}}" /><TextBlock Foreground="{DynamicResource Brush.Text}" Visibility="{Binding ShowSunset, Converter={StaticResource BoolToVisibility}}" Text="{Binding SunsetText, StringFormat={loc:Text Sunset2}}" /></StackPanel>
-
-<ItemsControl ItemsSource="{Binding HourlyForecast}" Visibility="{Binding ShowForecast, Converter={StaticResource BoolToVisibility}}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate><StackPanel Margin="0,0,18,0"><TextBlock Foreground="{DynamicResource Brush.Text}" Text="{Binding TimeText}" /><TextBlock FontSize="24"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="FontFamily" Value="Segoe UI Symbol"/><Setter Property="Text" Value="{Binding Glyph}"/><Style.Triggers><DataTrigger Binding="{Binding DataContext.ColorfulTheme, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True"><Setter Property="Text" Value="{Binding ColorGlyph}"/><Setter Property="FontFamily" Value="Segoe UI Emoji"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock><TextBlock Text="{Binding TemperatureText}"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/><Style.Triggers><DataTrigger Binding="{Binding DataContext.ColorfulTheme, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True"><Setter Property="Foreground" Value="{Binding TemperatureCelsius, Converter={StaticResource WeatherTemperatureBrush}}"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock><TextBlock Foreground="{DynamicResource Brush.Text.Muted}" Text="{Binding ConditionText}" TextWrapping="Wrap" MaxWidth="140" /></StackPanel></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-
-</StackPanel></Border></ScrollViewer></Grid>
-
+      <ListBox ItemsSource="{Binding Modules}" controls:ModuleReorderBehavior.Managed="True" controls:ModuleReorderBehavior.Enabled="{Binding IsModuleEditMode}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="{loc:Text Weather}" AutomationProperties.HelpText="{loc:Text ModuleKeyboardHelp}">
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate>
+          <controls:ModularItemsPanel CellHeight="112" Spacing="{Binding ModuleSpacing}"/>
+          </ItemsPanelTemplate>
+          </ListBox.ItemsPanel>
+        <ListBox.ItemContainerStyle>
+          <Style TargetType="ListBoxItem" BasedOn="{StaticResource ThemedListBoxItem}">
+          <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+          <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+          <Setter Property="Padding" Value="0"/>
+          <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem">
+            <Border x:Name="ItemBorder" Background="Transparent" BorderBrush="Transparent" BorderThickness="0">
+              <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource Brush.Surface.Alt}"/></Trigger>
+              <Trigger Property="IsSelected" Value="True"><Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource Brush.Surface.Alt}"/><Setter TargetName="ItemBorder" Property="BorderBrush" Value="{DynamicResource Brush.Accent}"/><Setter TargetName="ItemBorder" Property="BorderThickness" Value="1"/></Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="ItemBorder" Property="BorderBrush" Value="{DynamicResource Brush.Accent}"/><Setter TargetName="ItemBorder" Property="BorderThickness" Value="1"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate></Setter.Value></Setter>
+          <Setter Property="AutomationProperties.Name" Value="{Binding Label}"/>
+          <Style.Triggers>
+          <DataTrigger Binding="{Binding Id}" Value="forecast"><Setter Property="controls:ModularItemsPanel.ColumnSpan" Value="3"/></DataTrigger>
+          <MultiDataTrigger>
+          <MultiDataTrigger.Conditions>
+          <Condition Binding="{Binding Id}" Value="location"/>
+          <Condition Binding="{Binding Owner.ShowLocation}" Value="False"/>
+          </MultiDataTrigger.Conditions>
+          <Setter Property="Visibility" Value="Collapsed"/>
+          </MultiDataTrigger>
+          <MultiDataTrigger>
+          <MultiDataTrigger.Conditions>
+          <Condition Binding="{Binding Id}" Value="icon"/>
+          <Condition Binding="{Binding Owner.ShowIcon}" Value="False"/>
+          <Condition Binding="{Binding Owner.ShowCondition}" Value="False"/>
+          </MultiDataTrigger.Conditions>
+          <Setter Property="Visibility" Value="Collapsed"/>
+          </MultiDataTrigger>
+          <MultiDataTrigger>
+          <MultiDataTrigger.Conditions>
+          <Condition Binding="{Binding Id}" Value="temperature"/>
+          <Condition Binding="{Binding Owner.ShowTemperature}" Value="False"/>
+          </MultiDataTrigger.Conditions>
+          <Setter Property="Visibility" Value="Collapsed"/>
+          </MultiDataTrigger>
+          <MultiDataTrigger>
+          <MultiDataTrigger.Conditions>
+          <Condition Binding="{Binding Id}" Value="range"/>
+          <Condition Binding="{Binding Owner.ShowDailyRange}" Value="False"/>
+          </MultiDataTrigger.Conditions>
+          <Setter Property="Visibility" Value="Collapsed"/>
+          </MultiDataTrigger>
+          <MultiDataTrigger>
+          <MultiDataTrigger.Conditions>
+          <Condition Binding="{Binding Id}" Value="sunrise"/>
+          <Condition Binding="{Binding Owner.ShowSunrise}" Value="False"/>
+          <Condition Binding="{Binding Owner.ShowSunset}" Value="False"/>
+          </MultiDataTrigger.Conditions>
+          <Setter Property="Visibility" Value="Collapsed"/>
+          </MultiDataTrigger>
+          <MultiDataTrigger>
+          <MultiDataTrigger.Conditions>
+          <Condition Binding="{Binding Id}" Value="wind"/>
+          <Condition Binding="{Binding Owner.ShowWind}" Value="False"/>
+          </MultiDataTrigger.Conditions>
+          <Setter Property="Visibility" Value="Collapsed"/>
+          </MultiDataTrigger>
+          <MultiDataTrigger>
+          <MultiDataTrigger.Conditions>
+          <Condition Binding="{Binding Id}" Value="updated"/>
+          <Condition Binding="{Binding Owner.ShowUpdatedTime}" Value="False"/>
+          </MultiDataTrigger.Conditions>
+          <Setter Property="Visibility" Value="Collapsed"/>
+          </MultiDataTrigger>
+          <MultiDataTrigger>
+          <MultiDataTrigger.Conditions>
+          <Condition Binding="{Binding Id}" Value="forecast"/>
+          <Condition Binding="{Binding Owner.ShowForecast}" Value="False"/>
+          </MultiDataTrigger.Conditions>
+          <Setter Property="Visibility" Value="Collapsed"/>
+          </MultiDataTrigger>
+          <MultiDataTrigger>
+          <MultiDataTrigger.Conditions>
+          <Condition Binding="{Binding Id}" Value="forecast"/>
+          <Condition Binding="{Binding Owner.HasHourlyForecast}" Value="False"/>
+          <Condition Binding="{Binding Owner.IsModuleEditMode}" Value="False"/>
+          </MultiDataTrigger.Conditions>
+          <Setter Property="Visibility" Value="Collapsed"/>
+          </MultiDataTrigger>
+          </Style.Triggers>
+          </Style>
+          </ListBox.ItemContainerStyle>
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+          <Grid>
+          <Grid.ColumnDefinitions><ColumnDefinition Width="0.5*"/><ColumnDefinition Width="99*"/><ColumnDefinition Width="0.5*"/></Grid.ColumnDefinitions>
+          <Grid.RowDefinitions><RowDefinition Height="0.5*"/><RowDefinition Height="99*"/><RowDefinition Height="0.5*"/></Grid.RowDefinitions>
+          <Border Grid.Column="1" Grid.Row="1" Tag="WeatherModuleFrame" Padding="8" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border}" CornerRadius="10">
+          <StackPanel>
+          <TextBlock Text="{Binding Label}" Foreground="{DynamicResource Brush.Text.Muted}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Label}"><TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding Id}" Value="sunrise"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+          <TextBlock Text="{Binding Owner.SelectedLocation.DisplayName}" ToolTip="{Binding Owner.SelectedLocation.DisplayName}" FontSize="18" FontWeight="SemiBold" TextTrimming="CharacterEllipsis">
+          <TextBlock.Style>
+          <Style TargetType="TextBlock">
+          <Setter Property="Visibility" Value="Collapsed"/>
+          <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
+          <Style.Triggers>
+          <DataTrigger Binding="{Binding Id}" Value="location">
+          <Setter Property="Visibility" Value="Visible"/>
+          </DataTrigger>
+          </Style.Triggers>
+          </Style>
+          </TextBlock.Style>
+          </TextBlock>
+          <StackPanel Orientation="Horizontal">
+          <TextBlock FontSize="36" TextWrapping="Wrap">
+          <TextBlock.Style>
+          <Style TargetType="TextBlock">
+          <Setter Property="Visibility" Value="Collapsed"/>
+          <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}"/>
+          <Setter Property="FontFamily" Value="Segoe UI Symbol"/>
+          <Setter Property="Text" Value="{Binding Owner.ConditionGlyph}"/>
+          <Style.Triggers>
+          <MultiDataTrigger><MultiDataTrigger.Conditions><Condition Binding="{Binding Id}" Value="icon"/><Condition Binding="{Binding Owner.ShowIcon}" Value="True"/></MultiDataTrigger.Conditions><Setter Property="Visibility" Value="Visible"/></MultiDataTrigger>
+          <DataTrigger Binding="{Binding Owner.ColorfulTheme}" Value="True">
+          <Setter Property="Text" Value="{Binding Owner.ColorConditionGlyph}"/>
+          <Setter Property="FontFamily" Value="Segoe UI Emoji"/>
+          </DataTrigger>
+          </Style.Triggers>
+          </Style>
+          </TextBlock.Style>
+          </TextBlock>
+          <TextBlock Text="{Binding Owner.ConditionText}" ToolTip="{Binding Owner.ConditionText}" Margin="6,0,0,0" VerticalAlignment="Center" FontSize="15" TextTrimming="CharacterEllipsis">
+          <TextBlock.Style>
+          <Style TargetType="TextBlock">
+          <Setter Property="Visibility" Value="Collapsed"/>
+          <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
+          <Style.Triggers>
+          <MultiDataTrigger><MultiDataTrigger.Conditions><Condition Binding="{Binding Id}" Value="icon"/><Condition Binding="{Binding Owner.ShowCondition}" Value="True"/></MultiDataTrigger.Conditions><Setter Property="Visibility" Value="Visible"/></MultiDataTrigger>
+          </Style.Triggers>
+          </Style>
+          </TextBlock.Style>
+          </TextBlock>
+          </StackPanel>
+          <TextBlock Text="{Binding Owner.TemperatureCelsius, StringFormat={}{0:0.#} °C}" FontSize="32" FontWeight="SemiBold" TextWrapping="Wrap">
+          <TextBlock.Style>
+          <Style TargetType="TextBlock">
+          <Setter Property="Visibility" Value="Collapsed"/>
+          <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
+          <Style.Triggers>
+          <DataTrigger Binding="{Binding Id}" Value="temperature">
+          <Setter Property="Visibility" Value="Visible"/>
+          </DataTrigger>
+          <DataTrigger Binding="{Binding Owner.ColorfulTheme}" Value="True">
+          <Setter Property="Foreground" Value="{Binding Owner.TemperatureCelsius, Converter={StaticResource WeatherTemperatureBrush}}"/>
+          </DataTrigger>
+          </Style.Triggers>
+          </Style>
+          </TextBlock.Style>
+          </TextBlock>
+          <TextBlock Text="{Binding Owner.DailyRangeText}" ToolTip="{Binding Owner.DailyRangeText}" FontSize="15" TextTrimming="CharacterEllipsis">
+          <TextBlock.Style>
+          <Style TargetType="TextBlock">
+          <Setter Property="Visibility" Value="Collapsed"/>
+          <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
+          <Style.Triggers>
+          <DataTrigger Binding="{Binding Id}" Value="range">
+          <Setter Property="Visibility" Value="Visible"/>
+          </DataTrigger>
+          </Style.Triggers>
+          </Style>
+          </TextBlock.Style>
+          </TextBlock>
+          <Grid>
+            <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Id}" Value="sunrise"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Grid.Style>
+            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+            <StackPanel Visibility="{Binding Owner.ShowSunrise, Converter={StaticResource BoolToVisibility}}"><TextBlock Text="{loc:Text Sunrise}" Foreground="{DynamicResource Brush.Text.Muted}"/><TextBlock Text="{Binding Owner.SunriseText}" Foreground="{DynamicResource Brush.Text}" TextTrimming="CharacterEllipsis"/></StackPanel>
+            <StackPanel Grid.Column="1" Visibility="{Binding Owner.ShowSunset, Converter={StaticResource BoolToVisibility}}"><TextBlock Text="{loc:Text Sunset}" Foreground="{DynamicResource Brush.Text.Muted}"/><TextBlock Text="{Binding Owner.SunsetText}" Foreground="{DynamicResource Brush.Text}" TextTrimming="CharacterEllipsis"/></StackPanel>
+          </Grid>
+          <TextBlock Text="{Binding Owner.WindText}" ToolTip="{Binding Owner.WindText}" FontSize="15" TextTrimming="CharacterEllipsis">
+          <TextBlock.Style>
+          <Style TargetType="TextBlock">
+          <Setter Property="Visibility" Value="Collapsed"/>
+          <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
+          <Style.Triggers>
+          <DataTrigger Binding="{Binding Id}" Value="wind">
+          <Setter Property="Visibility" Value="Visible"/>
+          </DataTrigger>
+          </Style.Triggers>
+          </Style>
+          </TextBlock.Style>
+          </TextBlock>
+          <TextBlock Text="{Binding Owner.UpdatedText}" ToolTip="{Binding Owner.UpdatedText}" FontSize="15" TextTrimming="CharacterEllipsis">
+          <TextBlock.Style>
+          <Style TargetType="TextBlock">
+          <Setter Property="Visibility" Value="Collapsed"/>
+          <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
+          <Style.Triggers>
+          <DataTrigger Binding="{Binding Id}" Value="updated">
+          <Setter Property="Visibility" Value="Visible"/>
+          </DataTrigger>
+          </Style.Triggers>
+          </Style>
+          </TextBlock.Style>
+          </TextBlock>
+          <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+          <ScrollViewer.Style>
+          <Style TargetType="ScrollViewer">
+          <Setter Property="Visibility" Value="Collapsed"/>
+          <Style.Triggers>
+          <DataTrigger Binding="{Binding Id}" Value="forecast">
+          <Setter Property="Visibility" Value="Visible"/>
+          </DataTrigger>
+          </Style.Triggers>
+          </Style>
+          </ScrollViewer.Style>
+          <ItemsControl ItemsSource="{Binding Owner.HourlyForecast}">
+          <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+          <StackPanel Orientation="Horizontal"/>
+          </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+          <DataTemplate>
+          <Border Margin="0,0,4,0" Padding="8,3" MinWidth="68" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="8" ToolTip="{Binding ConditionText}">
+          <StackPanel>
+          <TextBlock Text="{Binding TimeText}" HorizontalAlignment="Center" FontWeight="SemiBold"/>
+          <TextBlock FontSize="24" HorizontalAlignment="Center">
+          <TextBlock.Style>
+          <Style TargetType="TextBlock">
+          <Setter Property="Text" Value="{Binding Glyph}"/>
+          <Setter Property="FontFamily" Value="Segoe UI Symbol"/>
+          <Style.Triggers>
+          <DataTrigger Binding="{Binding DataContext.ColorfulTheme, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="True">
+          <Setter Property="Text" Value="{Binding ColorGlyph}"/>
+          <Setter Property="FontFamily" Value="Segoe UI Emoji"/>
+          </DataTrigger>
+          </Style.Triggers>
+          </Style>
+          </TextBlock.Style>
+          </TextBlock>
+          <TextBlock Text="{Binding TemperatureText}" HorizontalAlignment="Center" FontWeight="SemiBold">
+          <TextBlock.Style>
+          <Style TargetType="TextBlock">
+          <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
+          <Style.Triggers>
+          <DataTrigger Binding="{Binding DataContext.ColorfulTheme, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="True">
+          <Setter Property="Foreground" Value="{Binding TemperatureCelsius, Converter={StaticResource WeatherTemperatureBrush}}"/>
+          </DataTrigger>
+          </Style.Triggers>
+          </Style>
+          </TextBlock.Style>
+          </TextBlock>
+          </StackPanel>
+          </Border>
+          </DataTemplate>
+          </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          </ScrollViewer>
+          </StackPanel>
+          </Border>
+          </Grid>
+          </DataTemplate>
+          </ListBox.ItemTemplate>
+      </ListBox>
+    </DockPanel>
   </DataTemplate>
-
-
 
   <DataTemplate DataType="{x:Type shell:UnavailablePanelViewModel}">
 
@@ -1534,6 +1311,7 @@
   <DataTemplate x:Key="PanelLeafTemplate">
 
     <controls:PanelAppearanceBorder Appearance="{Binding Appearance}" AutomationProperties.Name="{Binding DisplayName}" controls:PanelDragDrop.IsTarget="True">
+      <controls:PanelAppearanceBorder.ContextMenu><ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"><MenuItem Header="{loc:Text ModuleEditMode}" ToolTip="{loc:Text ModuleEditHelp}" IsEnabled="{Binding HasModularEditing}" IsCheckable="True" IsChecked="{Binding ViewModel.IsModuleEditMode, Mode=OneWay}" Command="{Binding ToggleModuleEditCommand}"/></ContextMenu></controls:PanelAppearanceBorder.ContextMenu>
 
       <controls:PanelAppearanceBorder.Style><Style TargetType="controls:PanelAppearanceBorder" BasedOn="{StaticResource PanelCard}"><Style.Triggers><DataTrigger Binding="{Binding IsSpace}" Value="True"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /></DataTrigger></Style.Triggers></Style></controls:PanelAppearanceBorder.Style>
 

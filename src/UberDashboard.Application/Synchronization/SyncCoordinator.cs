@@ -7,7 +7,7 @@ namespace UberDashboard.Application.Synchronization;
 
 /// <summary>Pull/merge/push. No network call occurs within a database transaction.</summary>
 public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncProvider> providers, IClock clock,
-    IEnumerable<ISyncFileProvider>? fileProviders = null) : ISyncCoordinator
+    IEnumerable<ISyncFileProvider>? fileProviders = null, IIntegrationDiagnostics? diagnostics = null) : ISyncCoordinator
 {
     private readonly ConcurrentDictionary<(SyncProviderKind Provider, string Client, string Account), SemaphoreSlim> _gates = new();
     private readonly IReadOnlyDictionary<SyncProviderKind, ISyncProvider> _providers = providers.ToDictionary(p => p.Kind);
@@ -171,6 +171,8 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
         }
         catch (Exception error)
         {
+            if (error is not OperationCanceledException || !token.IsCancellationRequested)
+                diagnostics?.Report(identity.Provider.ToString(), "sync", error);
             var status = error switch
             {
                 SyncAuthenticationException => SyncConnectionStatus.AuthenticationRequired,

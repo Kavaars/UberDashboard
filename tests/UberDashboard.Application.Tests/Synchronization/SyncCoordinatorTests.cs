@@ -284,6 +284,28 @@ public sealed class SyncCoordinatorTests
         await Assert.ThrowsAsync<InvalidOperationException>(() => coordinator.RetryAsync(binding.Id, store.State.Queue[0].Id));
         Assert.Equal(SyncOperationState.UnknownOutcome, store.State.Queue[0].State);
     }
+    [Fact]
+    public async Task Direct_sync_failure_is_reported_and_a_later_success_clears_the_failure()
+    {
+        var (store, provider, _, binding) = Setup();
+        var diagnostics = new Diagnostics();
+        var coordinator = new SyncCoordinator(store, [provider], new Clock(), diagnostics: diagnostics);
+        provider.ReadError = new InvalidDataException("test");
+        await Assert.ThrowsAsync<InvalidDataException>(() => coordinator.SynchronizeAsync(binding.Id));
+        Assert.Equal(SyncConnectionStatus.Failed, store.State.ConnectionStatus);
+        Assert.Equal(("MicrosoftTodo", "sync", typeof(InvalidDataException)), Assert.Single(diagnostics.Events));
+        provider.ReadError = null;
+        await coordinator.SynchronizeAsync(binding.Id);
+        Assert.Equal(SyncConnectionStatus.Idle, store.State.ConnectionStatus);
+        Assert.Single(diagnostics.Events);
+    }
+
+    private sealed class Diagnostics : IIntegrationDiagnostics
+    {
+        public List<(string Provider, string Operation, Type Error)> Events { get; } = [];
+        public void Report(string provider, string operation, Exception error) => Events.Add((provider, operation, error.GetType()));
+    }
+
     private static (MemoryStore, Provider, SyncCoordinator, SyncBinding) Setup(SyncProviderKind kind = SyncProviderKind.MicrosoftTodo)
     {
         var binding = new SyncBinding(Guid.NewGuid(), kind, "client", "account",

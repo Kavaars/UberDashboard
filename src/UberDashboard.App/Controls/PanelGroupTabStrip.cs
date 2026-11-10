@@ -108,6 +108,14 @@ public sealed class PanelGroupTabStrip : ScrollViewer
             var remove = new MenuItem { Header = UiText.Get("DeleteTab2"), IsEnabled = session.Group.Tabs.Length > 1 };
             if (session.IsMicrosoftTodoTab(tab.InstanceId))
             {
+                var sync = new MenuItem { Header = UiText.Get("SyncEditorTitle"), ToolTip = UiText.Get("SyncEnableHelp") };
+                sync.Click += async (_, _) => await Run(async () =>
+                {
+                    await session.SelectAsync(tab.InstanceId);
+                    if (session.ActiveViewModel is Features.Todo.MicrosoftTodoListViewModel list)
+                        await list.OpenSyncEditorCommand.ExecuteAsync(null);
+                });
+                menu.Items.Add(sync);
                 var local = new MenuItem { Header = UiText.Get("TodoDeleteTabOnly") };
                 local.Click += async (_, _) => await Run(async () => { if (ConfirmDeletion(tab)) await session.RemoveAsync(tab.InstanceId); });
                 var remote = new MenuItem { Header = UiText.Get("TodoDeleteTabAndRemote") };

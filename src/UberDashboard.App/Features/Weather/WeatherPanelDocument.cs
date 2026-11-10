@@ -1,4 +1,5 @@
 using UberDashboard.Application.Weather;
+using UberDashboard.Core.ModularPanels;
 
 namespace UberDashboard.App.Features.Weather;
 
@@ -9,6 +10,10 @@ public sealed class WeatherPanelDocument
 {
     /// <summary>Wersja schematu stanu panelu.</summary>
     public const int SchemaVersion = 3;
+
+    public ModulePosition[] ModulePositions { get; init; } = [];
+
+    public double ModuleSpacing { get; init; }
 
     public bool ColorfulTheme { get; init; }
     public bool ShowLocation { get; init; } = true;

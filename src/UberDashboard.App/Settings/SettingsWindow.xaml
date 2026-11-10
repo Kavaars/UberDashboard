@@ -274,6 +274,17 @@
                       ToolTip="{loc:Text OpensAccountConfigurationAndMicrosoftToDo}"/>
               <TextBlock Margin="0,16,0,8" Text="{loc:Text PrivacyConnectionsNotice}" TextWrapping="Wrap"/>
               <Button HorizontalAlignment="Left" Content="{loc:Text SyncCenterTitle}" AutomationProperties.Name="{loc:Text SyncCenterTitle}" Style="{StaticResource ToolbarButton}" Click="OpenSyncCenter_Click" ToolTip="{loc:Text SyncResourcesHelp}"/>
+              <TextBlock Margin="0,16,0,6" Style="{StaticResource SettingsSectionTitle}" Text="{loc:Text IntegrationLogTitle}"/>
+              <CheckBox x:Name="IntegrationLogEnabled" Content="{loc:Text IntegrationLogEnabled}" Style="{StaticResource ThemedCheckBox}"
+                        ToolTip="{loc:Text IntegrationLogHelp}" Click="IntegrationLogEnabled_Click"/>
+              <TextBlock x:Name="IntegrationLogStatus" TextWrapping="Wrap"/>
+              <TextBox x:Name="IntegrationLogText" Margin="0,8,0,4" Height="180" IsReadOnly="True" AcceptsReturn="True"
+                       VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap"
+                       AutomationProperties.Name="{loc:Text IntegrationLogTitle}" Style="{StaticResource ThemedTextBox}"/>
+              <WrapPanel>
+                <Button Content="{loc:Text IntegrationLogRefresh}" Style="{StaticResource ToolbarButton}" Click="IntegrationLogRefresh_Click" ToolTip="{loc:Text IntegrationLogRefreshHelp}"/>
+                <Button Content="{loc:Text IntegrationLogClear}" Style="{StaticResource ToolbarButton}" Click="IntegrationLogClear_Click" ToolTip="{loc:Text IntegrationLogClearHelp}"/>
+              </WrapPanel>
               <WrapPanel>
                 <Button Content="{loc:Text ProjectWebsite}" AutomationProperties.Name="{loc:Text ProjectWebsite}" Style="{StaticResource ToolbarButton}" Click="OpenProjectWebsite_Click" ToolTip="{loc:Text OpenProjectWebsiteHelp}"/>
                 <Button Content="{loc:Text PrivacyPolicy}" AutomationProperties.Name="{loc:Text PrivacyPolicy}" Style="{StaticResource ToolbarButton}" Click="OpenPrivacyPolicy_Click" ToolTip="{loc:Text OpenPrivacyPolicyHelp}"/>

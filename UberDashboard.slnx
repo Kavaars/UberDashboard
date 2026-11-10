@@ -9,6 +9,7 @@
   </Folder>
   <Folder Name="/plugins/">
     <Project Path="plugins/PhotoFrame/PhotoFrame.Plugin.csproj" />
+    <Project Path="plugins/PanelTemplates/PanelTemplates.Plugin.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/UberDashboard.App.Tests/UberDashboard.App.Tests.csproj" />

@@ -1,4 +1,10 @@
 using UberDashboard.App.Features.Resources;
+using UberDashboard.App.Panels;
+using UberDashboard.App.Tests.TestSupport;
+using UberDashboard.Contracts.Panels;
+using UberDashboard.Core.Layout;
+using UberDashboard.Core.ModularPanels;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace UberDashboard.App.Tests.Features;
 
@@ -41,10 +47,33 @@ public sealed class ResourceReadingTests
     [Fact]
     public void Tile_view_round_trips_with_hidden_parameters()
     {
-        var original = new ResourcePanelState { ShowTiles = true, Hidden = ["cpu|CpuUsage"] };
+        var original = new ResourcePanelState { ShowTiles = true, Hidden = ["cpu|CpuUsage"], ModuleOrder = ["gpu", "cpu"] };
         var restored = System.Text.Json.JsonSerializer.Deserialize<ResourcePanelState>(System.Text.Json.JsonSerializer.Serialize(original));
         Assert.True(restored!.ShowTiles);
         Assert.Equal(original.Hidden, restored.Hidden);
+        Assert.Equal(original.ModuleOrder, restored.ModuleOrder);
+    }
+
+    [Fact]
+    public async Task Resource_positions_survive_missing_sensor_and_move_to_empty_cell()
+    {
+        var context = new PanelContext
+        {
+            InstanceId = PanelInstanceId.New(), PluginId = "test", DashboardId = "test", CloseToken = CancellationToken.None,
+            Logger = new PanelLogger(NullLoggerFactory.Instance, "test", Guid.NewGuid(), PanelInstanceId.New()),
+            Notifier = new FakePanelNotifier(), Storage = new PanelStorage(Path.GetTempPath()),
+        };
+        using var sampler = new HardwareSampler();
+        await using var panel = new ResourcePanel(context, sampler);
+        var state = new ResourcePanelState { ModuleOrder = ["missing", "cpu"], Hidden = ["missing"],
+            ModulePositions = [new ModulePosition("missing", 2, 2), new ModulePosition("cpu", 0, 0)] };
+        await panel.RestoreStateAsync(System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(state), CancellationToken.None);
+        panel.IsModuleEditMode = true;
+        panel.MoveModuleToCell("cpu", 3, 3);
+        var saved = System.Text.Json.JsonSerializer.Deserialize<ResourcePanelState>((await panel.CaptureStateAsync(CancellationToken.None)).Span)!;
+        Assert.Contains(saved.ModulePositions, p => p.Id == "missing" && p.Column == 2 && p.Row == 2);
+        Assert.Contains(saved.ModulePositions, p => p.Id == "cpu" && p.Column == 3 && p.Row == 3);
+        Assert.Contains("missing", saved.Hidden);
     }
 
     [Theory]

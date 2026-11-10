@@ -94,7 +94,7 @@ public sealed class PanelLeafViewModel : LayoutNodeViewModel, IDisposable
         AttachViewModel(_viewModel);
         OnPropertyChanged(nameof(ViewModel)); OnPropertyChanged(nameof(PanelContent));
         OnPropertyChanged(nameof(HasFormatting)); OnPropertyChanged(nameof(IsFormattingVisible)); OnPropertyChanged(nameof(ToggleFormattingCommand));
-        OnPropertyChanged(nameof(RefreshCommand));
+        OnPropertyChanged(nameof(RefreshCommand)); OnPropertyChanged(nameof(HasModularEditing));
     }
     private void AttachViewModel(object viewModel)
     {
@@ -104,6 +104,11 @@ public sealed class PanelLeafViewModel : LayoutNodeViewModel, IDisposable
         if (_viewModelNotifications is not null) _viewModelNotifications.PropertyChanged += OnViewModelPropertyChanged;
         RefreshUnsavedChanges();
     }
+    public bool HasModularEditing => ViewModel is UberDashboard.Contracts.Panels.IModularPanel;
+    public System.Windows.Input.ICommand ToggleModuleEditCommand => new RelayCommand(() =>
+    {
+        if (ViewModel is UberDashboard.Contracts.Panels.IModularPanel modular) modular.IsModuleEditMode = !modular.IsModuleEditMode;
+    });
     public object PanelContent => ViewModel is UberDashboard.Contracts.Panels.IPanelContent custom ? custom.Content : ViewModel;
     public System.Windows.Input.ICommand? RefreshCommand => ViewModel switch
     {

@@ -33,7 +33,7 @@ Zmiany zapisują się automatycznie. Jeśli zapis się nie powiedzie, aplikacja 
 
 Microsoft To Do skonfigurujesz w **Ustawienia → Integracje**. Listę można zaimportować jako niezależną lokalną kopię albo powiązać z usługą. Google połączysz w opcjach panelu kalendarza; obecna konfiguracja wymaga lokalnego pliku JSON klienta OAuth typu Desktop.
 
-W bieżącym kodzie przycisk **Synchronizacja dwukierunkowa** otwiera edytor powiązanej listy lub kalendarza. Pierwsze włączenie wymaga osobnej zgody Microsoft lub Google na zapis. Edytor pozwala tworzyć, zmieniać i usuwać podstawowe zadania oraz wydarzenia. Zmiany trafiają najpierw do lokalnej kolejki, która zachowuje je także po restarcie. Synchronizacja działa podczas uruchomienia aplikacji, również w zasobniku.
+W bieżącym kodzie pozycja **Synchronizacja dwukierunkowa** w menu zakładki To Do lub przycisk w kalendarzu otwiera odpowiedni edytor. Pierwsze włączenie wymaga osobnej zgody Microsoft lub Google na zapis. Edytor pozwala tworzyć, zmieniać i usuwać podstawowe zadania oraz wydarzenia. Zmiany trafiają najpierw do lokalnej kolejki, która zachowuje je także po restarcie. Synchronizacja działa podczas uruchomienia aplikacji, również w zasobniku.
 
 Zakładki list powiązanych z Microsoft To Do wyróżnia cienka niebieska ramka wokół nazwy.
 
@@ -89,3 +89,6 @@ Pełna historia: [changelog.txt](changelog.txt).
 ## Pomoc i kontakt
 
 Problemy oraz propozycje zgłaszaj w [Issues projektu](https://github.com/Kavaars/UberDashboard/issues). W sprawach prywatności kontaktuj się przez [profil Kavaars](https://github.com/Kavaars). Nie zamieszczaj w publicznych zgłoszeniach tokenów, haseł, plików poświadczeń ani prywatnej treści notatek i kalendarzy.
+
+
+Pogoda, Monitor zasobów i Skróty udostępniają **Tryb edycji elementów** w menu kontekstowym panelu. W tym trybie przeciągnij element na komórkę siatki; zajęte pola przesuwają się, a wolne można pozostawić puste. Ctrl+Shift+strzałka w lewo lub w prawo przesuwa wybrany element klawiaturą. Układ zapisuje się oddzielnie dla każdej zakładki. Siatka zawija się do szerokości panelu, zachowując zapisane pozycje. W opcjach suwak odstępu zmienia odległość między modułami w obie strony względem wartości zerowej. Prognoza godzinowa zajmuje trzy kolumny, a w wąskim panelu można ją przewijać poziomo. Świt i zmierzch są w jednym module, a opis bieżącej pogody znajduje się przy ikonie. Wzory paneli wtyczek opisano w [instrukcji](plugins/PanelTemplates/README.md).

@@ -1,6 +1,8 @@
 # Pluginy paneli UberDashboard
 
-Dotyczy aplikacji **1.8.0**, kontraktu paneli **1.2.0** i pluginu **Ramka na zdjęcia 1.1.0**. Starsze zgodne wtyczki zachowują własne zachowanie układu.
+Wzory zwykłego i modułowego panelu oraz opis API 1.3.0 znajdują się w [projekcie wzorów](../plugins/PanelTemplates/README.md).
+
+Dotyczy bieżącej wersji roboczej **1.9.0**, kontraktu paneli **1.3.0** i pluginu **Ramka na zdjęcia 1.1.0**. Starsze zgodne wtyczki zachowują własne zachowanie układu.
 
 
 ## Zakładki paneli od wersji 1.8.0

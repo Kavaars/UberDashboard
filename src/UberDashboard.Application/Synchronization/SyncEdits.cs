@@ -19,7 +19,9 @@ public static class SyncEdits
         if (previous is { Kind: not SyncEntityKind.Item }) ValidateParent(state, previous.ParentId);
         if (previous?.Conflicts is { Length: > 0 }) throw new InvalidOperationException("Resolve the conflict before editing this item.");
         var entity = previous is null
-            ? new SyncEntity(entityId, GoogleCalendarAccess.IsSubscriptions(state.Binding) ? desired?["id"]?.GetValue<string>() : null, null, Clone(desired), Revision: 1)
+            ? new SyncEntity(entityId, GoogleCalendarAccess.IsSubscriptions(state.Binding) ? desired?["id"]?.GetValue<string>() : null, null, Clone(desired), Revision: 1,
+                Metadata: state.Binding.Provider == SyncProviderKind.MicrosoftTodo && state.Binding.ResourcePath.EndsWith("/tasks", StringComparison.Ordinal)
+                    ? new JsonObject { ["createdDateTime"] = now.ToString("O", System.Globalization.CultureInfo.InvariantCulture) } : null)
             : previous with { Local = Clone(desired), Revision = previous.Revision + 1 };
         if (GoogleCalendarAccess.IsSubscriptions(state.Binding) && desired is not null)
         {
