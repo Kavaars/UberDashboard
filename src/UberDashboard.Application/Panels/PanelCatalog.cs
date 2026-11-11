@@ -84,7 +84,11 @@ public sealed class PanelCatalog
         public bool Remove(PanelInstanceId instanceId) => _sizes.Remove(instanceId);
 
         /// <inheritdoc />
-        public MinSize MinimumOf(PanelInstanceId instanceId) =>
-            _sizes.TryGetValue(instanceId, out var size) ? size : MinSize.Zero;
+        public MinSize MinimumOf(PanelInstanceId instanceId)
+        {
+            // Minimum zawsze zmniejszone do połowy (szerokość i wysokość).
+            var size = _sizes.TryGetValue(instanceId, out var s) ? s : MinSize.Zero;
+            return new MinSize(size.Width / 2, size.Height / 2);
+        }
     }
 }

@@ -124,25 +124,6 @@ public sealed class LiveSettingsTests
     }
 
     [Fact]
-    public void Splitter_locks_follow_axis_and_nested_panels()
-    {
-        var appearance = new PanelAppearanceViewModel(Guid.NewGuid(), new FakeAppSettingsStore(), new FakeClock(), new ToastService(NullLogger<ToastService>.Instance));
-        var first = new UberDashboard.App.Shell.PanelLeafViewModel(UberDashboard.Core.Layout.PanelInstanceId.New(), "todo", "Todo", null, new object()) { Appearance = appearance };
-        var second = new UberDashboard.App.Shell.PanelLeafViewModel(UberDashboard.Core.Layout.PanelInstanceId.New(), "todo", "Todo", null, new object());
-        var vertical = new UberDashboard.App.Shell.PanelSplitViewModel(Guid.NewGuid(), UberDashboard.Core.Layout.SplitAxis.Vertical, .5, first, second);
-        var horizontal = new UberDashboard.App.Shell.PanelSplitViewModel(Guid.NewGuid(), UberDashboard.Core.Layout.SplitAxis.Horizontal, .5, vertical, second);
-        Assert.False(horizontal.IsResizeLocked);
-        appearance.LockWidth = true;
-        Assert.True(horizontal.IsResizeLocked);
-        Assert.False(vertical.IsResizeLocked);
-        appearance.LockHeight = true;
-        Assert.True(vertical.IsResizeLocked);
-        appearance.LockWidth = false;
-        Assert.False(horizontal.IsResizeLocked);
-        first.Dispose(); second.Dispose();
-    }
-
-    [Fact]
     public async Task Appearance_batches_slider_changes_and_retries_a_failed_write()
     {
         var store = new FailingStore();

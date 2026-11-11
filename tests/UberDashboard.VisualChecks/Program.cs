@@ -14,12 +14,6 @@ internal static class Program
 {
     private static int _exitCode = 1;
 
-    private static IEnumerable<PanelLeafViewModel> Leaves(LayoutNodeViewModel? node) => node switch
-    {
-        PanelLeafViewModel leaf => [leaf],
-        PanelSplitViewModel split => Leaves(split.First).Concat(Leaves(split.Second)),
-        _ => [],
-    };
 
     private static IEnumerable<DependencyObject> Descendants(DependencyObject root)
     {
@@ -118,7 +112,7 @@ internal static class Program
                     await shell.AddPanelCommand.ExecuteAsync("weather");
                     await shell.AddPanelCommand.ExecuteAsync("affirmations");
                 }
-                foreach (var leaf in Leaves(shell.Root))
+                foreach (var leaf in shell.Panels)
                 {
                     if (leaf.ViewModel is UberDashboard.App.Features.Affirmations.AffirmationPanelViewModel affirmation)
                     {
@@ -325,7 +319,7 @@ internal static class Program
                 if (theme.ReadFontFamilyName() != "Consolas" || theme.ReadDouble("Token.FontSize.Body", 0) != 18)
                     throw new InvalidOperationException("Live font preview did not update immediately");
                 await liveSettings.FlushAsync();
-                var customLeaf = Leaves(shell.Root).First();
+                var customLeaf = shell.Panels.First();
                 customLeaf.Appearance!.CustomizeText = true;
                 customLeaf.Appearance.FontFamily = "Verdana";
                 customLeaf.Appearance.FontSize = 17;
@@ -339,19 +333,19 @@ internal static class Program
                 Console.WriteLine("LIVE PREVIEW AND PANEL FONT PASS");
                 foreach (var panelId in new[] { "calendar", "system-resources", "shortcuts" })
                 {
-                    if (!Leaves(shell.Root).Any(leaf => leaf.PanelTypeId == panelId))
+                    if (!shell.Panels.Any(leaf => leaf.PanelTypeId == panelId))
                         await shell.AddPanelCommand.ExecuteAsync(panelId);
-                    if (!Leaves(shell.Root).Any(leaf => leaf.PanelTypeId == panelId))
+                    if (!shell.Panels.Any(leaf => leaf.PanelTypeId == panelId))
                         throw new InvalidOperationException($"Cannot add {panelId} through the shell.");
                 }
 
                 var shortcuts = (UberDashboard.App.Features.Shortcuts.ShortcutsPanel)
-                    Leaves(shell.Root).Single(leaf => leaf.PanelTypeId == "shortcuts").ViewModel;
+                    shell.Panels.Single(leaf => leaf.PanelTypeId == "shortcuts").ViewModel;
                 await ShortcutsChecks.RunAsync(shortcuts, theme, output);
                 await SyncEditorChecks.RunAsync(window, theme, output);
 
                 var calendar = (UberDashboard.App.Features.Calendar.CalendarPanel)
-                    Leaves(shell.Root).Single(leaf => leaf.PanelTypeId == "calendar").ViewModel;
+                    shell.Panels.Single(leaf => leaf.PanelTypeId == "calendar").ViewModel;
                 await calendar.RefreshCommand.ExecuteAsync(null);
                 if (calendar.Modes[0].Label != (english ? "Month" : "Miesiąc"))
                     throw new InvalidOperationException("Calendar localization did not apply.");
@@ -359,14 +353,14 @@ internal static class Program
                     throw new InvalidOperationException("Calendar month range is invalid.");
 
                 var resources = (UberDashboard.App.Features.Resources.ResourcePanel)
-                    Leaves(shell.Root).Single(leaf => leaf.PanelTypeId == "system-resources").ViewModel;
+                    shell.Panels.Single(leaf => leaf.PanelTypeId == "system-resources").ViewModel;
                 if (resources.SampleCommand.ExecutionTask is { } sampling)
                     await sampling;
                 Console.WriteLine($"RESOURCE CHECK: {resources.Status} ({resources.Readings.Count} readings)");
                 foreach (var kind in new[] { ThemeKind.Light, ThemeKind.Dark, ThemeKind.System })
                 {
                     await theme.ApplyAsync(kind, CancellationToken.None);
-                    foreach (var leaf in Leaves(shell.Root))
+                    foreach (var leaf in shell.Panels)
                     foreach (var size in new[] { new Size(900, 180), new Size(320, 700) })
                     {
                         var card = new ContentControl { Content = leaf, ContentTemplate = (DataTemplate)app.FindResource("PanelLeafTemplate") };
@@ -439,7 +433,7 @@ internal static class Program
                                     throw new InvalidOperationException("Weather frames do not fill equal-sized cells uniformly.");
                                 weatherLayout.ModuleSpacing = 16; editCard.UpdateLayout();
                                 var far = rangeContainer.TranslatePoint(new Point(), grid);
-                                if (far.X <= near.X || Math.Abs(width - tempFrame.ActualWidth) > 1 || Math.Abs(height - tempFrame.ActualHeight) > 1)
+                                if ((far.X <= near.X && far.Y <= near.Y) || Math.Abs(width - tempFrame.ActualWidth) > 1 || Math.Abs(height - tempFrame.ActualHeight) > 1)
                                     throw new InvalidOperationException("Module spacing did not move cells without resizing frames.");
                                 weatherLayout.ModuleSpacing = originalSpacing; editCard.UpdateLayout();
                             }

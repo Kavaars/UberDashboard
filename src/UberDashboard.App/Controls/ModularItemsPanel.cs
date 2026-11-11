@@ -67,7 +67,7 @@ public sealed class ModularItemsPanel : Panel
     }
     protected override Size MeasureOverride(Size availableSize)
     {
-        var width = double.IsFinite(availableSize.Width) ? Math.Max(CellWidth, availableSize.Width) : CellWidth * LogicalColumns;
+        var width = double.IsFinite(availableSize.Width) ? Math.Max(1, availableSize.Width) : CellWidth * LogicalColumns;
         _columns = Math.Clamp((int)((width + Gap) / (CellWidth + Gap)), 1, Math.Clamp(MaximumColumns, 1, 1024));
         _columnWidth = _columns == 1 ? width : CellWidth;
         var ordered = InternalChildren.Cast<UIElement>().Select(child => (Child: child, Slot: Index(child), Span: GetColumnSpan(child)))

@@ -21,14 +21,10 @@ public sealed class PanelLeafViewModel : LayoutNodeViewModel, IDisposable
     private IPanelFormattingPresenter? _formattingPresenter;
     private bool _isEditMode;
     public UberDashboard.App.Settings.PanelAppearanceViewModel? Appearance { get; set; }
-    private string? _dropHint;
-    public string? DropHint { get => _dropHint; set => SetProperty(ref _dropHint, value); }
-    private IReadOnlyList<PanelLayoutAction> _layoutActions = [];
-    public IReadOnlyList<PanelLayoutAction> LayoutActions
-    {
-        get => _layoutActions;
-        set => SetProperty(ref _layoutActions, value);
-    }
+    public System.Windows.Input.ICommand? RemoveCommand { get; set; }
+    private GridCell _cell = new(0, 0, 1, 1);
+    /// <summary>Prostokąt panelu w komórkach siatki pulpitu.</summary>
+    public GridCell Cell { get => _cell; set => SetProperty(ref _cell, value); }
     private bool _hasUnsavedChanges;
     private bool _disposed;
 
@@ -121,7 +117,6 @@ public sealed class PanelLeafViewModel : LayoutNodeViewModel, IDisposable
     /// <summary><see langword="true"/>, gdy panel udostępnia pływające okno opcji.</summary>
     public bool HasOptions => true;
     public bool IsSpace => PanelTypeId == Features.Space.SpacePanelDescriptor.Id;
-    public bool IsEditableSpace => IsSpace && IsEditMode;
     public bool IsEditablePanel => !IsSpace && IsEditMode;
 
     /// <summary><see langword="true"/>, gdy okno opcji panelu jest otwarte.</summary>
@@ -144,7 +139,7 @@ public sealed class PanelLeafViewModel : LayoutNodeViewModel, IDisposable
     public bool IsEditMode
     {
         get => _isEditMode;
-        set { if (SetProperty(ref _isEditMode, value)) { OnPropertyChanged(nameof(IsEditableSpace)); OnPropertyChanged(nameof(IsEditablePanel)); } }
+        set { if (SetProperty(ref _isEditMode, value)) OnPropertyChanged(nameof(IsEditablePanel)); }
     }
 
     /// <summary><see langword="true"/>, gdy panel ma zmiany nieutrwalone w magazynie.</summary>

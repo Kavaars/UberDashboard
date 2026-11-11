@@ -23,6 +23,19 @@ public sealed class AffirmationTests
     }
 
     [Fact]
+    public void Reminder_fires_once_per_day_after_the_chosen_time()
+    {
+        var now = new DateTimeOffset(2026, 11, 10, 8, 0, 0, TimeZoneInfo.Local.GetUtcOffset(new DateTime(2026, 11, 10)));
+        var vm = new AffirmationPanelViewModel(() => now) { ReminderEnabled = true, ReminderHour = 9, ReminderMinute = 30 };
+        Assert.False(vm.TakeDueReminder());
+        now = now.AddHours(2);
+        Assert.True(vm.TakeDueReminder());
+        Assert.False(vm.TakeDueReminder());
+        now = now.AddDays(1);
+        Assert.True(vm.TakeDueReminder());
+    }
+
+    [Fact]
     public void Accepts_only_correct_characters_and_advances_in_order()
     {
         var vm = new AffirmationPanelViewModel();

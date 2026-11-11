@@ -123,6 +123,8 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                   </Grid.RowDefinitions>
                   <TextBlock Foreground="{DynamicResource Brush.Text}" Grid.Row="0" Grid.Column="0" Margin="0,0,12,10" VerticalAlignment="Center" Text="{loc:Text InterfaceDensity}" TextWrapping="Wrap"/>
                   <DockPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,10">
@@ -138,6 +140,16 @@
                   <DockPanel Grid.Row="2" Grid.Column="1" Margin="0,0,0,10">
                     <TextBlock Text="{Binding DividerThickness, StringFormat={}{0:0} px}" Foreground="{DynamicResource Brush.Text.Muted}" TextWrapping="Wrap" DockPanel.Dock="Right" Width="64" TextAlignment="Right" VerticalAlignment="Center"/>
                     <Slider Minimum="0" Maximum="3" Value="{Binding DividerThickness}" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="{loc:Text DividerLine}" ToolTip="{loc:Text ChangesTheAppearanceWithoutReducingTheDivider}" VerticalAlignment="Center"/>
+                  </DockPanel>
+                  <TextBlock Grid.Row="3" Grid.Column="0" Text="{loc:Text GridColumns}" VerticalAlignment="Center" Margin="0,0,12,10" TextWrapping="Wrap"/>
+                  <DockPanel Grid.Row="3" Grid.Column="1" Margin="0,0,0,10">
+                    <TextBlock Text="{Binding GridColumns}" Foreground="{DynamicResource Brush.Text.Muted}" DockPanel.Dock="Right" Width="64" TextAlignment="Right" VerticalAlignment="Center"/>
+                    <Slider Minimum="4" Maximum="96" Value="{Binding GridColumns}" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="{loc:Text GridColumns}" ToolTip="{loc:Text GridDensityHelp}" VerticalAlignment="Center"/>
+                  </DockPanel>
+                  <TextBlock Grid.Row="4" Grid.Column="0" Text="{loc:Text GridRows}" VerticalAlignment="Center" Margin="0,0,12,10" TextWrapping="Wrap"/>
+                  <DockPanel Grid.Row="4" Grid.Column="1" Margin="0,0,0,10">
+                    <TextBlock Text="{Binding GridRows}" Foreground="{DynamicResource Brush.Text.Muted}" DockPanel.Dock="Right" Width="64" TextAlignment="Right" VerticalAlignment="Center"/>
+                    <Slider Minimum="4" Maximum="64" Value="{Binding GridRows}" TickFrequency="1" IsSnapToTickEnabled="True" AutomationProperties.Name="{loc:Text GridRows}" ToolTip="{loc:Text GridDensityHelp}" VerticalAlignment="Center"/>
                   </DockPanel>
                 </Grid>
               </StackPanel>

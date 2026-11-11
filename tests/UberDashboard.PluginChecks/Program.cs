@@ -29,12 +29,6 @@ internal static class Program
         if (!condition) throw new InvalidOperationException(name);
         Checks.Add(name); Console.WriteLine("PASS: " + name);
     }
-    private static IEnumerable<PanelLeafViewModel> Leaves(LayoutNodeViewModel? node) => node switch
-    {
-        PanelLeafViewModel leaf => [leaf],
-        PanelSplitViewModel split => Leaves(split.First).Concat(Leaves(split.Second)),
-        _ => [],
-    };
     private static ServiceProvider Provider(string profile)
     {
         var services = new ServiceCollection(); services.AddLogging();
@@ -154,7 +148,7 @@ internal static class Program
             Console.WriteLine($"Install elapsed: {watch.ElapsedMilliseconds} ms");
             await AssertRejected(() => manager.InstallAsync(package), "Duplicate install rejected");
             await shell.AddPanelCommand.ExecuteAsync(TypeId);
-            var leaf = Leaves(shell.Root).Single(); instanceId = leaf.InstanceId; dashboardId = shell.SelectedDashboard!.DashboardId;
+            var leaf = shell.Panels.Single(); instanceId = leaf.InstanceId; dashboardId = shell.SelectedDashboard!.DashboardId;
             Check(leaf.HasOptions && leaf.PanelContent is FrameworkElement, "Native panel card and options contract");
             var model = leaf.ViewModel;
             await CallAsync(model, "SelectAsync", photos, true);
@@ -184,10 +178,10 @@ internal static class Program
             await shell.HidePanelCommand.ExecuteAsync(leaf);
             Check(!provider.GetRequiredService<PanelHostManager>().IsActive(instanceId), "Hide disposes slideshow and preserves instance");
             await shell.RestorePanelCommand.ExecuteAsync(shell.HiddenPanels.Single());
-            var restored = Leaves(shell.Root).Single();
+            var restored = shell.Panels.Single();
             Check(restored.InstanceId == instanceId && Value<int>(restored.ViewModel, "IntervalSeconds") == 1, "Restore retains identity and settings");
             await shell.AddPanelCommand.ExecuteAsync(TypeId);
-            var second = Leaves(shell.Root).Single(p => p.InstanceId != instanceId);
+            var second = shell.Panels.Single(p => p.InstanceId != instanceId);
             await CallAsync(second.ViewModel, "SelectAsync", Path.Combine(photos, "a.png"), false);
             Set(second.ViewModel, "IntervalSeconds", 23);
             Check(Value<int>(restored.ViewModel, "IntervalSeconds") == 1 && Value<string>(restored.ViewModel, "SourcePath") == photos, "Multiple photo panels have independent sources and settings");
@@ -204,8 +198,8 @@ internal static class Program
             Check(manager.Installed.Count == 1, "Settings controller reinstalls same package in same session");
             shell.SelectedDashboard = shell.Dashboards.Single(d => d.DashboardId == dashboardId);
             var restoreDeadline = Stopwatch.StartNew();
-            while (Leaves(shell.Root).FirstOrDefault()?.ViewModel is not IPanelOptions && restoreDeadline.Elapsed < TimeSpan.FromSeconds(4)) await Task.Delay(25);
-            Check(Leaves(shell.Root).Single().InstanceId == instanceId, "Reinstall restores original panel identity");
+            while (shell.Panels.FirstOrDefault()?.ViewModel is not IPanelOptions && restoreDeadline.Elapsed < TimeSpan.FromSeconds(4)) await Task.Delay(25);
+            Check(shell.Panels.Single().InstanceId == instanceId, "Reinstall restores original panel identity");
             var settings = provider.GetRequiredService<UberDashboard.App.Settings.SettingsWindow>();
             var settingsRoot = (FrameworkElement)settings.Content;
             await RenderAsync(settingsRoot, Path.Combine(output, "settings.png"), 980, 720);
@@ -228,13 +222,13 @@ internal static class Program
             Check(manager.Installed.Count == 1, "Installed plugin reloads from disk in fresh host");
             var shell = provider.GetRequiredService<ShellViewModel>(); manager.RefreshPanelsAsync = shell.RefreshPluginPanelsAsync;
             await shell.InitializeAsync();
-            var leaf = Leaves(shell.Root).Single();
+            var leaf = shell.Panels.Single();
             Check(leaf.InstanceId == instanceId && Value<int>(leaf.ViewModel, "IntervalSeconds") == 1, "Fresh host restores plugin panel state from SQLite");
             await manager.RemoveAsync(manager.Installed.Single());
-            Check(Leaves(shell.Root).Single().ViewModel is UnavailablePanelViewModel, "Removing active plugin leaves recoverable placeholder");
+            Check(shell.Panels.Single().ViewModel is UnavailablePanelViewModel, "Removing active plugin leaves recoverable placeholder");
             await manager.InstallAsync(package);
-            Check(Leaves(shell.Root).Single().ViewModel is IPanelOptions, "Reinstall replaces placeholder with functional panel");
-            var model = Leaves(shell.Root).Single().ViewModel;
+            Check(shell.Panels.Single().ViewModel is IPanelOptions, "Reinstall replaces placeholder with functional panel");
+            var model = shell.Panels.Single().ViewModel;
             await CallAsync(model, "SelectAsync", Path.Combine(photos, "a.png"), false);
             Check(!Value<bool>(model, "HasMultipleImages") && Value<ImageSource?>(model, "CurrentPhoto") is not null, "Single image source works");
             await CallAsync(model, "SelectAsync", Path.Combine(photos, "missing"), true);
@@ -261,7 +255,7 @@ internal static class Program
         await shell.InitializeAsync();
         await manager.InstallAsync(package);
         await shell.AddPanelCommand.ExecuteAsync("pl.uberdashboard.paneltemplates.modular");
-        var leaf = Leaves(shell.Root).Single();
+        var leaf = shell.Panels.Single();
         Check(leaf.HasModularEditing && leaf.ViewModel is IModularPanel, "Modular plugin exposes host edit menu");
         leaf.ToggleModuleEditCommand.Execute(null);
         var modular = (IModularPanel)leaf.ViewModel;
@@ -274,11 +268,11 @@ internal static class Program
         Check(Descendants(card).OfType<System.Windows.Controls.TextBlock>().Any(text => text.Text == "Element 2" || text.Text == "Item 2"), "Modular plugin item label renders");
         await shell.HidePanelCommand.ExecuteAsync(leaf);
         await shell.RestorePanelCommand.ExecuteAsync(shell.HiddenPanels.Single());
-        var restored = (IModularPanel)Leaves(shell.Root).Single().ViewModel;
+        var restored = (IModularPanel)shell.Panels.Single().ViewModel;
         Check(restored.ModulePositions.Any(p => p.Id == id && p.Column == 3 && p.Row == 4), "Modular plugin position survives hide and restore");
         Check(!restored.IsModuleEditMode, "Modular plugin edit mode is not persisted");
         await shell.AddPanelCommand.ExecuteAsync("pl.uberdashboard.paneltemplates.simple");
-        Check(Leaves(shell.Root).Any(item => item.PanelTypeId == "pl.uberdashboard.paneltemplates.simple" && !item.HasModularEditing), "Simple template renders without modular menu");
+        Check(shell.Panels.Any(item => item.PanelTypeId == "pl.uberdashboard.paneltemplates.simple" && !item.HasModularEditing), "Simple template renders without modular menu");
     }
     private static DragEventArgs DragArgs(Window window, System.Windows.IDataObject data, RoutedEvent routedEvent)
     {

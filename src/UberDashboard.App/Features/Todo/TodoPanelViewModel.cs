@@ -282,6 +282,7 @@ public sealed class TodoPanelViewModel : ObservableObject, IPanelOptionsPresente
 
     private void OnItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(TodoItemViewModel.IsEditing)) return;
         RaiseCounters();
         if (e.PropertyName == nameof(TodoItemViewModel.IsDone)) RefreshVisible();
         MarkChanged();

@@ -6,7 +6,7 @@
  xmlns:controls="clr-namespace:UberDashboard.App.Controls">
  <UserControl.Resources>
   <DataTemplate x:Key="ShortcutCard">
-   <Border CornerRadius="8" Padding="8" Margin="2" ToolTip="{Binding Target}">
+   <Border CornerRadius="8" Padding="8" Margin="0" ToolTip="{Binding Target}">
     <Border.Style>
      <Style TargetType="Border">
       <Setter Property="Width" Value="100"/>
@@ -85,8 +85,19 @@
      <ListBox.ItemsPanel><ItemsPanelTemplate><controls:ModularItemsPanel Spacing="{Binding ModuleSpacing}"><controls:ModularItemsPanel.Style><Style TargetType="controls:ModularItemsPanel"><Style.Triggers><DataTrigger Binding="{Binding Mode}" Value="List"><Setter Property="MaximumColumns" Value="1"/><Setter Property="CellHeight" Value="64"/></DataTrigger></Style.Triggers></Style></controls:ModularItemsPanel.Style></controls:ModularItemsPanel></ItemsPanelTemplate></ListBox.ItemsPanel>
      <ListBox.ItemContainerStyle>
       <Style TargetType="ListBoxItem" BasedOn="{StaticResource ThemedListBoxItem}">
-       <Setter Property="Padding" Value="2"/>
-       <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+       <Setter Property="Padding" Value="0"/>
+       <Setter Property="HorizontalContentAlignment" Value="Center"/>
+       <Setter Property="Template"><Setter.Value>
+        <ControlTemplate TargetType="ListBoxItem">
+         <Border x:Name="ItemBorder" Padding="{TemplateBinding Padding}" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" CornerRadius="{DynamicResource Token.CornerRadius.S}">
+          <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+         </Border>
+         <ControlTemplate.Triggers>
+          <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource Brush.Surface.Alt}"/></Trigger>
+          <Trigger Property="IsSelected" Value="True"><Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource Brush.Surface.Alt}"/></Trigger>
+         </ControlTemplate.Triggers>
+        </ControlTemplate>
+       </Setter.Value></Setter>
        <Setter Property="AutomationProperties.Name" Value="{Binding Name}"/>
        <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
        <Setter Property="RenderTransform"><Setter.Value><ScaleTransform/></Setter.Value></Setter>
@@ -100,7 +111,7 @@
         </ContextMenu>
        </Setter.Value></Setter>
        <Setter Property="Tag" Value="{Binding DataContext, RelativeSource={RelativeSource AncestorType={x:Type local:ShortcutsView}}}"/>
-       <Style.Triggers><EventTrigger RoutedEvent="PreviewMouseLeftButtonDown"><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" To="0.96" Duration="0:0:0.08" AutoReverse="True"/><DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" To="0.96" Duration="0:0:0.08" AutoReverse="True"/></Storyboard></BeginStoryboard></EventTrigger><Trigger Property="IsMouseOver" Value="True"><Setter Property="Cursor" Value="Hand"/><Trigger.EnterActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" To="1.03" Duration="0:0:0.12"/><DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" To="1.03" Duration="0:0:0.12"/></Storyboard></BeginStoryboard></Trigger.EnterActions><Trigger.ExitActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" To="1" Duration="0:0:0.12"/><DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" To="1" Duration="0:0:0.12"/></Storyboard></BeginStoryboard></Trigger.ExitActions></Trigger></Style.Triggers>
+       <Style.Triggers><DataTrigger Binding="{Binding DataContext.Mode, RelativeSource={RelativeSource AncestorType={x:Type local:ShortcutsView}}}" Value="List"><Setter Property="HorizontalContentAlignment" Value="Stretch"/></DataTrigger><EventTrigger RoutedEvent="PreviewMouseLeftButtonDown"><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" To="0.96" Duration="0:0:0.08" AutoReverse="True"/><DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" To="0.96" Duration="0:0:0.08" AutoReverse="True"/></Storyboard></BeginStoryboard></EventTrigger><Trigger Property="IsMouseOver" Value="True"><Setter Property="Cursor" Value="Hand"/><Trigger.EnterActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" To="1.03" Duration="0:0:0.12"/><DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" To="1.03" Duration="0:0:0.12"/></Storyboard></BeginStoryboard></Trigger.EnterActions><Trigger.ExitActions><BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" To="1" Duration="0:0:0.12"/><DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" To="1" Duration="0:0:0.12"/></Storyboard></BeginStoryboard></Trigger.ExitActions></Trigger></Style.Triggers>
       </Style>
      </ListBox.ItemContainerStyle>
     </ListBox>

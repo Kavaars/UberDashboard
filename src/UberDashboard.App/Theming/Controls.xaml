@@ -4,43 +4,14 @@
   <controls:SettingsValueLabelConverter x:Key="SettingsValueLabel" />
   <controls:PanelHeaderWidthConverter x:Key="PanelHeaderWidth" />
   <controls:CompactPanelConverter x:Key="CompactPanel" />
-  <Style TargetType="controls:PersistedGridSplitter">
+  <Style TargetType="controls:PanelResizeThumb">
     <Setter Property="Template">
       <Setter.Value>
-        <ControlTemplate TargetType="controls:PersistedGridSplitter">
-          <Border x:Name="HitSurface" Background="Transparent" BorderBrush="Transparent">
-            <Border x:Name="Line" Background="{DynamicResource Brush.Splitter}" Height="{DynamicResource Token.Splitter.Line}" VerticalAlignment="Center" />
-          </Border>
+        <ControlTemplate TargetType="controls:PanelResizeThumb">
+          <Border x:Name="Grip" Background="Transparent" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" />
           <ControlTemplate.Triggers>
-            <Trigger Property="ResizeDirection" Value="Columns">
-              <Setter TargetName="Line" Property="Height" Value="Auto" />
-              <Setter TargetName="Line" Property="Width" Value="{DynamicResource Token.Splitter.Line}" />
-              <Setter TargetName="Line" Property="VerticalAlignment" Value="Stretch" />
-              <Setter TargetName="Line" Property="HorizontalAlignment" Value="Center" />
-            </Trigger>
-            <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="HitSurface" Property="Background" Value="{DynamicResource Brush.Surface.Alt}" />
-              <Setter TargetName="Line" Property="Background" Value="{DynamicResource Brush.Accent}" />
-            </Trigger>
-            <Trigger Property="IsKeyboardFocused" Value="True">
-              <Setter TargetName="HitSurface" Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
-              <Setter TargetName="HitSurface" Property="BorderThickness" Value="1" />
-            </Trigger>
-          </ControlTemplate.Triggers>
-        </ControlTemplate>
-      </Setter.Value>
-    </Setter>
-  </Style>
-  <Style TargetType="controls:PanelEdgeThumb">
-    <Setter Property="Template">
-      <Setter.Value>
-        <ControlTemplate TargetType="controls:PanelEdgeThumb">
-          <Border Background="Transparent">
-            <Border x:Name="Grip" Height="2" VerticalAlignment="Center" Background="{DynamicResource Brush.Border}" />
-          </Border>
-          <ControlTemplate.Triggers>
-            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Grip" Property="Background" Value="{DynamicResource Brush.Accent}" /></Trigger>
-            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Grip" Property="Background" Value="{DynamicResource Brush.Accent}" /></Trigger>
+            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Grip" Property="BorderBrush" Value="{DynamicResource Brush.Accent}" /></Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Grip" Property="BorderBrush" Value="{DynamicResource Brush.Accent}" /></Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
       </Setter.Value>

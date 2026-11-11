@@ -1,3 +1,4 @@
+2026-11-11T09:30:54+01:00 | Edycja układu: widoczny przełącznik, przesuwanie paneli i zmiana rozmiaru za każdą krawędź.
 2026-11-07T17:59:05+01:00 | Pogoda: czytelniejsze odczyty i pionowy układ godzin prognozy.
 2026-11-07T16:06:41+01:00 | Pogoda, Monitor zasobów i Skróty: układanie elementów na siatce z zapisem i obsługą klawiatury. Dodano wzory paneli pluginów.
 2026-11-07T15:39:35+01:00 | Skróty i Monitor zasobów: tryb edycji kolejności elementów dostępny w menu panelu.

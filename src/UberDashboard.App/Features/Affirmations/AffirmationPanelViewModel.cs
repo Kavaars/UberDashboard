@@ -43,6 +43,10 @@ public sealed record AffirmationDocument
     public int ResetHour { get; init; } = 7;
     public int ResetMinute { get; init; }
 
+    public bool ReminderEnabled { get; init; }
+    public int ReminderHour { get; init; } = 9;
+    public int ReminderMinute { get; init; }
+
     public int Index { get; init; }
 
     public int Position { get; init; }
@@ -191,6 +195,28 @@ public sealed class AffirmationPanelViewModel : ObservableObject, IPanelOptionsP
     public IReadOnlyList<int> ResetHourOptions { get; } = Enumerable.Range(0, 24).ToArray();
     public IReadOnlyList<int> ResetMinuteOptions { get; } = Enumerable.Range(0, 60).ToArray();
 
+    private int _reminderHour = 9, _reminderMinute;
+    private bool _reminderEnabled;
+    private DateOnly _lastReminderDay;
+    public bool ReminderEnabled { get => _reminderEnabled; set { if (SetProperty(ref _reminderEnabled, value)) ReminderChanged(); } }
+    public int ReminderHour { get => _reminderHour; set { if (SetProperty(ref _reminderHour, Math.Clamp(value, 0, 23))) ReminderChanged(); } }
+    public int ReminderMinute { get => _reminderMinute; set { if (SetProperty(ref _reminderMinute, Math.Clamp(value, 0, 59))) ReminderChanged(); } }
+    // Zmiana ustawień nie wywołuje przypomnienia wstecz: jeśli godzina już minęła, czeka do jutra.
+    private void ReminderChanged() { _lastReminderDay = IsReminderTimePassed(out var today) ? today : default; Changed?.Invoke(this, EventArgs.Empty); }
+    private bool IsReminderTimePassed(out DateOnly today)
+    {
+        var now = _clock().ToLocalTime().DateTime;
+        today = DateOnly.FromDateTime(now);
+        return now >= now.Date.AddHours(_reminderHour).AddMinutes(_reminderMinute);
+    }
+    /// <summary>Zwraca true raz dziennie, gdy nadeszła godzina przypomnienia.</summary>
+    public bool TakeDueReminder()
+    {
+        if (!_reminderEnabled || !IsReminderTimePassed(out var today) || _lastReminderDay == today) return false;
+        _lastReminderDay = today;
+        return true;
+    }
+
     private void ScheduleChanged() { _resetAt = _clock(); Changed?.Invoke(this, EventArgs.Empty); }
 
     public string Completed => string.Join("\n", Lines.Take(_index));
@@ -239,7 +265,7 @@ public sealed class AffirmationPanelViewModel : ObservableObject, IPanelOptionsP
 
     public void Reset() { _index = 0; _position = 0; _resetAt = _clock(); Notify(); }
 
-    public AffirmationDocument Snapshot() => new() { Texts = _texts, DailyResetEnabled = _dailyResetEnabled, ResetHour = _resetHour, ResetMinute = _resetMinute, Index = _index, Position = _position, ResetAt = _resetAt, FontFamily = FontFamily, FontSize = FontSize, LineHeight = LineHeight, NormalColor = NormalColor, MutedColor = MutedColor, RemainingColor = RemainingColor, RemainingOpacity = RemainingOpacity, History = [.. _history] };
+    public AffirmationDocument Snapshot() => new() { Texts = _texts, ReminderEnabled = _reminderEnabled, ReminderHour = _reminderHour, ReminderMinute = _reminderMinute, DailyResetEnabled = _dailyResetEnabled, ResetHour = _resetHour, ResetMinute = _resetMinute, Index = _index, Position = _position, ResetAt = _resetAt, FontFamily = FontFamily, FontSize = FontSize, LineHeight = LineHeight, NormalColor = NormalColor, MutedColor = MutedColor, RemainingColor = RemainingColor, RemainingOpacity = RemainingOpacity, History = [.. _history] };
 
     public void Load(AffirmationDocument doc)
 
@@ -256,6 +282,12 @@ public sealed class AffirmationPanelViewModel : ObservableObject, IPanelOptionsP
         _dailyResetEnabled = doc.DailyResetEnabled ?? doc.ResetHours is 4 or 8 or 24 or 48;
         _resetHour = Math.Clamp(doc.ResetHour, 0, 23);
         _resetMinute = Math.Clamp(doc.ResetMinute, 0, 59);
+
+        _reminderEnabled = doc.ReminderEnabled;
+        _reminderHour = Math.Clamp(doc.ReminderHour, 0, 23);
+        _reminderMinute = Math.Clamp(doc.ReminderMinute, 0, 59);
+        _lastReminderDay = IsReminderTimePassed(out var reminderDay) ? reminderDay : default;
+        OnPropertyChanged(nameof(ReminderEnabled)); OnPropertyChanged(nameof(ReminderHour)); OnPropertyChanged(nameof(ReminderMinute));
 
         var lines = Lines;
 

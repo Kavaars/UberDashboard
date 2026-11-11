@@ -21,7 +21,7 @@ public sealed class ShellPersistenceRegressionTests
             await using var fixture = new ShellFixture();
             await fixture.Shell.InitializeAsync();
             await fixture.Shell.AddPanelCommand.ExecuteAsync("todo");
-            var leaf = Assert.IsType<PanelLeafViewModel>(fixture.Shell.Root);
+            var leaf = Assert.Single(fixture.Shell.Panels);
             var group = leaf.TabSession!;
             var originalId = group.Group.ActiveId;
             var local = Assert.IsType<TodoPanelViewModel>(leaf.ViewModel);
@@ -47,7 +47,7 @@ public sealed class ShellPersistenceRegressionTests
             Assert.True(Assert.Single(linked.Items).IsDone);
 
             await fixture.Shell.ReloadCommand.ExecuteAsync(null);
-            leaf = Assert.IsType<PanelLeafViewModel>(fixture.Shell.Root);
+            leaf = Assert.Single(fixture.Shell.Panels);
             Assert.Equal("Drugie", Assert.Single(Assert.IsType<MicrosoftTodoListViewModel>(leaf.ViewModel).Items).Text);
             await leaf.TabSession!.SelectAsync(originalId);
             Assert.Equal("Lokalne", Assert.Single(Assert.IsType<TodoPanelViewModel>(leaf.ViewModel).Items).Text);
@@ -64,7 +64,7 @@ public sealed class ShellPersistenceRegressionTests
             await using var f = new ShellFixture();
             await f.Shell.InitializeAsync();
             await f.Shell.AddPanelCommand.ExecuteAsync(type);
-            var leaf = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+            var leaf = Assert.Single(f.Shell.Panels);
             var session = Assert.IsType<PanelGroupSession>(leaf.TabSession);
             var first = session.Group.ActiveId;
             if (type == "weather") Assert.IsType<UberDashboard.App.Features.Weather.WeatherPanelViewModel>(leaf.ViewModel).ShowWind = false;
@@ -75,7 +75,7 @@ public sealed class ShellPersistenceRegressionTests
             else Assert.IsType<UberDashboard.App.Features.Affirmations.AffirmationPanelViewModel>(leaf.ViewModel).Texts = "Drugi tekst";
             await session.SelectAsync(first);
             await f.Shell.ReloadCommand.ExecuteAsync(null);
-            leaf = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+            leaf = Assert.Single(f.Shell.Panels);
             session = Assert.IsType<PanelGroupSession>(leaf.TabSession);
             if (type == "weather") Assert.False(Assert.IsType<UberDashboard.App.Features.Weather.WeatherPanelViewModel>(leaf.ViewModel).ShowWind);
             else Assert.Equal("Pierwszy tekst", Assert.IsType<UberDashboard.App.Features.Affirmations.AffirmationPanelViewModel>(leaf.ViewModel).Texts);
@@ -90,7 +90,7 @@ public sealed class ShellPersistenceRegressionTests
     {
         await using var f = new ShellFixture();
         await f.Shell.InitializeAsync(); await f.Shell.AddPanelCommand.ExecuteAsync("todo");
-        var leaf = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+        var leaf = Assert.Single(f.Shell.Panels);
         var session = leaf.TabSession!; var first = session.Group.ActiveId;
         await session.AddAsync(); var second = session.Group.ActiveId;
         await session.SelectAsync(first);
@@ -109,18 +109,16 @@ public sealed class ShellPersistenceRegressionTests
     {
         await using var f = new ShellFixture();
         await f.Shell.InitializeAsync(); await f.Shell.AddPanelCommand.ExecuteAsync("todo");
-        var first = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+        var first = Assert.Single(f.Shell.Panels);
         var firstId = first.InstanceId;
         var view = Assert.IsType<UberDashboard.App.Features.Todo.TodoPanelViewModel>(first.ViewModel);
         view.NewItemText = "Pierwszy stan"; view.AddItemCommand.Execute(null);
         await f.Shell.AddPanelCommand.ExecuteAsync("todo");
-        var split = Assert.IsType<PanelSplitViewModel>(f.Shell.Root);
-        var second = Assert.IsType<PanelLeafViewModel>(split.Second);
+        var second = f.Shell.Panels.Single(panel => panel.InstanceId != firstId);
         f.InstanceFailure.FailId = second.InstanceId;
         await f.Shell.ReloadCommand.ExecuteAsync(null);
-        split = Assert.IsType<PanelSplitViewModel>(f.Shell.Root);
-        var restored = Assert.IsType<PanelLeafViewModel>(split.First);
-        Assert.Equal(firstId, restored.InstanceId);
+        Assert.Equal(2, f.Shell.Panels.Count);
+        var restored = f.Shell.Panels.Single(panel => panel.InstanceId == firstId);
         Assert.False(restored.TabSession!.IsClosed);
         Assert.Contains(Assert.IsType<UberDashboard.App.Features.Todo.TodoPanelViewModel>(restored.ViewModel).Items, item => item.Text == "Pierwszy stan");
         Assert.False(second.TabSession!.IsClosed);
@@ -132,7 +130,7 @@ public sealed class ShellPersistenceRegressionTests
     {
         await using var f = new ShellFixture();
         await f.Shell.InitializeAsync(); await f.Shell.AddPanelCommand.ExecuteAsync("todo");
-        var first = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+        var first = Assert.Single(f.Shell.Panels);
         await first.TabSession!.AddAsync();
         var child = first.TabSession.Group.ActiveId;
         await f.Shell.AddPanelCommand.ExecuteAsync("todo");
@@ -147,7 +145,7 @@ public sealed class ShellPersistenceRegressionTests
             command.ExecuteNonQuery();
         });
         await f.Shell.ReloadCommand.ExecuteAsync(null);
-        Assert.IsType<PanelSplitViewModel>(f.Shell.Root);
+        Assert.Equal(2, f.Shell.Panels.Count);
         Assert.Empty(f.Shell.HiddenPanels);
         Assert.NotNull(await f.Instances.GetAsync(child));
     }
@@ -157,7 +155,7 @@ public sealed class ShellPersistenceRegressionTests
     {
         await using var f = new ShellFixture();
         await f.Shell.InitializeAsync(); await f.Shell.AddPanelCommand.ExecuteAsync("todo");
-        var session = Assert.IsType<PanelLeafViewModel>(f.Shell.Root).TabSession!;
+        var session = Assert.Single(f.Shell.Panels).TabSession!;
         f.GroupFailure.UpdateBlock = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var adding = session.AddAsync();
         await UntilAsync(() => session.IsBusy && session.Group.Tabs.Length == 2);
@@ -173,14 +171,14 @@ public sealed class ShellPersistenceRegressionTests
     {
         await using var f = new ShellFixture();
         await f.Shell.InitializeAsync(); await f.Shell.AddPanelCommand.ExecuteAsync("todo");
-        var leaf = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+        var leaf = Assert.Single(f.Shell.Panels);
         var session = leaf.TabSession!; var root = leaf.InstanceId;
         await session.AddAsync(); var child = session.Group.ActiveId;
         await session.RemoveAsync(root);
         Assert.NotNull(await f.Instances.GetAsync(root));
         Assert.Equal(child, Assert.Single(session.Group.Tabs).InstanceId);
         await f.Shell.ReloadCommand.ExecuteAsync(null);
-        leaf = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+        leaf = Assert.Single(f.Shell.Panels);
         Assert.Equal(root, leaf.InstanceId);
         Assert.Equal(child, Assert.IsType<PanelGroupSession>(leaf.TabSession).Group.ActiveId);
         await leaf.TabSession!.AddAsync();
@@ -196,7 +194,7 @@ public sealed class ShellPersistenceRegressionTests
     {
         await using var f = new ShellFixture();
         await f.Shell.InitializeAsync(); await f.Shell.AddPanelCommand.ExecuteAsync("todo");
-        var session = Assert.IsType<PanelLeafViewModel>(f.Shell.Root).TabSession!;
+        var session = Assert.Single(f.Shell.Panels).TabSession!;
         f.GroupFailure.UpdateBlock = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var adding = session.AddAsync();
         await UntilAsync(() => session.IsBusy && session.Group.Tabs.Length == 2);
@@ -204,7 +202,7 @@ public sealed class ShellPersistenceRegressionTests
         Assert.False(reload.IsCompleted);
         f.GroupFailure.UpdateBlock.SetResult();
         await adding; await reload;
-        var restored = Assert.IsType<PanelLeafViewModel>(f.Shell.Root).TabSession!;
+        var restored = Assert.Single(f.Shell.Panels).TabSession!;
         Assert.Equal(2, restored.Group.Tabs.Length);
         Assert.Equal(restored.Group.Tabs[1].InstanceId, restored.Group.ActiveId);
         await Assert.ThrowsAsync<InvalidOperationException>(() => session.AddAsync());
@@ -218,7 +216,7 @@ public sealed class ShellPersistenceRegressionTests
         Assert.True(f.Catalog.TryRegister("test.lifecycle", descriptor));
         f.Shell.RefreshPanelTypes(); await f.Shell.InitializeAsync();
         await f.Shell.AddPanelCommand.ExecuteAsync(descriptor.TypeId);
-        var leaf = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+        var leaf = Assert.Single(f.Shell.Panels);
         var session = Assert.IsType<PanelGroupSession>(leaf.TabSession);
         var first = session.Group.ActiveId;
         await session.AddAsync(); var second = session.Group.ActiveId;
@@ -240,12 +238,15 @@ public sealed class ShellPersistenceRegressionTests
         {
             await using var f = new ShellFixture();
             await f.Shell.InitializeAsync(); await f.Shell.AddPanelCommand.ExecuteAsync("todo");
-            var leaf = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+            var leaf = Assert.Single(f.Shell.Panels);
             var session = Assert.IsType<PanelGroupSession>(leaf.TabSession);
             var strip = new UberDashboard.App.Controls.PanelGroupTabStrip { Session = session };
             var parent = new UberDashboard.App.Controls.PanelAppearanceBorder { Child = strip, DataContext = leaf };
-            UberDashboard.App.Controls.PanelDragDrop.SetIsTarget(parent, true);
-            var window = new System.Windows.Window { Content = parent, Width = 360, Height = 120, ShowInTaskbar = false, ShowActivated = false, WindowStyle = System.Windows.WindowStyle.None, Left = -20000, Top = -20000 };
+            // Siatka pulpitu przyjmuje przeciągane panele; upuszczanie zakładek musi nadal trafiać do paska.
+            var canvas = new UberDashboard.App.Controls.PanelGridCanvas { DataContext = f.Shell };
+            UberDashboard.App.Controls.PanelGridCanvas.SetCell(parent, new GridCell(0, 0, canvas.Columns, canvas.Rows));
+            canvas.Children.Add(parent);
+            var window = new System.Windows.Window { Content = canvas, Width = 360, Height = 120, ShowInTaskbar = false, ShowActivated = false, WindowStyle = System.Windows.WindowStyle.None, Left = -20000, Top = -20000 };
             try
             {
                 window.Show();
@@ -319,12 +320,12 @@ public sealed class ShellPersistenceRegressionTests
     {
         await using var f = new ShellFixture();
         await f.Shell.InitializeAsync(); await f.Shell.AddPanelCommand.ExecuteAsync("todo");
-        var leaf = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+        var leaf = Assert.Single(f.Shell.Panels);
         var view = Assert.IsType<UberDashboard.App.Features.Todo.TodoPanelViewModel>(leaf.ViewModel);
         view.NewItemText = "Zachowaj"; view.AddItemCommand.Execute(null);
         f.Confirmation.Result = true; f.GroupFailure.FailDelete = true;
         await f.Shell.RemovePanelCommand.ExecuteAsync(leaf);
-        var restored = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+        var restored = Assert.Single(f.Shell.Panels);
         Assert.Equal(leaf.InstanceId, restored.InstanceId);
         Assert.Contains(Assert.IsType<UberDashboard.App.Features.Todo.TodoPanelViewModel>(restored.ViewModel).Items, item => item.Text == "Zachowaj");
         Assert.NotNull(await f.Instances.GetAsync(leaf.InstanceId));
@@ -336,7 +337,7 @@ public sealed class ShellPersistenceRegressionTests
     {
         await using var f = new ShellFixture();
         await f.Shell.InitializeAsync(); await f.Shell.AddPanelCommand.ExecuteAsync("todo");
-        var leaf = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+        var leaf = Assert.Single(f.Shell.Panels);
         var session = Assert.IsType<PanelGroupSession>(leaf.TabSession);
         var first = session.Group.ActiveId;
         await session.AddAsync();
@@ -357,7 +358,7 @@ public sealed class ShellPersistenceRegressionTests
         await using var f = new ShellFixture();
         await f.Shell.InitializeAsync();
         await f.Shell.AddPanelCommand.ExecuteAsync("todo");
-        var leaf = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+        var leaf = Assert.Single(f.Shell.Panels);
         var session = Assert.IsType<PanelGroupSession>(leaf.TabSession);
         await session.AddAsync();
         var selected = session.Group.ActiveId;
@@ -396,7 +397,7 @@ public sealed class ShellPersistenceRegressionTests
             await f.Instances.UpsertAsync(root);
             await f.Layouts.SaveAsync(root.DashboardId, new LayoutTree(new LeafNode(id)));
             await f.Shell.ReloadCommand.ExecuteAsync(null);
-            var leaf = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+            var leaf = Assert.Single(f.Shell.Panels);
             var session = Assert.IsType<PanelGroupSession>(leaf.TabSession);
             Assert.Equal(["A", "B"], session.Group.Tabs.Select(t => t.Name));
             Assert.Equal("Druga", Assert.IsType<UberDashboard.App.Features.Notes.NotesPanelViewModel>(leaf.ViewModel).PlainText);
@@ -414,7 +415,7 @@ public sealed class ShellPersistenceRegressionTests
             Assert.Contains(Descendants(restored).OfType<System.Windows.Controls.Image>(), image => image.Source is not null);
             Assert.Equal(original, (await f.Groups.GetAsync(id))!.OriginalStateJson);
             await f.Shell.ReloadCommand.ExecuteAsync(null);
-            Assert.Equal(2, Assert.IsType<PanelLeafViewModel>(f.Shell.Root).TabSession!.Group.Tabs.Length);
+            Assert.Equal(2, Assert.Single(f.Shell.Panels).TabSession!.Group.Tabs.Length);
         });
     }
 
@@ -448,7 +449,7 @@ public sealed class ShellPersistenceRegressionTests
         f.Shell.RefreshPanelTypes();
         await f.Shell.InitializeAsync();
         await f.Shell.AddPanelCommand.ExecuteAsync("pl.uberdashboard.photoframe.frame");
-        var leaf = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+        var leaf = Assert.Single(f.Shell.Panels);
         var group = Assert.IsType<PanelGroupSession>(leaf.TabSession);
         var first = group.Group.ActiveId;
         Assert.IsType<PhotoFrame.Plugin.PhotoFrameModel>(leaf.ViewModel).IntervalSeconds = 5;
@@ -458,7 +459,7 @@ public sealed class ShellPersistenceRegressionTests
         await f.Host.SuspendPluginAsync("pl.example.photos", CancellationToken.None);
         f.Catalog.RemovePlugin("pl.example.photos");
         await f.Shell.ReloadCommand.ExecuteAsync(null);
-        leaf = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+        leaf = Assert.Single(f.Shell.Panels);
         Assert.IsType<UnavailablePanelViewModel>(leaf.ViewModel);
         group = Assert.IsType<PanelGroupSession>(leaf.TabSession);
         Assert.Equal([first, second], group.Group.Tabs.Select(x => x.InstanceId));
@@ -466,7 +467,7 @@ public sealed class ShellPersistenceRegressionTests
         Assert.NotNull(await f.Instances.GetAsync(second));
         f.Catalog.TryRegister("pl.example.photos", new PhotoFrame.Plugin.PhotoFrameDescriptor());
         await f.Shell.ReloadCommand.ExecuteAsync(null);
-        leaf = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+        leaf = Assert.Single(f.Shell.Panels);
         Assert.Equal(27, Assert.IsType<PhotoFrame.Plugin.PhotoFrameModel>(leaf.ViewModel).IntervalSeconds);
         group = Assert.IsType<PanelGroupSession>(leaf.TabSession);
         Assert.Equal(second, group.Group.ActiveId);
@@ -481,7 +482,7 @@ public sealed class ShellPersistenceRegressionTests
         await using var f = new ShellFixture();
         await f.Shell.InitializeAsync();
         await f.Shell.AddPanelCommand.ExecuteAsync("todo");
-        var leaf = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+        var leaf = Assert.Single(f.Shell.Panels);
         var session = Assert.IsType<PanelGroupSession>(leaf.TabSession);
         var root = leaf.InstanceId;
         await session.AddAsync();
@@ -492,7 +493,7 @@ public sealed class ShellPersistenceRegressionTests
         await f.Shell.ReloadCommand.ExecuteAsync(null);
         Assert.Single(f.Shell.HiddenPanels);
         await f.Shell.RestorePanelCommand.ExecuteAsync(f.Shell.HiddenPanels[0]);
-        leaf = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+        leaf = Assert.Single(f.Shell.Panels);
         session = Assert.IsType<PanelGroupSession>(leaf.TabSession);
         Assert.Equal(child, session.Group.ActiveId);
         Assert.Contains(Assert.IsType<UberDashboard.App.Features.Todo.TodoPanelViewModel>(leaf.ViewModel).Items, x => x.Text == "Dane zakładki");
@@ -508,7 +509,7 @@ public sealed class ShellPersistenceRegressionTests
         await using var f = new ShellFixture();
         await f.Shell.InitializeAsync();
         await f.Shell.AddPanelCommand.ExecuteAsync("todo");
-        var leaf = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+        var leaf = Assert.Single(f.Shell.Panels);
         var session = Assert.IsType<PanelGroupSession>(leaf.TabSession);
         var first = session.Group.ActiveId;
         var firstView = Assert.IsType<UberDashboard.App.Features.Todo.TodoPanelViewModel>(leaf.ViewModel);
@@ -523,7 +524,7 @@ public sealed class ShellPersistenceRegressionTests
         await session.SelectAsync(first);
         Assert.Contains(Assert.IsType<UberDashboard.App.Features.Todo.TodoPanelViewModel>(leaf.ViewModel).Items, x => x.Text == "Pierwsza lista");
         await f.Shell.ReloadCommand.ExecuteAsync(null);
-        leaf = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+        leaf = Assert.Single(f.Shell.Panels);
         session = Assert.IsType<PanelGroupSession>(leaf.TabSession);
         Assert.Equal([second, first], session.Group.Tabs.Select(x => x.InstanceId));
         Assert.Equal(first, session.Group.ActiveId);
@@ -542,11 +543,11 @@ public sealed class ShellPersistenceRegressionTests
         var shell = fixture.Shell;
         await shell.InitializeAsync();
         await shell.AddPanelCommand.ExecuteAsync("todo");
-        var leaf = Assert.IsType<PanelLeafViewModel>(shell.Root);
+        var leaf = Assert.Single(shell.Panels);
         var before = await fixture.Instances.GetAsync(leaf.InstanceId);
         await shell.RemovePanelCommand.ExecuteAsync(leaf);
         Assert.Equal(1, fixture.Confirmation.Calls);
-        Assert.Same(leaf, shell.Root);
+        Assert.Same(leaf, Assert.Single(shell.Panels));
         Assert.Equal(before, await fixture.Instances.GetAsync(leaf.InstanceId));
         var saved = await fixture.Layouts.LoadAsync(shell.SelectedDashboard!.DashboardId);
         Assert.True(LayoutWalker.Contains(saved.Tree.Root, leaf.InstanceId));
@@ -558,7 +559,7 @@ public sealed class ShellPersistenceRegressionTests
         await using var f = new ShellFixture();
         await f.Shell.InitializeAsync();
         await f.Shell.AddPanelCommand.ExecuteAsync("todo");
-        var leaf = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+        var leaf = Assert.Single(f.Shell.Panels);
         var todo = Assert.IsType<UberDashboard.App.Features.Todo.TodoPanelViewModel>(leaf.ViewModel);
         todo.NewItemText = "Testowa treść";
         todo.AddItemCommand.Execute(null);
@@ -567,57 +568,72 @@ public sealed class ShellPersistenceRegressionTests
         Assert.True(record!.IsHidden);
         Assert.Contains("Testowa", record.StateJson);
         await f.Shell.ReloadCommand.ExecuteAsync(null);
-        Assert.Null(f.Shell.Root);
+        Assert.Empty(f.Shell.Panels);
         Assert.Single(f.Shell.HiddenPanels);
         await f.Shell.RestorePanelCommand.ExecuteAsync(f.Shell.HiddenPanels[0]);
-        var restored = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+        var restored = Assert.Single(f.Shell.Panels);
         Assert.Equal(leaf.InstanceId, restored.InstanceId);
         Assert.Single(Assert.IsType<UberDashboard.App.Features.Todo.TodoPanelViewModel>(restored.ViewModel).Items);
     }
     [Fact]
-    public async Task Vertical_split_resize_and_move_survive_reload()
+    public async Task Grid_move_and_resize_snap_reject_overlap_and_survive_reload()
     {
         await using var f = new ShellFixture();
         await f.Shell.InitializeAsync();
         await f.Shell.AddPanelCommand.ExecuteAsync("todo");
-        var first = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
-        await f.Shell.AddPanelAtAsync("todo", first.InstanceId, SplitAxis.Vertical);
-        var split = Assert.IsType<PanelSplitViewModel>(f.Shell.Root);
-        Assert.Equal(SplitAxis.Vertical, split.Axis);
-        await f.Shell.ResizeSplitAsync(split.SplitId, .65, 1200);
-        await f.Shell.ReloadCommand.ExecuteAsync(null);
-        split = Assert.IsType<PanelSplitViewModel>(f.Shell.Root);
-        Assert.Equal(.65, split.Ratio, 5);
-        var second = Assert.IsType<PanelLeafViewModel>(split.Second);
-        await f.Shell.MovePanelAsync(second.InstanceId, first.InstanceId, DropZone.Left);
-        Assert.Equal(SplitAxis.Vertical, Assert.IsType<PanelSplitViewModel>(f.Shell.Root).Axis);
+        await f.Shell.AddPanelCommand.ExecuteAsync("todo");
+        var first = f.Shell.Panels[0];
+        var second = f.Shell.Panels[1];
+        Assert.False(first.Cell.Overlaps(second.Cell));
+        Assert.False(f.Shell.PlacePanel(first.InstanceId, new GridCell(10, 9, 3, 2)));
         f.Shell.IsEditMode = true;
-        await f.Shell.MovePanelAsync(second.InstanceId, first.InstanceId, DropZone.Left);
+        Assert.False(f.Shell.PlacePanel(first.InstanceId, second.Cell));
+        Assert.False(f.Shell.PlacePanel(first.InstanceId, new GridCell(f.Shell.GridColumns - 1, 0, 2, 1)));
+        Assert.True(f.Shell.PlacePanel(first.InstanceId, new GridCell(10, 9, 3, 2)));
+        Assert.Equal(new GridCell(10, 9, 3, 2), first.Cell);
+        await f.Shell.SaveGridAsync();
         await f.Shell.ReloadCommand.ExecuteAsync(null);
-        split = Assert.IsType<PanelSplitViewModel>(f.Shell.Root);
-        Assert.Equal(SplitAxis.Horizontal, split.Axis);
-        Assert.Equal(second.InstanceId, Assert.IsType<PanelLeafViewModel>(split.First).InstanceId);
+        Assert.Equal(new GridCell(10, 9, 3, 2), f.Shell.Panels.Single(panel => panel.InstanceId == first.InstanceId).Cell);
+        Assert.Equal(second.Cell, f.Shell.Panels.Single(panel => panel.InstanceId == second.InstanceId).Cell);
     }
 
     [Fact]
-    public async Task Replace_creates_new_identity_and_keeps_old_state_hidden()
+    public async Task Hidden_panel_returns_to_its_cell_and_swap_exchanges_cells()
     {
         await using var f = new ShellFixture();
         await f.Shell.InitializeAsync();
         await f.Shell.AddPanelCommand.ExecuteAsync("todo");
-        var old = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
-        var todo = Assert.IsType<UberDashboard.App.Features.Todo.TodoPanelViewModel>(old.ViewModel);
-        todo.NewItemText = "Zachowaj";
-        todo.AddItemCommand.Execute(null);
-        await f.Shell.AddPanelAtAsync("weather", old.InstanceId, SplitAxis.Vertical, true);
-        var replacement = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
-        Assert.NotEqual(old.InstanceId, replacement.InstanceId);
-        var record = await f.Instances.GetAsync(old.InstanceId);
-        Assert.True(record!.IsHidden);
-        Assert.Contains("Zachowaj", record.StateJson);
+        await f.Shell.AddPanelCommand.ExecuteAsync("notes");
+        f.Shell.IsEditMode = true;
+        var first = f.Shell.Panels[0];
+        var second = f.Shell.Panels[1];
+        Assert.True(f.Shell.PlacePanel(first.InstanceId, new GridCell(12, 8, 4, 4)));
+        var (firstCell, secondCell) = (first.Cell, second.Cell);
+        await f.Shell.SwapPanelCommand.ExecuteAsync(first);
+        await f.Shell.SwapPanelCommand.ExecuteAsync(second);
+        Assert.Equal(secondCell, first.Cell);
+        Assert.Equal(firstCell, second.Cell);
+        await f.Shell.HidePanelCommand.ExecuteAsync(second);
+        Assert.Single(f.Shell.Panels);
+        await f.Shell.RestorePanelCommand.ExecuteAsync(Assert.Single(f.Shell.HiddenPanels));
+        Assert.Equal(firstCell, f.Shell.Panels.Single(panel => panel.InstanceId == second.InstanceId).Cell);
+    }
+
+    [Fact]
+    public async Task Existing_split_layout_is_converted_to_grid_cells()
+    {
+        await using var f = new ShellFixture();
+        await f.Shell.InitializeAsync();
+        await f.Shell.AddPanelCommand.ExecuteAsync("todo");
+        await f.Shell.AddPanelCommand.ExecuteAsync("todo");
+        var ids = f.Shell.Panels.Select(panel => panel.InstanceId).ToArray();
+        var dashboard = f.Shell.SelectedDashboard!.DashboardId;
+        await f.Layouts.SaveAsync(dashboard, new LayoutTree(SplitNode.Create(SplitAxis.Vertical, .25, new LeafNode(ids[0]), new LeafNode(ids[1]))));
+        await f.Settings.SetAsync($"dashboard.grid.{dashboard:N}", "null", DateTimeOffset.UtcNow);
         await f.Shell.ReloadCommand.ExecuteAsync(null);
-        Assert.Equal(replacement.InstanceId, Assert.IsType<PanelLeafViewModel>(f.Shell.Root).InstanceId);
-        Assert.Equal(old.InstanceId, Assert.Single(f.Shell.HiddenPanels).InstanceId);
+        var rows = f.Shell.GridRows;
+        Assert.Equal(new GridCell(0, 0, f.Shell.GridColumns, rows / 4), f.Shell.Panels.Single(panel => panel.InstanceId == ids[0]).Cell);
+        Assert.Equal(new GridCell(0, rows / 4, f.Shell.GridColumns, rows - rows / 4), f.Shell.Panels.Single(panel => panel.InstanceId == ids[1]).Cell);
     }
 
     [Fact]
@@ -626,14 +642,14 @@ public sealed class ShellPersistenceRegressionTests
         await using var f = new ShellFixture();
         await f.Shell.InitializeAsync();
         await f.Shell.AddPanelCommand.ExecuteAsync("todo");
-        var leaf = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+        var leaf = Assert.Single(f.Shell.Panels);
         var record = await f.Instances.GetAsync(leaf.InstanceId);
         await f.Instances.UpsertAsync(record! with { PanelTypeId = "missing-type", PluginId = "pl.example.missing", StateJson = "{\"saved\":true}" });
         // Unload would save the still-active instance; start a new shell after unload.
         await f.Host.SuspendAsync(leaf.InstanceId, CancellationToken.None);
         await f.Instances.UpsertAsync(record! with { PanelTypeId = "missing-type", PluginId = "pl.example.missing", StateJson = "{\"saved\":true}" });
         await f.Shell.ReloadCommand.ExecuteAsync(null);
-        var placeholder = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+        var placeholder = Assert.Single(f.Shell.Panels);
         Assert.Equal(leaf.InstanceId, placeholder.InstanceId);
         Assert.IsType<UnavailablePanelViewModel>(placeholder.ViewModel);
         var saved = await f.Layouts.LoadAsync(f.Shell.SelectedDashboard!.DashboardId);
@@ -647,15 +663,15 @@ public sealed class ShellPersistenceRegressionTests
         await using var f = new ShellFixture();
         await f.Shell.InitializeAsync();
         await f.Shell.AddPanelCommand.ExecuteAsync("todo");
-        var first = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
+        var first = Assert.Single(f.Shell.Panels);
         await f.Shell.AddPanelCommand.ExecuteAsync("todo");
-        var second = Assert.IsType<PanelLeafViewModel>(Assert.IsType<PanelSplitViewModel>(f.Shell.Root).Second);
+        var second = f.Shell.Panels.Single(panel => panel.InstanceId != first.InstanceId);
         f.Confirmation.Result = true;
         await f.Shell.RemovePanelCommand.ExecuteAsync(first);
         Assert.Null(await f.Instances.GetAsync(first.InstanceId));
         Assert.NotNull(await f.Instances.GetAsync(second.InstanceId));
         await f.Shell.ReloadCommand.ExecuteAsync(null);
-        Assert.Equal(second.InstanceId, Assert.IsType<PanelLeafViewModel>(f.Shell.Root).InstanceId);
+        Assert.Equal(second.InstanceId, Assert.Single(f.Shell.Panels).InstanceId);
     }
     [Fact]
     public async Task Failed_layout_save_reports_failure_and_can_be_retried()
@@ -670,28 +686,6 @@ public sealed class ShellPersistenceRegressionTests
         await f.Shell.RetrySaveLayoutCommand.ExecuteAsync(null);
         Assert.Equal("Układ zapisany.", f.Shell.StatusMessage);
         Assert.False((await f.Layouts.LoadAsync(f.Shell.SelectedDashboard.DashboardId)).Tree.IsEmpty);
-    }
-
-    [Fact]
-    public async Task Three_panels_in_one_column_keep_original_content_and_reload()
-    {
-        await using var f = new ShellFixture();
-        await f.Shell.InitializeAsync();
-        await f.Shell.AddPanelCommand.ExecuteAsync("todo");
-        f.Shell.IsEditMode = true;
-        var first = Assert.IsType<PanelLeafViewModel>(f.Shell.Root);
-        var todo = Assert.IsType<UberDashboard.App.Features.Todo.TodoPanelViewModel>(first.ViewModel);
-        todo.NewItemText = "Zachowaj zadanie"; todo.AddItemCommand.Execute(null);
-        var action = first.LayoutActions.Single(a => a.Header == "Trzy panele w kolumnie: Lista zadań");
-        await ((CommunityToolkit.Mvvm.Input.IAsyncRelayCommand)action.Command).ExecuteAsync(null);
-        await f.Shell.ReloadCommand.ExecuteAsync(null);
-        var root = Assert.IsType<PanelSplitViewModel>(f.Shell.Root);
-        Assert.Equal(SplitAxis.Vertical, root.Axis);
-        Assert.Equal(first.InstanceId, Assert.IsType<PanelLeafViewModel>(root.First).InstanceId);
-        var sub = Assert.IsType<PanelSplitViewModel>(root.Second);
-        Assert.Equal(SplitAxis.Vertical, sub.Axis);
-        Assert.IsType<PanelLeafViewModel>(sub.First); Assert.IsType<PanelLeafViewModel>(sub.Second);
-        Assert.Single(Assert.IsType<UberDashboard.App.Features.Todo.TodoPanelViewModel>(((PanelLeafViewModel)root.First).ViewModel).Items);
     }
 
     private static Task RunOnStaAsync(Func<Task> work)
@@ -813,6 +807,7 @@ public sealed class ShellPersistenceRegressionTests
         public ShellViewModel Shell { get; }
         public IPanelInstanceStore Instances { get; }
         public ILayoutStore Layouts { get; }
+        public IAppSettingsStore Settings => _provider.GetRequiredService<IAppSettingsStore>();
         public RecordingConfirmation Confirmation { get; } = new();
         public ValueTask DisposeAsync() => _provider.DisposeAsync();
     }

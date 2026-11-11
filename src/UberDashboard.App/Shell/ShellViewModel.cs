@@ -46,6 +46,9 @@ public sealed class ShellViewModel : ObservableObject
     private readonly IWindowModeCoordinator _windowModeCoordinator;
     private readonly Func<SettingsWindow> _settingsWindowFactory;
     private readonly IAppSettingsStore _appearanceStore;
+    private readonly Dictionary<PanelInstanceId, GridCell> _cells = [];
+    private int _gridColumns;
+    private int _gridRows;
     private readonly IClock _clock;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<ShellViewModel> _logger;
@@ -77,9 +80,7 @@ public sealed class ShellViewModel : ObservableObject
     private CancellationTokenSource? _loadCts;
     private LayoutEditor? _editor;
     private PanelInstanceId? _swapSource;
-    private PanelInstanceId? _moveSource;
     private DashboardSummary? _selectedDashboard;
-    private LayoutNodeViewModel? _root;
     private bool _isEditMode;
     private bool _isBusy;
     private bool _initialized;
@@ -134,6 +135,10 @@ public sealed class ShellViewModel : ObservableObject
         _clock = clock;
         _loggerFactory = loggerFactory;
         _logger = logger;
+        _gridColumns = theme.CurrentSettings.Normalize().GridColumns;
+        _gridRows = theme.CurrentSettings.Normalize().GridRows;
+        _theme.ThemeChanged += (_, _) => OnGridSettingsChanged();
+        Panels.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsLayoutEmpty));
 
         var options = new List<PanelTypeOption>();
         foreach (var registration in _catalog.Registrations)
@@ -157,7 +162,6 @@ public sealed class ShellViewModel : ObservableObject
         RemovePanelCommand = new AsyncRelayCommand<PanelLeafViewModel>(RemovePanelAsync, leaf => leaf is not null);
         SwapPanelCommand = new AsyncRelayCommand<PanelLeafViewModel>(SwapPanelAsync, leaf => leaf is not null);
         RestorePanelCommand = new AsyncRelayCommand<HiddenPanelEntry>(RestorePanelAsync, entry => entry is not null);
-        ChangeSplitAxisCommand = new AsyncRelayCommand<PanelSplitViewModel>(ChangeSplitAxisAsync, split => split is not null);
     }
 
     /// <summary>Pulpity dostępne w selektorze.</summary>
@@ -199,21 +203,17 @@ public sealed class ShellViewModel : ObservableObject
         }
     }
 
-    /// <summary>Korzeń drzewa układu bieżącego pulpitu albo <see langword="null"/>.</summary>
-    public LayoutNodeViewModel? Root
-    {
-        get => _root;
-        private set
-        {
-            if (SetProperty(ref _root, value))
-            {
-                OnPropertyChanged(nameof(IsLayoutEmpty));
-            }
-        }
-    }
+    /// <summary>Widoczne panele bieżącego pulpitu; każdy zna swój prostokąt na siatce.</summary>
+    public ObservableCollection<PanelLeafViewModel> Panels { get; } = [];
 
     /// <summary><see langword="true"/>, gdy bieżący pulpit nie ma żadnego panelu.</summary>
-    public bool IsLayoutEmpty => _root is null;
+    public bool IsLayoutEmpty => Panels.Count == 0;
+
+    /// <summary>Liczba kolumn siatki pulpitu z ustawień aplikacji.</summary>
+    public int GridColumns { get => _gridColumns; private set => SetProperty(ref _gridColumns, value); }
+
+    /// <summary>Liczba wierszy siatki pulpitu z ustawień aplikacji.</summary>
+    public int GridRows { get => _gridRows; private set => SetProperty(ref _gridRows, value); }
 
     /// <summary><see langword="true"/>, gdy istnieje co najmniej jeden ukryty panel.</summary>
     public bool HasHiddenPanels => HiddenPanels.Count > 0;
@@ -303,9 +303,6 @@ public sealed class ShellViewModel : ObservableObject
 
     /// <summary>Przywraca ukryty panel na bieżącym pulpicie.</summary>
     public IAsyncRelayCommand<HiddenPanelEntry> RestorePanelCommand { get; }
-
-    /// <summary>Zmienia oś podziału (kolumny/wiersze).</summary>
-    public IAsyncRelayCommand<PanelSplitViewModel> ChangeSplitAxisCommand { get; }
 
     /// <summary>
     /// Wczytuje listę pulpitów, wybiera aktywny i buduje pierwszy układ. Operacja
@@ -428,7 +425,8 @@ public sealed class ShellViewModel : ObservableObject
 
             foreach (var record in records)
             {
-                if (_groupChildren.Contains(record.InstanceId) || record.IsHidden)
+                // Puste miejsca są teraz wolnymi komórkami siatki, więc dawne panele odstępu pomijamy.
+                if (_groupChildren.Contains(record.InstanceId) || record.IsHidden || record.PanelTypeId == Features.Space.SpacePanelDescriptor.Id)
                 {
                     continue;
                 }
@@ -439,14 +437,21 @@ public sealed class ShellViewModel : ObservableObject
                 _visible.Add(record.InstanceId);
             }
 
+            var savedGrid = await ReadGridAsync(dashboardId, token).ConfigureAwait(true);
+            if (savedGrid is null)
+                foreach (var (id, cell) in PanelGrid.FromTree(editor.Tree.Root, GridColumns, GridRows)) _cells[id] = cell;
+            else
+                foreach (var (id, cell) in savedGrid.Cells) _cells[new PanelInstanceId(id)] = PanelGrid.Rescale(cell, savedGrid.Columns, savedGrid.Rows, GridColumns, GridRows);
             ReconcileLayout();
             editor.SetVisibleInstances(_visible);
+            var gridChanged = SettleCells() || savedGrid is null || savedGrid.Columns != GridColumns || savedGrid.Rows != GridRows;
 
             var savedLayout = await editor.SaveAsync(force: false, token).ConfigureAwait(true);
             if (propagateFailure && !savedLayout.IsSuccess) throw new InvalidOperationException(UiText.Format("CouldNotSaveLayout", savedLayout.Message));
 
-            RebuildTree();
+            RebuildPanels();
             RefreshHiddenPanels();
+            if (gridChanged) await SaveGridAsync().ConfigureAwait(true);
 
             StatusMessage = UiText.Format("DashboardPanelsHidden", _selectedDashboard?.Name, _visible.Count, HiddenPanels.Count);
 
@@ -505,8 +510,8 @@ public sealed class ShellViewModel : ObservableObject
         HiddenPanels.Clear();
         _visible.Clear();
         _swapSource = null;
-        _moveSource = null;
-        Root = null;
+        _cells.Clear();
+        Panels.Clear();
 
         var active = new List<PanelInstanceId>(_host.ActiveInstances);
         foreach (var instanceId in active)
@@ -554,185 +559,105 @@ public sealed class ShellViewModel : ObservableObject
         }
     }
 
-    internal async Task MovePanelAsync(PanelInstanceId source, PanelInstanceId target, DropZone zone)
+    private (int Width, int Height) DefaultSpan => (Math.Max(1, (GridColumns + 2) / 4), Math.Max(1, (GridRows + 1) / 2));
+
+    private Dictionary<PanelInstanceId, GridCell> VisibleCells() => _cells.Where(pair => _visible.Contains(pair.Key)).ToDictionary();
+
+    /// <summary>Prostokąt widocznego panelu albo <see langword="null"/>.</summary>
+    internal GridCell? CellOf(PanelInstanceId id) => _visible.Contains(id) && _cells.TryGetValue(id, out var cell) ? cell : null;
+
+    /// <summary>Przyciąga panel do wskazanych komórek, jeśli są wolne; zapis wykonuje <see cref="SaveGridAsync"/>.</summary>
+    internal bool PlacePanel(PanelInstanceId id, GridCell cell)
     {
-        try { await MovePanelCoreAsync(source, target, zone).ConfigureAwait(true); }
+        if (!IsEditMode || IsBusy || !_visible.Contains(id) || !PanelGrid.Fits(VisibleCells(), id, cell, GridColumns, GridRows)) return false;
+        _cells[id] = cell;
+        if (_leaves.TryGetValue(id, out var leaf)) leaf.Cell = cell;
+        return true;
+    }
+
+    /// <summary>Usuwa nakładanie i wyjścia poza siatkę; panele bez miejsca dostają pierwsze wolne komórki.</summary>
+    private bool SettleCells()
+    {
+        var accepted = new Dictionary<PanelInstanceId, GridCell>();
+        var changed = false;
+        foreach (var id in _visible)
+        {
+            var known = _cells.TryGetValue(id, out var current);
+            var cell = known && PanelGrid.Fits(accepted, id, current, GridColumns, GridRows)
+                ? current
+                // Pełna siatka: nakładanie jest lepsze niż zgubienie panelu; użytkownik może go przesunąć.
+                : PanelGrid.FindFree(accepted, DefaultSpan.Width, DefaultSpan.Height, GridColumns, GridRows) ?? new GridCell(0, 0, 1, 1);
+            changed |= !known || cell != current;
+            _cells[id] = accepted[id] = cell;
+        }
+        return changed;
+    }
+
+    private void OnGridSettingsChanged()
+    {
+        if (System.Windows.Application.Current?.Dispatcher is { } dispatcher && !dispatcher.CheckAccess()) { dispatcher.BeginInvoke(OnGridSettingsChanged); return; }
+        var (columns, rows) = (_theme.CurrentSettings.GridColumns, _theme.CurrentSettings.GridRows);
+        if (columns == GridColumns && rows == GridRows) return;
+        // shortcut: kolejne przeskalowania sumują zaokrąglenia; gdyby panele dryfowały, pamiętaj układ bazowy sprzed podglądu.
+        foreach (var id in _cells.Keys.ToArray()) _cells[id] = PanelGrid.Rescale(_cells[id], GridColumns, GridRows, columns, rows);
+        GridColumns = columns;
+        GridRows = rows;
+        SettleCells();
+        RebuildPanels();
+        _ = SaveGridAsync();
+    }
+
+    private sealed record GridDocument(int Columns, int Rows, Dictionary<Guid, GridCell> Cells);
+
+    private static string GridKey(Guid dashboardId) => $"dashboard.grid.{dashboardId:N}";
+
+    private async Task<GridDocument?> ReadGridAsync(Guid dashboardId, CancellationToken token)
+    {
+        try
+        {
+            var raw = await _appearanceStore.GetAsync(GridKey(dashboardId), token).ConfigureAwait(true);
+            return raw is null ? null : JsonSerializer.Deserialize<GridDocument>(raw);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Nie udało się odczytać siatki pulpitu {DashboardId}; układ zostanie odtworzony.", dashboardId);
+            return null;
+        }
+    }
+
+    /// <summary>Utrwala pozycje paneli bieżącego pulpitu.</summary>
+    internal async Task SaveGridAsync()
+    {
+        if (CurrentDashboardId == Guid.Empty) return;
+        try
+        {
+            var document = new GridDocument(GridColumns, GridRows, _cells.ToDictionary(pair => pair.Key.Value, pair => pair.Value));
+            await _appearanceStore.SetAsync(GridKey(CurrentDashboardId), JsonSerializer.Serialize(document), _clock.UtcNow).ConfigureAwait(true);
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Nie udało się przenieść panelu {InstanceId} do {TargetId}.", source, target);
-            _toasts.Show(UiText.Get("CouldNotSaveThePanelMoveTry"), ToastSeverity.Error);
-            RebuildTree();
-            RefreshHiddenPanels();
+            _logger.LogError(ex, "Zapis siatki pulpitu nie powiódł się.");
+            _toasts.Show(UiText.Format("CouldNotSaveTheLayout", ex.Message), ToastSeverity.Warning);
         }
     }
 
-    private async Task MovePanelCoreAsync(PanelInstanceId source, PanelInstanceId target, DropZone zone)
+    private void RebuildPanels()
     {
-        if (!IsEditMode || IsBusy || _editor is null || source == target) return;
-        var targetIsSpace = _records.TryGetValue(target, out var record) && record.PanelTypeId == Features.Space.SpacePanelDescriptor.Id;
-        var result = _editor.Move(source, target, zone);
-        if (!result.IsSuccess)
-        {
-            _toasts.Show(UiText.Format("CouldNotMoveThePanel", result.ErrorMessage), ToastSeverity.Warning);
-            return;
-        }
-        if (targetIsSpace)
-        {
-            _editor.Remove(target);
-            _visible.Remove(target);
-            _editor.SetVisibleInstances(_visible);
-            await _instances.SetHiddenAsync(target, true, null, _clock.UtcNow, CancellationToken.None).ConfigureAwait(true);
-            _records[target] = record! with { IsHidden = true };
-            await SuspendPanelAsync(target, CancellationToken.None).ConfigureAwait(true);
-        }
-        await SaveLayoutAsync().ConfigureAwait(true);
-        RebuildTree();
-        RefreshHiddenPanels();
-    }
-
-    internal async Task ReserveSpaceAsync(PanelInstanceId id, bool top, double amount, double panelHeight)
-    {
-        if (!IsEditMode || IsBusy || _editor is null || !_visible.Contains(id) || !double.IsFinite(amount) || !double.IsFinite(panelHeight) || panelHeight <= 0) return;
-        // Reuse a boundary if there is already a neighbouring region on this edge.
-        var parent = LayoutWalker.Traverse(_editor.Tree.Root).OfType<SplitNode>().FirstOrDefault(n => n.Axis == SplitAxis.Vertical &&
-            (top ? n.Second is LeafNode b && b.InstanceId == id : n.First is LeafNode a && a.InstanceId == id));
-        if (parent is not null)
-        {
-            var fraction = top ? 1 - parent.Ratio : parent.Ratio;
-            var length = panelHeight / fraction;
-            await ResizeSplitAsync(parent.SplitId, parent.Ratio + (top ? amount : -amount) / length, length).ConfigureAwait(true);
-            RebuildTree();
-            return;
-        }
-        var minimum = _minSizes.MinimumOf(id).Height;
-        if (amount < 12 || panelHeight < minimum + 54) return;
-        var space = Math.Clamp(amount, 48, panelHeight - minimum - 6);
-        var ratio = top ? space / (panelHeight - 6) : 1 - space / (panelHeight - 6);
-        await AddPanelAtAsync(Features.Space.SpacePanelDescriptor.Id, id, SplitAxis.Vertical, side: top ? InsertSide.Before : InsertSide.After,
-            initialRatio: ratio, regionLength: panelHeight).ConfigureAwait(true);
-    }
-
-    private async Task MoveSelectedHereAsync(PanelInstanceId target, DropZone zone)
-    {
-        if (_moveSource is not { } source)
-        {
-            _toasts.Show(UiText.Get("FirstSelectAPanelToMoveFrom"), ToastSeverity.Information);
-            return;
-        }
-        await MovePanelAsync(source, target, zone).ConfigureAwait(true);
-        _moveSource = null;
-    }
-
-    private void RebuildTree()
-    {
-        if (_editor is null)
-        {
-            Root = null;
-            return;
-        }
-
         var active = new List<PanelLeafViewModel>();
-        Root = BuildNode(_editor.Tree.Root, active);
-        foreach (var leaf in active)
+        foreach (var id in LayoutWalker.Instances(_editor?.Tree.Root))
         {
-            var id = leaf.InstanceId;
-            var actions = new List<PanelLayoutAction>
-            {
-                new(UiText.Get("SelectThisPanelToMove"), new RelayCommand(() => { _moveSource = id; StatusMessage = UiText.Get("ChooseTheTargetPanelAndPositionFrom"); })),
-            };
-            foreach (var zone in Enum.GetValues<DropZone>())
-            {
-                var label = zone switch { DropZone.Left => UiText.Get("ToTheLeft"), DropZone.Right => UiText.Get("ToTheRight"), DropZone.Top => UiText.Get("AboveThisPanel"), _ => UiText.Get("BelowThisPanel") };
-                actions.Add(new(UiText.Format("MoveSelectedPanel", label), new AsyncRelayCommand(() => MoveSelectedHereAsync(id, zone))));
-            }
-            if (!leaf.IsSpace)
-            {
-                actions.Add(new(UiText.Get("LeaveEmptySpaceAboveThisPanel"), new AsyncRelayCommand(() => ReserveSpaceAsync(id, true, 100, 600))));
-                actions.Add(new(UiText.Get("LeaveEmptySpaceBelowThisPanel"), new AsyncRelayCommand(() => ReserveSpaceAsync(id, false, 100, 600))));
-            }
-            foreach (var type in PanelTypes)
-            {
-                if (leaf.IsSpace)
-                {
-                    actions.Add(new(UiText.Format("AddHere", type.DisplayName), new AsyncRelayCommand(() => AddPanelAtAsync(type.TypeId, id, SplitAxis.Vertical, replace: true))));
-                    continue;
-                }
-                actions.Add(new(UiText.Format("ThreePanelsInAColumn", type.DisplayName), new AsyncRelayCommand(async () =>
-                {
-                    var before = _visible.ToHashSet();
-                    await AddPanelAtAsync(type.TypeId, id, SplitAxis.Vertical).ConfigureAwait(true);
-                    var added = _visible.Where(value => !before.Contains(value)).ToArray();
-                    if (added.Length == 1) await AddPanelAtAsync(type.TypeId, added[0], SplitAxis.Vertical).ConfigureAwait(true);
-                })));
-                actions.Add(new(UiText.Format("AddBeside", type.DisplayName), new AsyncRelayCommand(() => AddPanelAtAsync(type.TypeId, id, SplitAxis.Horizontal))));
-                actions.Add(new(UiText.Format("AddBelow", type.DisplayName), new AsyncRelayCommand(() => AddPanelAtAsync(type.TypeId, id, SplitAxis.Vertical))));
-                actions.Add(new(UiText.Format("ReplaceContents", type.DisplayName), new AsyncRelayCommand(() => AddPanelAtAsync(type.TypeId, id, SplitAxis.Horizontal, replace: true))));
-            }
-            leaf.LayoutActions = actions;
+            if (ResolveLeaf(id) is not { } leaf) continue;
+            leaf.Cell = _cells.TryGetValue(id, out var cell) ? cell : new GridCell(0, 0, 1, 1);
+            active.Add(leaf);
         }
 
+        foreach (var stale in Panels.Except(active).ToArray()) Panels.Remove(stale);
+        foreach (var leaf in active) if (!Panels.Contains(leaf)) Panels.Add(leaf);
         foreach (var instanceId in _leaves.Keys.ToArray())
         {
-            var used = false;
-            foreach (var leaf in active)
-            {
-                if (leaf.InstanceId == instanceId)
-                {
-                    used = true;
-                    break;
-                }
-            }
-
-            if (!used)
-            {
-                _leaves[instanceId].Dispose();
-                _leaves.Remove(instanceId);
-            }
-        }
-    }
-
-    private LayoutNodeViewModel? BuildNode(LayoutNode? node, List<PanelLeafViewModel> active)
-    {
-        switch (node)
-        {
-            case null:
-                return null;
-
-            case LeafNode leaf:
-                {
-                    var leafViewModel = ResolveLeaf(leaf.InstanceId);
-                    if (leafViewModel is null)
-                    {
-                        return null;
-                    }
-
-                    active.Add(leafViewModel);
-                    return leafViewModel;
-                }
-
-            case SplitNode split:
-                {
-                    var first = BuildNode(split.First, active);
-                    var second = BuildNode(split.Second, active);
-
-                    if (first is null)
-                    {
-                        return second;
-                    }
-
-                    if (second is null)
-                    {
-                        return first;
-                    }
-
-                    return new PanelSplitViewModel(split.SplitId, split.Axis, split.Ratio, first, second, ResizeSplitAsync)
-                    {
-                        Minimum = MinimumSizes.Of(split, _minSizes, LayoutMetrics.Default),
-                    };
-                }
-
-            default:
-                return null;
+            if (active.Any(leaf => leaf.InstanceId == instanceId)) continue;
+            _leaves[instanceId].Dispose();
+            _leaves.Remove(instanceId);
         }
     }
 
@@ -762,6 +687,7 @@ public sealed class ShellViewModel : ObservableObject
             Minimum = _catalog.Contains(record.PanelTypeId) ? _minSizes.MinimumOf(instanceId) : new MinSize(280, 200),
         };
 
+        leaf.RemoveCommand = new AsyncRelayCommand(() => RemovePanelAsync(leaf));
         if (session is not null) leaf.SetTabSession(session);
         _leaves[instanceId] = leaf;
         return leaf;
@@ -905,21 +831,23 @@ public sealed class ShellViewModel : ObservableObject
         }
     }
 
-    private Task AddPanelAsync(string? typeId) => AddPanelAtAsync(typeId, null, SplitAxis.Horizontal);
-
-    internal async Task AddPanelAtAsync(string? typeId, PanelInstanceId? target, SplitAxis axis, bool replace = false, InsertSide side = InsertSide.After, double? initialRatio = null, double regionLength = 0)
+    private async Task AddPanelAsync(string? typeId)
     {
         if (_editor is null || _selectedDashboard is null || string.IsNullOrWhiteSpace(typeId))
         {
             return;
         }
 
-        if (target is { } targetId && !_visible.Contains(targetId)) return;
-        if (target is { } vacancy && _records.TryGetValue(vacancy, out var vacancyRecord) && vacancyRecord.PanelTypeId == Features.Space.SpacePanelDescriptor.Id) replace = true;
         var descriptor = _catalog.DescriptorOf(typeId);
         if (descriptor is null)
         {
             _toasts.Show(UiText.Format("UnknownPanelType", typeId), ToastSeverity.Error);
+            return;
+        }
+
+        if (PanelGrid.FindFree(VisibleCells(), DefaultSpan.Width, DefaultSpan.Height, GridColumns, GridRows) is not { } cell)
+        {
+            _toasts.Show(UiText.Get("NoFreeSpaceOnTheGrid"), ToastSeverity.Warning);
             return;
         }
 
@@ -955,13 +883,7 @@ public sealed class ShellViewModel : ObservableObject
                 return;
             }
 
-            var anchor = target ?? LayoutWalker.FirstLeaf(_editor.Tree.Root)?.InstanceId;
-            var hint = anchor is { } oldId ? _editor.CaptureRestoreHint(oldId) : RestoreHint.None;
-            var result = anchor is null
-                ? _editor.Restore(instanceId, RestoreHint.None)
-                : replace ? _editor.Replace(anchor.Value, instanceId)
-                : _editor.Split(anchor.Value, axis, instanceId, side);
-
+            var result = _editor.Restore(instanceId, RestoreHint.None);
             if (!result.IsSuccess)
             {
                 await RollbackAsync(instanceId).ConfigureAwait(true);
@@ -969,26 +891,13 @@ public sealed class ShellViewModel : ObservableObject
                 return;
             }
 
-            if (initialRatio is { } ratio && anchor is { } original)
-            {
-                var split = LayoutWalker.Traverse(_editor.Tree.Root).OfType<SplitNode>().FirstOrDefault(n =>
-                    n.First is LeafNode a && n.Second is LeafNode b &&
-                    (a.InstanceId == original || b.InstanceId == original) && (a.InstanceId == instanceId || b.InstanceId == instanceId));
-                if (split is not null) _editor.Resize(split.SplitId, ratio, regionLength);
-            }
+            _cells[instanceId] = cell;
             _visible.Add(instanceId);
-            if (replace && anchor is { } previous && _records.TryGetValue(previous, out var previousRecord))
-            {
-                var hintJson = JsonSerializer.Serialize(hint);
-                await _instances.SetHiddenAsync(previous, true, hintJson, _clock.UtcNow, CancellationToken.None).ConfigureAwait(true);
-                await SuspendPanelAsync(previous, CancellationToken.None).ConfigureAwait(true);
-                _records[previous] = previousRecord with { IsHidden = true, RestoreHintJson = hintJson, UpdatedAtUtc = _clock.UtcNow };
-                _visible.Remove(previous);
-            }
             _editor.SetVisibleInstances(_visible);
 
-            if (!await SaveLayoutAsync().ConfigureAwait(true)) { RebuildTree(); RefreshHiddenPanels(); return; }
-            RebuildTree();
+            await SaveGridAsync().ConfigureAwait(true);
+            if (!await SaveLayoutAsync().ConfigureAwait(true)) { RebuildPanels(); RefreshHiddenPanels(); return; }
+            RebuildPanels();
             RefreshHiddenPanels();
             _toasts.Show(UiText.Format("AddedPanel", descriptor.DisplayName), ToastSeverity.Success);
         }
@@ -1049,13 +958,13 @@ public sealed class ShellViewModel : ObservableObject
             _editor.SetVisibleInstances(_visible);
             var restore = _editor.Restore(leaf.InstanceId, hint);
             if (!restore.IsSuccess) _logger.LogError("Nie udało się przywrócić położenia panelu {PanelId}: {Error}.", leaf.InstanceId, restore.ErrorMessage);
-            RebuildTree(); RefreshHiddenPanels();
+            RebuildPanels(); RefreshHiddenPanels();
             _toasts.Show(UiText.Get("ThePanelCouldNotBeHiddenIts"), ToastSeverity.Error);
             return;
         }
-        if (!await SaveLayoutAsync().ConfigureAwait(true)) { RebuildTree(); RefreshHiddenPanels(); return; }
+        if (!await SaveLayoutAsync().ConfigureAwait(true)) { RebuildPanels(); RefreshHiddenPanels(); return; }
 
-        RebuildTree();
+        RebuildPanels();
         RefreshHiddenPanels();
         _toasts.Show(UiText.Format("HidPanel", leaf.DisplayName), ToastSeverity.Information);
     }
@@ -1105,22 +1014,24 @@ public sealed class ShellViewModel : ObservableObject
             _editor.SetVisibleInstances(_visible);
             var restore = _editor.Restore(leaf.InstanceId, hint);
             if (!restore.IsSuccess) _logger.LogError("Nie udało się odtworzyć położenia panelu {PanelId}: {Error}.", leaf.InstanceId, restore.ErrorMessage);
-            RebuildTree(); RefreshHiddenPanels();
+            RebuildPanels(); RefreshHiddenPanels();
             _toasts.Show(UiText.Get("ThePanelCouldNotBeDeletedIts"), ToastSeverity.Error);
             return;
         }
 
         _records.Remove(leaf.InstanceId);
         _minSizes.Remove(leaf.InstanceId);
+        _cells.Remove(leaf.InstanceId);
+        await SaveGridAsync().ConfigureAwait(true);
 
         if (_swapSource == leaf.InstanceId)
         {
             _swapSource = null;
         }
 
-        if (!await SaveLayoutAsync().ConfigureAwait(true)) { RebuildTree(); RefreshHiddenPanels(); return; }
+        if (!await SaveLayoutAsync().ConfigureAwait(true)) { RebuildPanels(); RefreshHiddenPanels(); return; }
 
-        RebuildTree();
+        RebuildPanels();
         RefreshHiddenPanels();
         _toasts.Show(UiText.Format("DeletedPanel", leaf.DisplayName), ToastSeverity.Information);
     }
@@ -1147,17 +1058,18 @@ public sealed class ShellViewModel : ObservableObject
         }
 
         var source = _swapSource.Value;
-        var result = _editor.Swap(source, leaf.InstanceId);
         _swapSource = null;
-
-        if (!result.IsSuccess)
+        if (CellOf(source) is not { } first || CellOf(leaf.InstanceId) is not { } second)
         {
-            _toasts.Show(UiText.Format("CouldNotSwapPanels", result.ErrorMessage), ToastSeverity.Warning);
+            _toasts.Show(UiText.Format("CouldNotSwapPanels", leaf.DisplayName), ToastSeverity.Warning);
             return;
         }
 
-        if (!await SaveLayoutAsync().ConfigureAwait(true)) { RebuildTree(); RefreshHiddenPanels(); return; }
-        RebuildTree();
+        // Zamiana całych prostokątów nie może nałożyć się na inne panele: zajmują ten sam obszar co przedtem.
+        _cells[source] = second;
+        _cells[leaf.InstanceId] = first;
+        RebuildPanels();
+        await SaveGridAsync().ConfigureAwait(true);
         _toasts.Show(UiText.Get("SwappedPanelPositions"), ToastSeverity.Success);
     }
 
@@ -1172,6 +1084,13 @@ public sealed class ShellViewModel : ObservableObject
         if (record is null)
         {
             _toasts.Show(UiText.Get("TheHiddenPanelCouldNotBeFound"), ToastSeverity.Warning);
+            return;
+        }
+
+        var remembered = _cells.TryGetValue(record.InstanceId, out var known) && PanelGrid.Fits(VisibleCells(), record.InstanceId, known, GridColumns, GridRows);
+        if ((remembered ? known : PanelGrid.FindFree(VisibleCells(), DefaultSpan.Width, DefaultSpan.Height, GridColumns, GridRows)) is not { } cell)
+        {
+            _toasts.Show(UiText.Get("NoFreeSpaceOnTheGrid"), ToastSeverity.Warning);
             return;
         }
 
@@ -1203,46 +1122,17 @@ public sealed class ShellViewModel : ObservableObject
             UpdatedAtUtc = _clock.UtcNow,
         };
 
-        if (!await SaveLayoutAsync().ConfigureAwait(true)) { RebuildTree(); RefreshHiddenPanels(); return; }
+        _cells[record.InstanceId] = cell;
+        await SaveGridAsync().ConfigureAwait(true);
+        if (!await SaveLayoutAsync().ConfigureAwait(true)) { RebuildPanels(); RefreshHiddenPanels(); return; }
 
-        RebuildTree();
+        RebuildPanels();
         RefreshHiddenPanels();
 
-        var message = result.UsedFallback
+        var message = !remembered
             ? UiText.Format("RestoredPanelInADifferentPosition", record.DisplayName)
             : UiText.Format("RestoredPanel", record.DisplayName);
         _toasts.Show(message, ToastSeverity.Success);
-    }
-
-    internal async Task ResizeSplitAsync(Guid splitId, double ratio, double regionLength)
-    {
-        if (_editor is null) return;
-        var result = _editor.Resize(splitId, ratio, regionLength);
-        if (!result.IsSuccess)
-        {
-            _toasts.Show(UiText.Format("CouldNotResizeTheSplit", result.ErrorMessage), ToastSeverity.Warning);
-            return;
-        }
-        if (!await SaveLayoutAsync().ConfigureAwait(true)) { RebuildTree(); RefreshHiddenPanels(); return; }
-    }
-
-    private async Task ChangeSplitAxisAsync(PanelSplitViewModel? split)
-    {
-        if (_editor is null || split is null)
-        {
-            return;
-        }
-
-        var result = _editor.ToggleAxis(split.SplitId);
-        if (!result.IsSuccess)
-        {
-            _toasts.Show(UiText.Format("CouldNotChangeTheSplit", result.ErrorMessage), ToastSeverity.Warning);
-            return;
-        }
-
-        if (!await SaveLayoutAsync().ConfigureAwait(true)) { RebuildTree(); RefreshHiddenPanels(); return; }
-        RebuildTree();
-        StatusMessage = UiText.Get("ChangedTheSplitOrientation");
     }
 
     private async Task<bool> SaveLayoutAsync()

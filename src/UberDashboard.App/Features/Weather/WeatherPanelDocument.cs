@@ -14,6 +14,7 @@ public sealed class WeatherPanelDocument
     public ModulePosition[] ModulePositions { get; init; } = [];
 
     public double ModuleSpacing { get; init; }
+    public double ModuleScale { get; init; } = 1;
 
     public bool ColorfulTheme { get; init; }
     public bool ShowLocation { get; init; } = true;

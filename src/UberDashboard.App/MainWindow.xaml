@@ -68,6 +68,7 @@
           </ContextMenu>
           </controls:PanelLayoutMenuButton.ContextMenu>
         </controls:PanelLayoutMenuButton>
+        <ToggleButton DockPanel.Dock="Right" Content="{loc:Text EditLayout}" IsChecked="{Binding IsEditMode}" Margin="6,0,0,0" ToolTip="{loc:Text MovePanelOnGridHelp}" />
         <TextBlock DockPanel.Dock="Left" Text="UberDashboard" VerticalAlignment="Center" Margin="6,0,16,0" FontWeight="SemiBold">
           <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding IsDockedBar}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
         </TextBlock>
@@ -80,13 +81,20 @@
       </DockPanel>
     </Border>
 
-    <!-- Obszar roboczy: rekursywnie renderowane drzewo paneli bieżącego pulpitu. -->
+    <!-- Obszar roboczy: siatka pulpitu z panelami w ich komórkach. -->
     <Grid Grid.Row="1" Margin="0,4,0,4">
-      <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" CanContentScroll="False">
-      <ContentControl Width="{Binding ViewportWidth, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" Height="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" MinWidth="{Binding Root.Minimum.Width}" MinHeight="{Binding Root.Minimum.Height}" Content="{Binding Root}"
-                      ContentTemplateSelector="{DynamicResource LayoutNodeTemplateSelector}"
-                      ToolTip="{loc:Text DashboardWorkspaceScrollIfSpaceRunsOut}" />
-      </ScrollViewer>
+      <ItemsControl ItemsSource="{Binding Panels}" ItemTemplate="{DynamicResource PanelLeafTemplate}" Focusable="False" ToolTip="{loc:Text DashboardWorkspaceScrollIfSpaceRunsOut}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <controls:PanelGridCanvas Columns="{Binding GridColumns}" Rows="{Binding GridRows}" ShowGrid="{Binding IsEditMode}" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemContainerStyle>
+          <Style TargetType="ContentPresenter">
+            <Setter Property="controls:PanelGridCanvas.Cell" Value="{Binding Cell}" />
+          </Style>
+        </ItemsControl.ItemContainerStyle>
+      </ItemsControl>
 
       <TextBlock HorizontalAlignment="Center"
                  VerticalAlignment="Center"

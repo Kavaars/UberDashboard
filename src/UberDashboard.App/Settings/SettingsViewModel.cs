@@ -189,6 +189,8 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty] private double panelSpacing = 10d;
     [ObservableProperty] private double dividerThickness = 1d;
+    [ObservableProperty] private int gridColumns = 24;
+    [ObservableProperty] private int gridRows = 16;
 
     [ObservableProperty]
     private int weatherRefreshMinutes = 20;
@@ -279,6 +281,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         DensityScale = applicationSettings.DensityScale ?? 1d;
         PanelSpacing = applicationSettings.PanelSpacing ?? 10d;
         DividerThickness = applicationSettings.DividerThickness ?? 1d;
+        GridColumns = applicationSettings.GridColumns;
+        GridRows = applicationSettings.GridRows;
         WeatherRefreshMinutes = applicationSettings.WeatherRefreshMinutes ?? 20;
         WallpaperPath = applicationSettings.WallpaperPath;
         WallpaperBlur = applicationSettings.WallpaperBlur;
@@ -314,7 +318,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             AccentColor = AccentColor, WindowBackgroundColor = WindowBackgroundColor, SurfaceColor = SurfaceColor,
             SurfaceAltColor = SurfaceAltColor, FontFamilyName = SelectedFontFamily, FontSize = FontSize,
             CornerRadius = CornerRadius, DensityScale = DensityScale, WeatherRefreshMinutes = WeatherRefreshMinutes,
-            PanelSpacing = PanelSpacing, DividerThickness = DividerThickness,
+            PanelSpacing = PanelSpacing, DividerThickness = DividerThickness, GridColumns = GridColumns, GridRows = GridRows,
             StartWithWindows = StartWithWindows, EnableTrayIcon = EnableTrayIcon, CloseBehavior = SelectedCloseBehavior,
             WallpaperPath = WallpaperPath, WallpaperBlur = WallpaperBlur, BackgroundSurfaceOpacity = BackgroundSurfaceOpacity, WindowOpacity = WindowOpacity, DesktopBlur = DesktopBlur, TransparentDesktopBackground = TransparentDesktopBackground,
         }.Normalize();

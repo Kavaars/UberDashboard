@@ -53,8 +53,17 @@ public sealed class PanelCatalogTests
 
         source.Set(known, new MinSize(120d, 80d));
 
-        Assert.Equal(new MinSize(120d, 80d), source.MinimumOf(known));
+        Assert.Equal(new MinSize(60d, 40d), source.MinimumOf(known));
         Assert.Equal(MinSize.Zero, source.MinimumOf(PanelInstanceId.New()));
+    }
+
+    [Fact]
+    public void MinSizeSource_halves_minimum()
+    {
+        var source = new PanelCatalog.MinSizeSource();
+        var a = PanelInstanceId.New();
+        source.Set(a, new MinSize(280, 200));
+        Assert.Equal(new MinSize(140, 100), source.MinimumOf(a));
     }
 
     [Fact]

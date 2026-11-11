@@ -43,6 +43,12 @@ public sealed record ApplicationSettings
     /// <summary>Łączna przerwa między panelami z uchwytem 6 DIP.</summary>
     public double? PanelSpacing { get; init; }
 
+    /// <summary>Liczba kolumn siatki pulpitu, do której przyciągają się panele.</summary>
+    public int GridColumns { get; init; } = 24;
+
+    /// <summary>Liczba wierszy siatki pulpitu.</summary>
+    public int GridRows { get; init; } = 16;
+
     /// <summary>Widoczna grubość linii, niezależna od obszaru chwytania.</summary>
     public double? DividerThickness { get; init; }
 
@@ -82,6 +88,8 @@ public sealed record ApplicationSettings
             DensityScale = DensityScale is null ? null : (double.IsFinite(DensityScale.Value) ? Math.Clamp(DensityScale.Value, 0.85d, 1.35d) : 1d),
             PanelSpacing = PanelSpacing is null ? null : (double.IsFinite(PanelSpacing.Value) ? Math.Clamp(PanelSpacing.Value, 6d, 32d) : 10d),
             DividerThickness = DividerThickness is null ? null : (double.IsFinite(DividerThickness.Value) ? Math.Clamp(DividerThickness.Value, 0d, 3d) : 1d),
+            GridColumns = Math.Clamp(GridColumns, 4, 96),
+            GridRows = Math.Clamp(GridRows, 4, 64),
             WeatherRefreshMinutes = WeatherRefreshMinutes is null ? null : Math.Clamp(WeatherRefreshMinutes.Value, 5, 180),
             WallpaperPath = NormalizeText(WallpaperPath),
             WallpaperBlur = double.IsFinite(WallpaperBlur) ? Math.Clamp(WallpaperBlur, 0, 30) : 0,

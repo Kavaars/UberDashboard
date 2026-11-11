@@ -28,6 +28,8 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
     private IReadOnlyList<ModulePosition> _modulePositions = [];
     [ObservableProperty] private bool _isModuleEditMode;
     [ObservableProperty] private double _moduleSpacing;
+    [ObservableProperty] private double _moduleScale = 1;
+    partial void OnModuleScaleChanged(double value) => Changed?.Invoke(this, EventArgs.Empty);
     partial void OnModuleSpacingChanged(double value) => Changed?.Invoke(this, EventArgs.Empty);
     public IReadOnlyList<WeatherModule> Modules { get; }
     public IReadOnlyList<ModulePosition> ModulePositions => ModuleGrid.Restore(DefaultModuleIds, _modulePositions, 4);
@@ -271,6 +273,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
             ? savedPositions
             : savedPositions.Select(position => position.Id == "sunset" ? position with { Id = "sunrise" } : position).ToArray();
         ModuleSpacing = Math.Clamp(document.ModuleSpacing, -8, 24);
+        ModuleScale = double.IsFinite(document.ModuleScale) ? Math.Clamp(document.ModuleScale, 0.5, 2) : 1;
         OnPropertyChanged(nameof(ModulePositions));
 
         _suppressSearch = true;
@@ -305,6 +308,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
     {
         ModulePositions = [.. ModulePositions],
         ModuleSpacing = ModuleSpacing,
+        ModuleScale = ModuleScale,
         NetworkConsentGrantedAtUtc = _networkConsentGrantedAtUtc,
         SelectedLocation = SelectedLocation,
         AutoRefreshMinutes = AutoRefreshMinutes,

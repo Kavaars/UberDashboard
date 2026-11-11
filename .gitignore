@@ -54,3 +54,6 @@ credentials*.json
 *.key
 *.cache
 *.session
+
+# graphify knowledge graph output
+graphify-out/

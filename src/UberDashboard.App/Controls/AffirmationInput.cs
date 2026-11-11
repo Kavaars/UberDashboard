@@ -45,4 +45,23 @@ public sealed class AffirmationInput : System.Windows.Controls.TextBox
             e.Handled = true;
         }
     }
+
+    public static readonly DependencyProperty KeepVisibleProperty = DependencyProperty.RegisterAttached(
+        "KeepVisible", typeof(bool), typeof(AffirmationInput), new PropertyMetadata(false, OnKeepVisibleChanged));
+
+    public static bool GetKeepVisible(DependencyObject element) => (bool)element.GetValue(KeepVisibleProperty);
+    public static void SetKeepVisible(DependencyObject element, bool value) => element.SetValue(KeepVisibleProperty, value);
+
+    /// <summary>Przewija otaczający ScrollViewer tak, by bieżąca afirmacja była zawsze widoczna.</summary>
+    private static void OnKeepVisibleChanged(DependencyObject element, DependencyPropertyChangedEventArgs e)
+    {
+        if (element is not FrameworkElement fe || e.NewValue is not true) return;
+        System.ComponentModel.PropertyChangedEventHandler handler = (_, a) =>
+        {
+            if (a.PropertyName == nameof(AffirmationPanelViewModel.Typed))
+                fe.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(fe.BringIntoView));
+        };
+        fe.Loaded += (_, _) => { if (fe.DataContext is AffirmationPanelViewModel vm) { vm.PropertyChanged -= handler; vm.PropertyChanged += handler; fe.BringIntoView(); } };
+        fe.Unloaded += (_, _) => { if (fe.DataContext is AffirmationPanelViewModel vm) vm.PropertyChanged -= handler; };
+    }
 }

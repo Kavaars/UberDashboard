@@ -31,6 +31,13 @@ public sealed class TodoItemViewModel : ObservableObject
         set { if (_isDone != value) { CompletedAt = value ? DateTimeOffset.UtcNow : null; SetProperty(ref _isDone, value); } }
     }
 
+    private bool _isEditing;
+
+    /// <summary><see langword="true"/> podczas edycji treści (stan tymczasowy, nie jest zapisywany).</summary>
+    public bool IsEditing { get => _isEditing; set => SetProperty(ref _isEditing, value); }
+
+    public System.Windows.Input.ICommand BeginEditCommand => new CommunityToolkit.Mvvm.Input.RelayCommand(() => IsEditing = true);
+
     /// <summary>Zwraca niezmienny stan zadania do utrwalenia.</summary>
     public Guid Id { get; }
 

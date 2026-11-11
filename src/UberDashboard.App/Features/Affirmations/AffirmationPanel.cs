@@ -47,6 +47,10 @@ public sealed class AffirmationPanelInstance : IPanelInstance
     public ValueTask ResumeAsync(CancellationToken cancellationToken) { _vm.CheckReset(); _timer.Start(); return ValueTask.CompletedTask; }
     public ValueTask PrepareForRemovalAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;
     public ValueTask DisposeAsync() { _timer.Stop(); _timer.Tick -= OnTick; _vm.Changed -= OnChanged; return ValueTask.CompletedTask; }
-    private void OnTick(object? sender, EventArgs e) => _vm.CheckReset();
+    private void OnTick(object? sender, EventArgs e)
+    {
+        _vm.CheckReset();
+        if (_vm.TakeDueReminder()) _context.Notifier.Publish(UiText.Get("AffirmationReminderToast"));
+    }
     private void OnChanged(object? sender, EventArgs e) => _scheduler.RequestSave(InstanceId);
 }

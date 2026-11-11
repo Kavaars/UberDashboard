@@ -228,6 +228,13 @@
         <TextBlock Text="{loc:Text AffirmationResetMinute}" VerticalAlignment="Center" Margin="10,0,6,0"/>
         <ComboBox Style="{StaticResource ThemedComboBox}" Width="68" ItemsSource="{Binding ResetMinuteOptions}" SelectedItem="{Binding ResetMinute}" AutomationProperties.Name="{loc:Text AffirmationResetMinute}" ToolTip="{loc:Text AffirmationDailyResetHelp}"/>
       </WrapPanel>
+      <CheckBox Margin="0,10,0,4" Style="{StaticResource ThemedCheckBox}" Content="{loc:Text AffirmationReminder}" IsChecked="{Binding ReminderEnabled}" ToolTip="{loc:Text AffirmationReminderHelp}"/>
+      <WrapPanel IsEnabled="{Binding ReminderEnabled}">
+        <TextBlock Text="{loc:Text AffirmationResetHour}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+        <ComboBox Style="{StaticResource ThemedComboBox}" Width="68" ItemsSource="{Binding ResetHourOptions}" SelectedItem="{Binding ReminderHour}" AutomationProperties.Name="{loc:Text AffirmationReminderHour}" ToolTip="{loc:Text AffirmationReminderHelp}"/>
+        <TextBlock Text="{loc:Text AffirmationResetMinute}" VerticalAlignment="Center" Margin="10,0,6,0"/>
+        <ComboBox Style="{StaticResource ThemedComboBox}" Width="68" ItemsSource="{Binding ResetMinuteOptions}" SelectedItem="{Binding ReminderMinute}" AutomationProperties.Name="{loc:Text AffirmationReminderMinute}" ToolTip="{loc:Text AffirmationReminderHelp}"/>
+      </WrapPanel>
 
       <Expander Header="{loc:Text AffirmationAppearance}" Margin="0,10,0,0"><StackPanel>
 
@@ -284,7 +291,7 @@
 
         <TextBlock Text="{Binding Completed}" Foreground="{DynamicResource Brush.Text}" FontFamily="{Binding FontFamily}" FontSize="{Binding FontSize}" LineHeight="{Binding LineHeight}" TextWrapping="Wrap" />
 
-        <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text}" FontFamily="{Binding FontFamily}" FontSize="{Binding FontSize}" LineHeight="{Binding LineHeight}"><Run Text="{Binding Typed, Mode=OneWay}" FontWeight="Bold" Foreground="{DynamicResource Brush.Text}"/><Run Text="{Binding Remaining, Mode=OneWay}"><Run.Foreground><MultiBinding Converter="{StaticResource RemainingTextBrushConverter}"><Binding Path="RemainingColor"/><Binding Path="RemainingOpacity"/><Binding Path="Foreground" RelativeSource="{RelativeSource AncestorType=TextBlock}"/></MultiBinding></Run.Foreground></Run></TextBlock>
+        <TextBlock controls:AffirmationInput.KeepVisible="True" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text}" FontFamily="{Binding FontFamily}" FontSize="{Binding FontSize}" LineHeight="{Binding LineHeight}"><Run Text="{Binding Typed, Mode=OneWay}" FontWeight="Bold" Foreground="{DynamicResource Brush.Text}"/><Run Text="{Binding Remaining, Mode=OneWay}"><Run.Foreground><MultiBinding Converter="{StaticResource RemainingTextBrushConverter}"><Binding Path="RemainingColor"/><Binding Path="RemainingOpacity"/><Binding Path="Foreground" RelativeSource="{RelativeSource AncestorType=TextBlock}"/></MultiBinding></Run.Foreground></Run></TextBlock>
 
       </StackPanel></ScrollViewer>
 
@@ -578,7 +585,7 @@
 
                       Value="{Binding AutoRefreshMinutes}" />
 
-              <TextBlock Text="{loc:Text ModuleSpacing}" Foreground="{DynamicResource Brush.Text}" Margin="0,8,0,0"/><Slider Minimum="-8" Maximum="24" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding ModuleSpacing}" AutomationProperties.Name="{loc:Text ModuleSpacing}" ToolTip="{loc:Text ModuleSpacingHelp}"/><CheckBox Content="{loc:Text WeatherShowLocation}" IsChecked="{Binding ShowLocation}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowIcon}" IsChecked="{Binding ShowIcon}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowTemperature}" IsChecked="{Binding ShowTemperature}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowCondition}" IsChecked="{Binding ShowCondition}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowDailyRange}" IsChecked="{Binding ShowDailyRange}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowSunrise}" IsChecked="{Binding ShowSunrise}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowSunset}" IsChecked="{Binding ShowSunset}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowForecast}" IsChecked="{Binding ShowForecast}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Margin="0,10,0,0"
+              <TextBlock Text="{loc:Text ModuleSpacing}" Foreground="{DynamicResource Brush.Text}" Margin="0,8,0,0"/><Slider Minimum="-8" Maximum="24" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding ModuleSpacing}" AutomationProperties.Name="{loc:Text ModuleSpacing}" ToolTip="{loc:Text ModuleSpacingHelp}"/><TextBlock Text="{loc:Text ModuleScale}" Foreground="{DynamicResource Brush.Text}" Margin="0,8,0,0"/><Slider Minimum="0.5" Maximum="2" TickFrequency="0.05" IsSnapToTickEnabled="True" Value="{Binding ModuleScale}" AutomationProperties.Name="{loc:Text ModuleScale}" ToolTip="{loc:Text ModuleScaleHelp}"/><CheckBox Content="{loc:Text WeatherShowLocation}" IsChecked="{Binding ShowLocation}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowIcon}" IsChecked="{Binding ShowIcon}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowTemperature}" IsChecked="{Binding ShowTemperature}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowCondition}" IsChecked="{Binding ShowCondition}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowDailyRange}" IsChecked="{Binding ShowDailyRange}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowSunrise}" IsChecked="{Binding ShowSunrise}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowSunset}" IsChecked="{Binding ShowSunset}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowForecast}" IsChecked="{Binding ShowForecast}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Margin="0,10,0,0"
 
                         Content="{loc:Text ShowWindSpeed}"
 
@@ -900,19 +907,21 @@
 
                ItemContainerStyle="{StaticResource TodoListBoxItem}"
 
-               ItemsSource="{Binding VisibleItems}"
-
-               ScrollViewer.HorizontalScrollBarVisibility="Auto">
+               ItemsSource="{Binding VisibleItems}">
 
         <ListBox.Style>
 
           <Style TargetType="ListBox">
+
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
 
             <Style.Triggers>
 
               <DataTrigger Value="True">
 
                 <DataTrigger.Binding><MultiBinding Converter="{StaticResource CompactPanel}"><Binding Path="ActualWidth" RelativeSource="{RelativeSource AncestorType=controls:AdaptivePanelGrid}" /><Binding Path="ActualHeight" RelativeSource="{RelativeSource AncestorType=controls:AdaptivePanelGrid}" /></MultiBinding></DataTrigger.Binding>
+
+                <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
 
                 <Setter Property="ItemsPanel"><Setter.Value><ItemsPanelTemplate><VirtualizingStackPanel Orientation="Horizontal" /></ItemsPanelTemplate></Setter.Value></Setter>
 
@@ -950,39 +959,30 @@
 
                         ToolTip="{loc:Text MarksTheTaskCompleteOrReturnsIt}" />
 
-              <TextBlock Margin="8,0,0,0"
-
-                         VerticalAlignment="Center"
-
-                         Foreground="{DynamicResource Brush.Text}"
-
-                         Text="{Binding Text}"
-
-                         TextWrapping="Wrap">
-
-                <TextBlock.Style>
-
-                  <Style TargetType="TextBlock">
-
-                    <Setter Property="TextDecorations" Value="{x:Null}" />
-
-                    <Style.Triggers>
-
-                      <DataTrigger Binding="{Binding IsDone}" Value="True">
-
-                        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
-
-                        <Setter Property="TextDecorations" Value="Strikethrough" />
-
-                      </DataTrigger>
-
-                    </Style.Triggers>
-
-                  </Style>
-
-                </TextBlock.Style>
-
-              </TextBlock>
+              <Grid Margin="8,0,0,0" VerticalAlignment="Center">
+                <TextBlock VerticalAlignment="Center"
+                           Foreground="{DynamicResource Brush.Text}"
+                           Text="{Binding Text}"
+                           TextWrapping="Wrap"
+                           ToolTip="{loc:Text TodoDoubleClickToEdit}">
+                  <TextBlock.InputBindings><MouseBinding Gesture="LeftDoubleClick" Command="{Binding BeginEditCommand}" /></TextBlock.InputBindings>
+                  <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="TextDecorations" Value="{x:Null}" />
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsDone}" Value="True">
+                          <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+                          <Setter Property="TextDecorations" Value="Strikethrough" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsEditing}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </TextBlock.Style>
+                </TextBlock>
+                <controls:InlineEditTextBox Style="{StaticResource ThemedTextBox}" Text="{Binding Text, UpdateSourceTrigger=Explicit}" TextWrapping="Wrap" AcceptsReturn="False"
+                                            AutomationProperties.Name="{loc:Text TodoEditTask}"
+                                            Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibility}}" />
+              </Grid>
 
             </DockPanel>
 
@@ -1027,12 +1027,13 @@
 
 
   <DataTemplate DataType="{x:Type weather:WeatherPanelViewModel}">
-    <DockPanel Margin="{DynamicResource Token.Padding.Panel}">
-      <StackPanel DockPanel.Dock="Bottom">
+    <DockPanel>
+      <StackPanel DockPanel.Dock="Bottom" Margin="8,0,8,4">
           <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Muted}"/>
           <ProgressBar Height="3" IsIndeterminate="True" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}"/>
           </StackPanel>
-      <ListBox ItemsSource="{Binding Modules}" controls:ModuleReorderBehavior.Managed="True" controls:ModuleReorderBehavior.Enabled="{Binding IsModuleEditMode}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="{loc:Text Weather}" AutomationProperties.HelpText="{loc:Text ModuleKeyboardHelp}">
+      <controls:FitColumnsBox Scale="{Binding ModuleScale}">
+      <ListBox Padding="0" ItemsSource="{Binding Modules}" controls:ModuleReorderBehavior.Managed="True" controls:ModuleReorderBehavior.Enabled="{Binding IsModuleEditMode}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="{loc:Text Weather}" AutomationProperties.HelpText="{loc:Text ModuleKeyboardHelp}">
         <ListBox.ItemsPanel>
           <ItemsPanelTemplate>
           <controls:ModularItemsPanel CellHeight="112" Spacing="{Binding ModuleSpacing}"/>
@@ -1128,12 +1129,13 @@
         <ListBox.ItemTemplate>
           <DataTemplate>
           <Grid>
-          <Grid.ColumnDefinitions><ColumnDefinition Width="0.5*"/><ColumnDefinition Width="99*"/><ColumnDefinition Width="0.5*"/></Grid.ColumnDefinitions>
-          <Grid.RowDefinitions><RowDefinition Height="0.5*"/><RowDefinition Height="99*"/><RowDefinition Height="0.5*"/></Grid.RowDefinitions>
-          <Border Grid.Column="1" Grid.Row="1" Tag="WeatherModuleFrame" Padding="8" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border}" CornerRadius="10">
-          <StackPanel>
-          <TextBlock Text="{Binding Label}" Foreground="{DynamicResource Brush.Text.Muted}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Label}"><TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding Id}" Value="sunrise"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
-          <TextBlock Text="{Binding Owner.SelectedLocation.DisplayName}" ToolTip="{Binding Owner.SelectedLocation.DisplayName}" FontSize="18" FontWeight="SemiBold" TextTrimming="CharacterEllipsis">
+          <Grid.ColumnDefinitions><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+          <Grid.RowDefinitions><RowDefinition Height="*"/></Grid.RowDefinitions>
+          <Border Tag="WeatherModuleFrame" Padding="8" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border}" CornerRadius="10" Background="{DynamicResource Brush.Surface.Alt}">
+          <Viewbox Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Center" VerticalAlignment="Center">
+          <StackPanel MinWidth="120">
+          <TextBlock Text="{Binding Label}" FontSize="14" Foreground="{DynamicResource Brush.Text.Muted}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Label}"><TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding Id}" Value="sunrise"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+          <TextBlock Text="{Binding Owner.SelectedLocation.DisplayName}" ToolTip="{Binding Owner.SelectedLocation.DisplayName}" FontSize="24" FontWeight="SemiBold" TextTrimming="CharacterEllipsis">
           <TextBlock.Style>
           <Style TargetType="TextBlock">
           <Setter Property="Visibility" Value="Collapsed"/>
@@ -1147,7 +1149,7 @@
           </TextBlock.Style>
           </TextBlock>
           <StackPanel Orientation="Horizontal">
-          <TextBlock FontSize="36" TextWrapping="Wrap">
+          <TextBlock FontSize="48" TextWrapping="Wrap">
           <TextBlock.Style>
           <Style TargetType="TextBlock">
           <Setter Property="Visibility" Value="Collapsed"/>
@@ -1164,7 +1166,7 @@
           </Style>
           </TextBlock.Style>
           </TextBlock>
-          <TextBlock Text="{Binding Owner.ConditionText}" ToolTip="{Binding Owner.ConditionText}" Margin="6,0,0,0" VerticalAlignment="Center" FontSize="15" TextTrimming="CharacterEllipsis">
+          <TextBlock Text="{Binding Owner.ConditionText}" ToolTip="{Binding Owner.ConditionText}" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="20" TextTrimming="CharacterEllipsis">
           <TextBlock.Style>
           <Style TargetType="TextBlock">
           <Setter Property="Visibility" Value="Collapsed"/>
@@ -1176,7 +1178,7 @@
           </TextBlock.Style>
           </TextBlock>
           </StackPanel>
-          <TextBlock Text="{Binding Owner.TemperatureCelsius, StringFormat={}{0:0.#} °C}" FontSize="32" FontWeight="SemiBold" TextWrapping="Wrap">
+          <TextBlock Text="{Binding Owner.TemperatureCelsius, StringFormat={}{0:0.#} °C}" FontSize="48" FontWeight="SemiBold" TextWrapping="Wrap">
           <TextBlock.Style>
           <Style TargetType="TextBlock">
           <Setter Property="Visibility" Value="Collapsed"/>
@@ -1192,7 +1194,7 @@
           </Style>
           </TextBlock.Style>
           </TextBlock>
-          <TextBlock Text="{Binding Owner.DailyRangeText}" ToolTip="{Binding Owner.DailyRangeText}" FontSize="15" TextTrimming="CharacterEllipsis">
+          <TextBlock Text="{Binding Owner.DailyRangeText}" ToolTip="{Binding Owner.DailyRangeText}" FontSize="20" TextTrimming="CharacterEllipsis">
           <TextBlock.Style>
           <Style TargetType="TextBlock">
           <Setter Property="Visibility" Value="Collapsed"/>
@@ -1208,10 +1210,10 @@
           <Grid>
             <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Id}" Value="sunrise"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Grid.Style>
             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-            <StackPanel Visibility="{Binding Owner.ShowSunrise, Converter={StaticResource BoolToVisibility}}"><TextBlock Text="{loc:Text Sunrise}" Foreground="{DynamicResource Brush.Text.Muted}"/><TextBlock Text="{Binding Owner.SunriseText}" Foreground="{DynamicResource Brush.Text}" TextTrimming="CharacterEllipsis"/></StackPanel>
-            <StackPanel Grid.Column="1" Visibility="{Binding Owner.ShowSunset, Converter={StaticResource BoolToVisibility}}"><TextBlock Text="{loc:Text Sunset}" Foreground="{DynamicResource Brush.Text.Muted}"/><TextBlock Text="{Binding Owner.SunsetText}" Foreground="{DynamicResource Brush.Text}" TextTrimming="CharacterEllipsis"/></StackPanel>
+            <StackPanel Margin="0,0,16,0" Visibility="{Binding Owner.ShowSunrise, Converter={StaticResource BoolToVisibility}}"><TextBlock Text="{loc:Text Sunrise}" FontSize="14" Foreground="{DynamicResource Brush.Text.Muted}"/><TextBlock Text="{Binding Owner.SunriseText}" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" TextTrimming="CharacterEllipsis"/></StackPanel>
+            <StackPanel Grid.Column="1" Visibility="{Binding Owner.ShowSunset, Converter={StaticResource BoolToVisibility}}"><TextBlock Text="{loc:Text Sunset}" FontSize="14" Foreground="{DynamicResource Brush.Text.Muted}"/><TextBlock Text="{Binding Owner.SunsetText}" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" TextTrimming="CharacterEllipsis"/></StackPanel>
           </Grid>
-          <TextBlock Text="{Binding Owner.WindText}" ToolTip="{Binding Owner.WindText}" FontSize="15" TextTrimming="CharacterEllipsis">
+          <TextBlock Text="{Binding Owner.WindText}" ToolTip="{Binding Owner.WindText}" FontSize="20" TextTrimming="CharacterEllipsis">
           <TextBlock.Style>
           <Style TargetType="TextBlock">
           <Setter Property="Visibility" Value="Collapsed"/>
@@ -1224,7 +1226,7 @@
           </Style>
           </TextBlock.Style>
           </TextBlock>
-          <TextBlock Text="{Binding Owner.UpdatedText}" ToolTip="{Binding Owner.UpdatedText}" FontSize="15" TextTrimming="CharacterEllipsis">
+          <TextBlock Text="{Binding Owner.UpdatedText}" ToolTip="{Binding Owner.UpdatedText}" FontSize="20" TextTrimming="CharacterEllipsis">
           <TextBlock.Style>
           <Style TargetType="TextBlock">
           <Setter Property="Visibility" Value="Collapsed"/>
@@ -1237,7 +1239,7 @@
           </Style>
           </TextBlock.Style>
           </TextBlock>
-          <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+          <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled">
           <ScrollViewer.Style>
           <Style TargetType="ScrollViewer">
           <Setter Property="Visibility" Value="Collapsed"/>
@@ -1251,15 +1253,15 @@
           <ItemsControl ItemsSource="{Binding Owner.HourlyForecast}">
           <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
-          <StackPanel Orientation="Horizontal"/>
+          <UniformGrid Rows="1"/>
           </ItemsPanelTemplate>
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
           <DataTemplate>
-          <Border Margin="0,0,4,0" Padding="8,3" MinWidth="68" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="8" ToolTip="{Binding ConditionText}">
+          <Border Margin="0,0,6,0" Padding="10,6" MinWidth="76" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="8" ToolTip="{Binding ConditionText}">
           <StackPanel>
-          <TextBlock Text="{Binding TimeText}" HorizontalAlignment="Center" FontWeight="SemiBold"/>
-          <TextBlock FontSize="24" HorizontalAlignment="Center">
+          <TextBlock Text="{Binding TimeText}" FontSize="18" HorizontalAlignment="Center" FontWeight="SemiBold"/>
+          <TextBlock FontSize="36" HorizontalAlignment="Center">
           <TextBlock.Style>
           <Style TargetType="TextBlock">
           <Setter Property="Text" Value="{Binding Glyph}"/>
@@ -1273,7 +1275,7 @@
           </Style>
           </TextBlock.Style>
           </TextBlock>
-          <TextBlock Text="{Binding TemperatureText}" HorizontalAlignment="Center" FontWeight="SemiBold">
+          <TextBlock Text="{Binding TemperatureText}" FontSize="20" HorizontalAlignment="Center" FontWeight="SemiBold">
           <TextBlock.Style>
           <Style TargetType="TextBlock">
           <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
@@ -1292,11 +1294,13 @@
           </ItemsControl>
           </ScrollViewer>
           </StackPanel>
+          </Viewbox>
           </Border>
           </Grid>
           </DataTemplate>
           </ListBox.ItemTemplate>
       </ListBox>
+      </controls:FitColumnsBox>
     </DockPanel>
   </DataTemplate>
 
@@ -1310,8 +1314,8 @@
 
   <DataTemplate x:Key="PanelLeafTemplate">
 
-    <controls:PanelAppearanceBorder Appearance="{Binding Appearance}" AutomationProperties.Name="{Binding DisplayName}" controls:PanelDragDrop.IsTarget="True">
-      <controls:PanelAppearanceBorder.ContextMenu><ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"><MenuItem Header="{loc:Text ModuleEditMode}" ToolTip="{loc:Text ModuleEditHelp}" IsEnabled="{Binding HasModularEditing}" IsCheckable="True" IsChecked="{Binding ViewModel.IsModuleEditMode, Mode=OneWay}" Command="{Binding ToggleModuleEditCommand}"/></ContextMenu></controls:PanelAppearanceBorder.ContextMenu>
+    <controls:PanelAppearanceBorder Appearance="{Binding Appearance}" AutomationProperties.Name="{Binding DisplayName}">
+      <controls:PanelAppearanceBorder.ContextMenu><ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}"><MenuItem Header="{loc:Text ModuleEditMode}" ToolTip="{loc:Text ModuleEditHelp}" IsEnabled="{Binding HasModularEditing}" IsCheckable="True" IsChecked="{Binding ViewModel.IsModuleEditMode, Mode=OneWay}" Command="{Binding ToggleModuleEditCommand}"/><Separator/><MenuItem Header="{loc:Text DeletePanel}" ToolTip="{loc:Text PermanentlyDeletesThisPanelAndItsSaved}" Command="{Binding RemoveCommand}"/></ContextMenu></controls:PanelAppearanceBorder.ContextMenu>
 
       <controls:PanelAppearanceBorder.Style><Style TargetType="controls:PanelAppearanceBorder" BasedOn="{StaticResource PanelCard}"><Style.Triggers><DataTrigger Binding="{Binding IsSpace}" Value="True"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /></DataTrigger></Style.Triggers></Style></controls:PanelAppearanceBorder.Style>
 
@@ -1327,13 +1331,6 @@
 
 
 
-        <Border Grid.RowSpan="2" Panel.ZIndex="20" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="16,10" Background="{DynamicResource Brush.Accent}" CornerRadius="8" IsHitTestVisible="False">
-
-          <Border.Style><Style TargetType="Border"><Style.Triggers><DataTrigger Binding="{Binding DropHint}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></Border.Style>
-
-          <TextBlock Text="{Binding DropHint}" Foreground="{DynamicResource Brush.Accent.Text}" FontWeight="SemiBold" />
-
-        </Border>
 
         <Popup x:Name="OptionsPopup" IsOpen="{Binding IsOptionsOpen, Mode=TwoWay}" Placement="MousePoint" AllowsTransparency="True" StaysOpen="False">
 
@@ -1488,35 +1485,6 @@
 
               </Button>
 
-              <controls:PanelLayoutMenuButton Content="{loc:Text Layout}" Style="{StaticResource PanelActionButton}"
-
-                      AutomationProperties.Name="{loc:Text PanelLayout}"
-
-                      ToolTip="{loc:Text AddsOrMovesAPanelBesideOr}"
-
-                      Visibility="{Binding IsEditMode, Converter={StaticResource BoolToVisibility}}">
-
-                <controls:PanelLayoutMenuButton.ContextMenu>
-
-                  <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}" ItemsSource="{Binding LayoutActions}">
-
-                    <ContextMenu.ItemContainerStyle>
-
-                      <Style TargetType="MenuItem" BasedOn="{StaticResource ToolbarMenuItem}">
-
-                        <Setter Property="Header" Value="{Binding Header}" />
-
-                        <Setter Property="Command" Value="{Binding Command}" />
-
-                      </Style>
-
-                    </ContextMenu.ItemContainerStyle>
-
-                  </ContextMenu>
-
-                </controls:PanelLayoutMenuButton.ContextMenu>
-
-              </controls:PanelLayoutMenuButton>
 
               <Button AutomationProperties.Name="{loc:Text SwapPanels}" Command="{Binding DataContext.SwapPanelCommand, RelativeSource={RelativeSource AncestorType=Window}}"
 
@@ -1623,17 +1591,14 @@
 
 
 
-        <controls:PanelEdgeThumb IsTop="True" Height="7" Grid.RowSpan="2" VerticalAlignment="Top" Panel.ZIndex="30" Visibility="{Binding IsEditablePanel, Converter={StaticResource BoolToVisibility}}" AutomationProperties.Name="{loc:Text ResizeFromTheTop}" ToolTip="{loc:Text DragDownToLeaveSpaceAboveThe}" />
-
-        <controls:PanelEdgeThumb Height="7" Grid.RowSpan="2" VerticalAlignment="Bottom" Panel.ZIndex="30" Visibility="{Binding IsEditablePanel, Converter={StaticResource BoolToVisibility}}" AutomationProperties.Name="{loc:Text ResizeFromTheBottom}" ToolTip="{loc:Text DragUpToLeaveSpaceBelowThe}" />
+        <controls:PanelResizeThumb Grid.RowSpan="2" Edge="Left" Width="8" HorizontalAlignment="Left" Cursor="SizeWE" Panel.ZIndex="30" Visibility="{Binding IsEditablePanel, Converter={StaticResource BoolToVisibility}}" AutomationProperties.Name="{loc:Text ResizePanelOnGrid}" ToolTip="{loc:Text ResizePanelOnGridHelp}" />
+        <controls:PanelResizeThumb Grid.RowSpan="2" Edge="Right" Width="8" HorizontalAlignment="Right" Cursor="SizeWE" Panel.ZIndex="30" Visibility="{Binding IsEditablePanel, Converter={StaticResource BoolToVisibility}}" AutomationProperties.Name="{loc:Text ResizePanelOnGrid}" ToolTip="{loc:Text ResizePanelOnGridHelp}" />
+        <controls:PanelResizeThumb Grid.RowSpan="2" Edge="Top" Height="8" VerticalAlignment="Top" Cursor="SizeNS" Panel.ZIndex="30" Visibility="{Binding IsEditablePanel, Converter={StaticResource BoolToVisibility}}" AutomationProperties.Name="{loc:Text ResizePanelOnGrid}" ToolTip="{loc:Text ResizePanelOnGridHelp}" />
+        <controls:PanelResizeThumb Grid.RowSpan="2" Edge="Bottom" Height="8" VerticalAlignment="Bottom" Cursor="SizeNS" Panel.ZIndex="30" Visibility="{Binding IsEditablePanel, Converter={StaticResource BoolToVisibility}}" AutomationProperties.Name="{loc:Text ResizePanelOnGrid}" ToolTip="{loc:Text ResizePanelOnGridHelp}" />
 
         <Grid x:Name="PanelContentArea" Grid.Row="1" ClipToBounds="True"><Image Source="{Binding Appearance.Wallpaper}" Opacity="{Binding Appearance.WallpaperOpacity}" Stretch="UniformToFill" IsHitTestVisible="False" /><DockPanel><controls:ResponsivePanelContent Content="{Binding PanelContent}"><controls:ResponsivePanelContent.LayoutTransform><MultiBinding Converter="{StaticResource PanelScaleConverter}"><Binding ElementName="PanelContentArea" Path="ActualWidth"/><Binding ElementName="PanelContentArea" Path="ActualHeight"/><Binding Path="Appearance.MinScale"/><Binding Path="Appearance.MaxScale"/></MultiBinding></controls:ResponsivePanelContent.LayoutTransform><controls:ResponsivePanelContent.Style><Style TargetType="controls:ResponsivePanelContent"><Style.Triggers><DataTrigger Binding="{Binding TabSession.IsBusy}" Value="True"><Setter Property="IsEnabled" Value="False" /></DataTrigger></Style.Triggers></Style></controls:ResponsivePanelContent.Style></controls:ResponsivePanelContent></DockPanel><Border VerticalAlignment="Bottom" Background="{DynamicResource Brush.Popup}" Padding="8,3" Visibility="{Binding TabSession.IsBusy, Converter={StaticResource BoolToVisibility}}"><TextBlock Text="{loc:Text SwitchingTabs}" Foreground="{DynamicResource Brush.Text}" /></Border></Grid>
+        <Border Grid.Row="1" Panel.ZIndex="20" Background="Transparent" Cursor="SizeAll" controls:PanelDragDrop.IsHandle="True" Visibility="{Binding IsEditablePanel, Converter={StaticResource BoolToVisibility}}" ToolTip="{loc:Text MovePanelOnGridHelp}" />
 
-        <controls:PanelLayoutMenuButton Grid.RowSpan="2" Content="{loc:Text AddAPanelHere}" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource PanelActionButton}" Visibility="{Binding IsEditableSpace, Converter={StaticResource BoolToVisibility}}" AutomationProperties.Name="{loc:Text FillEmptySpace}">
-
-          <controls:PanelLayoutMenuButton.ContextMenu><ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}" ItemsSource="{Binding LayoutActions}"><ContextMenu.ItemContainerStyle><Style TargetType="MenuItem" BasedOn="{StaticResource ToolbarMenuItem}"><Setter Property="Header" Value="{Binding Header}" /><Setter Property="Command" Value="{Binding Command}" /></Style></ContextMenu.ItemContainerStyle></ContextMenu></controls:PanelLayoutMenuButton.ContextMenu>
-
-        </controls:PanelLayoutMenuButton>
 
       </Grid>
 
@@ -1643,122 +1608,4 @@
 
 
 
-  <DataTemplate x:Key="PanelSplitHorizontalTemplate">
-
-    <Grid>
-
-      <Grid.ColumnDefinitions>
-
-        <ColumnDefinition Width="{Binding FirstLength}" MinWidth="{Binding First.Minimum.Width}" />
-
-        <ColumnDefinition Width="Auto" />
-
-        <ColumnDefinition Width="{Binding SecondLength}" MinWidth="{Binding Second.Minimum.Width}" />
-
-      </Grid.ColumnDefinitions>
-
-
-
-      <ContentControl Grid.Column="0"
-
-                      Content="{Binding First}"
-
-                      ContentTemplateSelector="{DynamicResource LayoutNodeTemplateSelector}" />
-
-
-
-      <controls:PersistedGridSplitter Grid.Column="1"
-
-                    Width="6"
-
-                    HorizontalAlignment="Center"
-
-                    VerticalAlignment="Stretch"
-
-                    Background="{DynamicResource Brush.Splitter}"
-
-                    ResizeBehavior="PreviousAndNext"
-
-                    ResizeDirection="Columns"
-
-                    ToolTip="{loc:Text DragToResizeNeighboringPanelsYouCan}" />
-
-
-
-      <ContentControl Grid.Column="2"
-
-                      Content="{Binding Second}"
-
-                      ContentTemplateSelector="{DynamicResource LayoutNodeTemplateSelector}" />
-
-    </Grid>
-
-  </DataTemplate>
-
-
-
-  <DataTemplate x:Key="PanelSplitVerticalTemplate">
-
-    <Grid>
-
-      <Grid.RowDefinitions>
-
-        <RowDefinition Height="{Binding FirstLength}" MinHeight="{Binding First.Minimum.Height}" />
-
-        <RowDefinition Height="Auto" />
-
-        <RowDefinition Height="{Binding SecondLength}" MinHeight="{Binding Second.Minimum.Height}" />
-
-      </Grid.RowDefinitions>
-
-
-
-      <ContentControl Grid.Row="0"
-
-                      Content="{Binding First}"
-
-                      ContentTemplateSelector="{DynamicResource LayoutNodeTemplateSelector}" />
-
-
-
-      <controls:PersistedGridSplitter Grid.Row="1"
-
-                    Height="6"
-
-                    HorizontalAlignment="Stretch"
-
-                    VerticalAlignment="Center"
-
-                    Background="{DynamicResource Brush.Splitter}"
-
-                    ResizeBehavior="PreviousAndNext"
-
-                    ResizeDirection="Rows"
-
-                    ToolTip="{loc:Text DragToResizeNeighboringPanelsYouCan}" />
-
-
-
-      <ContentControl Grid.Row="2"
-
-                      Content="{Binding Second}"
-
-                      ContentTemplateSelector="{DynamicResource LayoutNodeTemplateSelector}" />
-
-    </Grid>
-
-  </DataTemplate>
-
-
-
-  <shell:LayoutNodeTemplateSelector x:Key="LayoutNodeTemplateSelector"
-
-                                    HorizontalSplit="{StaticResource PanelSplitHorizontalTemplate}"
-
-                                    Leaf="{StaticResource PanelLeafTemplate}"
-
-                                    VerticalSplit="{StaticResource PanelSplitVerticalTemplate}" />
-
-
-
-</ResourceDictionary>
+  </ResourceDictionary>

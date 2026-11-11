@@ -26,6 +26,17 @@ public sealed class DockedBarWindowHost(AppBarController appBar, IMonitorProvide
     private AppBarEdge _edge;
     private int _thickness;
     private bool _waiting;
+    private DispatcherTimer? _settle;
+
+    // Po zmianie monitorów Windows potrafi jeszcze przesunąć okna lub zgłosić monitor z opóźnieniem,
+    // więc pozycję paska ponawiamy po krótkiej chwili (jednorazowo, z każdą próbą od nowa przy braku monitora).
+    private void ScheduleSettle()
+    {
+        if (_window is null) return;
+        _settle ??= new DispatcherTimer(TimeSpan.FromSeconds(2), DispatcherPriority.Background, (_, _) => { _settle!.Stop(); QueuePosition(true, true); }, _window.Dispatcher);
+        _settle.Stop();
+        _settle.Start();
+    }
 
     public bool Apply(IntPtr handle, PixelRect bounds)
     {
@@ -86,6 +97,7 @@ public sealed class DockedBarWindowHost(AppBarController appBar, IMonitorProvide
     {
         if (_window is not { } window || _snapshot is not { } snapshot) return;
         if (!window.Dispatcher.CheckAccess()) { window.Dispatcher.Invoke(Restore); return; }
+        _settle?.Stop();
         _source?.RemoveHook(WindowProc);
         window.WindowStyle = snapshot.Style;
         window.ClearValue(System.Windows.Shell.WindowChrome.WindowChromeProperty);
@@ -114,7 +126,7 @@ public sealed class DockedBarWindowHost(AppBarController appBar, IMonitorProvide
             if (wParam.ToInt32() == 2) ShellWindowInterop.SetFullScreenOrder(hwnd, lParam != IntPtr.Zero);
         }
         else if ((uint)message == ShellWindowInterop.TaskbarCreatedMessage) QueuePosition(true, true);
-        else if (message is 0x007E or 0x02E0) QueuePosition(false, true);
+        else if (message is 0x007E or 0x02E0) { QueuePosition(false, true); ScheduleSettle(); }
         else if (message == 0x0006) appBar.NotifyActivated((wParam.ToInt64() & 0xffff) != 0);
         else if (message == 0x0047) appBar.NotifyWindowPositionChanged();
         else if (message == 0x0002) appBar.Remove();
@@ -137,7 +149,14 @@ public sealed class DockedBarWindowHost(AppBarController appBar, IMonitorProvide
                 if (monitor is null)
                 {
                     WaitForMonitor();
+                    ScheduleSettle();
                     return;
+                }
+                // Show() ponownie nakłada pozycję zapamiętaną przez WPF (środek), więc pokazujemy okno PRZED nałożeniem RECT-a paska.
+                if (_waiting)
+                {
+                    _waiting = false;
+                    _window.Show();
                 }
                 var result = !appBar.IsRegistered
                     ? appBar.Register(new WindowInteropHelper(_window).Handle, _edge, _thickness, monitor.Bounds)
@@ -146,12 +165,8 @@ public sealed class DockedBarWindowHost(AppBarController appBar, IMonitorProvide
                 if (!result.IsSuccess || !ShellWindowInterop.ApplyBounds(appBar.WindowHandle, result.Rect))
                 {
                     WaitForMonitor();
+                    ScheduleSettle();
                     return;
-                }
-                if (_waiting)
-                {
-                    _waiting = false;
-                    _window.Show();
                 }
             }
             finally { _applying = false; }
