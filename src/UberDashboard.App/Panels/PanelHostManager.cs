@@ -1,5 +1,7 @@
 using UberDashboard.Core.Localization;
 using System.Text;
+using System.Text.Json;
+using UberDashboard.App.Shell;
 using Microsoft.Extensions.Logging;
 using UberDashboard.Application.Abstractions;
 using UberDashboard.Application.Panels;
@@ -26,6 +28,10 @@ public sealed class PanelHostManager : IAsyncDisposable
     private readonly IClock _clock;
     private readonly ILogger<PanelHostManager> _logger;
     private readonly Dictionary<PanelInstanceId, HostedPanel> _hosted = [];
+    private readonly Dictionary<PanelInstanceId, string> _dataErrors = [];
+    internal bool HasDataError(PanelInstanceId id) => _dataErrors.ContainsKey(id);
+    internal void MarkDataError(PanelInstanceId id) => _dataErrors[id] = "PanelDataInvalid";
+    internal UnavailablePanelViewModel Unavailable(PanelInstanceRecord record) => new(record.PluginId, record.DisplayName, _dataErrors.GetValueOrDefault(record.InstanceId));
 
     private bool _disposed;
 
@@ -99,6 +105,22 @@ public sealed class PanelHostManager : IAsyncDisposable
             return null;
         }
 
+        _dataErrors.Remove(record.InstanceId);
+        if (record.DataSchemaVersion > descriptor.StateSchemaVersion)
+        {
+            _dataErrors[record.InstanceId] = "PanelDataNewer";
+            return null;
+        }
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(record.StateJson)) using (JsonDocument.Parse(record.StateJson)) { }
+        }
+        catch (JsonException)
+        {
+            _dataErrors[record.InstanceId] = "PanelDataInvalid";
+            return null;
+        }
+
         var closeToken = new CancellationTokenSource();
         IPanelInstance? instance = null;
 
@@ -120,9 +142,12 @@ public sealed class PanelHostManager : IAsyncDisposable
 
             if (!string.IsNullOrWhiteSpace(record.StateJson))
             {
-                await instance
-                    .RestoreStateAsync(Encoding.UTF8.GetBytes(record.StateJson), cancellationToken)
-                    .ConfigureAwait(true);
+                try
+                {
+                    await instance.RestoreStateAsync(Encoding.UTF8.GetBytes(record.StateJson), cancellationToken).ConfigureAwait(true);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+                catch { _dataErrors[record.InstanceId] = "PanelDataInvalid"; throw; }
             }
 
             var hosted = new HostedPanel(record, instance, closeToken);
@@ -144,6 +169,7 @@ public sealed class PanelHostManager : IAsyncDisposable
         }
         catch (Exception ex)
         {
+            if (ex is JsonException) _dataErrors[record.InstanceId] = "PanelDataInvalid";
             _logger.LogError(
                 ex,
                 "Nie udało się aktywować panelu {PanelTypeId} ({InstanceId}).",

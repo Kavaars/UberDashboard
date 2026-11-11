@@ -128,7 +128,7 @@ public sealed partial class PanelGroupSession : ObservableObject
         var previous = Group.ActiveId;
         var record = await _instances.GetAsync(id, token).ConfigureAwait(true) ?? throw new InvalidOperationException(UiText.Get("TabStateIsMissing"));
         var instance = await _host.ActivateAsync(record, token).ConfigureAwait(true);
-        if (instance is null) throw new InvalidOperationException(UiText.Get("TheTabSPanelIsUnavailable"));
+        if (instance is null && !_host.HasDataError(id)) throw new InvalidOperationException(UiText.Get("TheTabSPanelIsUnavailable"));
         try
         {
             await _host.SuspendAsync(previous, token).ConfigureAwait(true);
@@ -142,7 +142,7 @@ public sealed partial class PanelGroupSession : ObservableObject
             catch (Exception restoreError) { ReportError(restoreError); }
             throw;
         }
-        Group = next; ActiveViewModel = instance.ViewModel; AttachTodoView(); Changed?.Invoke(this, EventArgs.Empty);
+        Group = next; ActiveViewModel = instance?.ViewModel ?? _host.Unavailable(record); AttachTodoView(); Changed?.Invoke(this, EventArgs.Empty);
     }
 
     public async Task AddAsync(CancellationToken token = default)
@@ -292,7 +292,7 @@ public sealed partial class PanelGroupSession : ObservableObject
     {
         var record = await _instances.GetAsync(id, token).ConfigureAwait(true);
         var instance = record is null ? null : await _host.ActivateAsync(record, token).ConfigureAwait(true);
-        ActiveViewModel = instance?.ViewModel ?? new UnavailablePanelViewModel(_root.PluginId, _root.DisplayName);
+        ActiveViewModel = instance?.ViewModel ?? _host.Unavailable(record ?? _root);
         AttachTodoView();
         Changed?.Invoke(this, EventArgs.Empty);
     }

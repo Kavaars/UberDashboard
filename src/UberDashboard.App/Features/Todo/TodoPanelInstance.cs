@@ -67,16 +67,8 @@ public sealed class TodoPanelInstance : IPanelInstance, IPanelPersistenceObserve
     /// <inheritdoc />
     public ValueTask RestoreStateAsync(ReadOnlyMemory<byte> state, CancellationToken cancellationToken)
     {
-        try
-        {
-            var document = JsonSerializer.Deserialize<TodoDocument>(state.Span) ?? new TodoDocument();
-            _viewModel.Load(document);
-        }
-        catch (JsonException ex)
-        {
-            _context.Logger.Error("Nie udało się odtworzyć zapisanej listy zadań; startuję od pustej listy.", ex);
-        }
-
+        var document = JsonSerializer.Deserialize<TodoDocument>(state.Span) ?? throw new JsonException("Invalid task state.");
+        _viewModel.Load(document);
         return ValueTask.CompletedTask;
     }
 

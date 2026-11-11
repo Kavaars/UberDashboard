@@ -48,16 +48,8 @@ public sealed class NotesPanelInstance : IPanelInstance, IPanelPersistenceObserv
     /// <inheritdoc />
     public ValueTask RestoreStateAsync(ReadOnlyMemory<byte> state, CancellationToken cancellationToken)
     {
-        try
-        {
-            var document = DeserializeDocument(state.Span);
-            _viewModel.Load(document);
-        }
-        catch (JsonException ex)
-        {
-            _context.Logger.Error("Nie udało się odtworzyć zapisanej notatki; startuję od pustej treści.", ex);
-        }
-
+        var document = DeserializeDocument(state.Span);
+        _viewModel.Load(document);
         return ValueTask.CompletedTask;
     }
 
@@ -97,7 +89,7 @@ public sealed class NotesPanelInstance : IPanelInstance, IPanelPersistenceObserv
 
     private static NotesDocument DeserializeDocument(ReadOnlySpan<byte> state)
     {
-        var document = JsonSerializer.Deserialize<NotesDocument>(state) ?? new NotesDocument();
+        var document = JsonSerializer.Deserialize<NotesDocument>(state) ?? throw new JsonException("Invalid note state.");
         if (!string.IsNullOrWhiteSpace(document.RichContent) || !string.IsNullOrWhiteSpace(document.PlainText))
         {
             return document;

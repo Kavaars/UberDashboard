@@ -18,6 +18,7 @@ public sealed class PanelGroupInitializer(IPanelTabGroupStore groups, IPanelInst
         IReadOnlyList<PanelInstanceRecord> records;
         if (root.PanelTypeId == NotesPanelDescriptor.TypeId && !string.IsNullOrWhiteSpace(root.StateJson))
         {
+            if (root.DataSchemaVersion > NotesDocument.SchemaVersion) throw new InvalidOperationException(UiText.Get("PanelDataNewerMigration"));
             var migration = NotesTabMigration.Prepare(root.InstanceId, root.StateJson);
             group = migration.Group;
             records = migration.Documents.Select(document => root with

@@ -681,7 +681,7 @@ public sealed class ShellViewModel : ObservableObject
             record.PanelTypeId,
             record.DisplayName,
             _catalog.DescriptorOf(record.PanelTypeId)?.IconKey,
-            session?.ActiveViewModel ?? instance?.ViewModel ?? new UnavailablePanelViewModel(record.PluginId, record.DisplayName))
+            session?.ActiveViewModel ?? instance?.ViewModel ?? _host.Unavailable(record))
         {
             Appearance = AppearanceFor(instanceId),
             IsEditMode = IsEditMode,
@@ -703,6 +703,12 @@ public sealed class ShellViewModel : ObservableObject
         }
         try
         {
+            if (_catalog.DescriptorOf(root.PanelTypeId) is { } descriptor && root.DataSchemaVersion > descriptor.StateSchemaVersion &&
+                await _groupStore.GetAsync(root.InstanceId, token).ConfigureAwait(true) is null)
+            {
+                await _host.ActivateAsync(root, token).ConfigureAwait(true);
+                return;
+            }
             var group = await _groupInitializer.EnsureAsync(root, token).ConfigureAwait(true);
             foreach (var member in await _groupInitializer.ReadMembersAsync(group, token).ConfigureAwait(true))
             {
@@ -720,6 +726,7 @@ public sealed class ShellViewModel : ObservableObject
         {
             _logger.LogError(ex, "Nie udało się odtworzyć zakładek panelu {PanelId}. Dane pozostawiono bez zmian.", root.InstanceId);
             _toasts.Show(UiText.Get("CouldNotRestorePanelTabsSavedData"), ToastSeverity.Error);
+            if (ex is JsonException) _host.MarkDataError(root.InstanceId);
         }
     }
 

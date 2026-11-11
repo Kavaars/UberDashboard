@@ -27,7 +27,7 @@ Projekt jest w rozwoju. Bieżąca wersja źródeł to **1.9.0**; gotowy instalat
 3. Użyj **+** w nagłówku panelu, aby dodać zakładkę. Nazwę zmienisz dwuklikiem lub klawiszem **F2**, a kolejność także skrótem **Ctrl+Shift+strzałka**.
 4. Opcje panelu i sekcja **Wygląd** pozwalają dopasować jego działanie i prezentację. W **Ustawieniach** wybierzesz między innymi tryb okna, motyw, język i integracje. Zmiana języka działa po ponownym uruchomieniu.
 
-Zmiany zapisują się automatycznie. Jeśli zapis się nie powiedzie, aplikacja pokazuje błąd i umożliwia ponowienie. Własna tapeta wskazuje plik na dysku — po jego przeniesieniu trzeba wybrać go ponownie.
+Zmiany zapisują się automatycznie. Jeśli zapis się nie powiedzie, aplikacja pokazuje błąd i umożliwia ponowienie. Uszkodzony lub nowszy, nieobsługiwany stan panelu nie jest nadpisywany; jego miejsce zajmuje komunikat o zachowaniu danych. Własna tapeta wskazuje plik na dysku — po jego przeniesieniu trzeba wybrać go ponownie.
 
 ## Microsoft To Do i Google Calendar
 
@@ -35,7 +35,7 @@ Microsoft To Do skonfigurujesz w **Ustawienia → Integracje**. Listę można za
 
 W bieżącym kodzie pozycja **Synchronizacja dwukierunkowa** w menu zakładki To Do lub przycisk w kalendarzu otwiera odpowiedni edytor. Pierwsze włączenie wymaga osobnej zgody Microsoft lub Google na zapis. Edytor pozwala tworzyć, zmieniać i usuwać podstawowe zadania oraz wydarzenia. Zmiany trafiają najpierw do lokalnej kolejki, która zachowuje je także po restarcie. Synchronizacja działa podczas uruchomienia aplikacji, również w zasobniku.
 
-Zakładki list powiązanych z Microsoft To Do wyróżnia niebieska ramka; złota oznacza nowe zadania, których jeszcze nie wyświetlono. Po pierwszym uruchomieniu z tą funkcją istniejąca kopia stanowi punkt odniesienia. Dwuklik zadania lub F2 otwiera edycję; zapis wymaga włączonej synchronizacji i zgody na zapis.
+Zakładki list powiązanych z Microsoft To Do wyróżnia niebieska ramka; złota oznacza nowe zadania, których jeszcze nie wyświetlono. Nowe zadania pozostają oznaczone, gdy okno jest ukryte lub zminimalizowane. Po pierwszym uruchomieniu z tą funkcją istniejąca kopia stanowi punkt odniesienia. Dwuklik zadania lub F2 otwiera edycję; zapis wymaga włączonej synchronizacji i zgody na zapis.
 
 W opcjach każdego panelu można ukryć jego nazwę, pozostawiając ikonę.
 

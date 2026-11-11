@@ -81,12 +81,122 @@ public sealed class ShellPersistenceRegressionTests
             Assert.True(group.HasNewTodoItems(linkedId));
             await group.SelectAsync(linkedId);
             await group.RefreshTodoNotificationsAsync(CancellationToken.None);
+            Assert.True(group.HasNewTodoItems(linkedId));
+            var visibleCard = new object();
+            group.SetTodoVisibility(visibleCard, true);
+            await group.RefreshTodoNotificationsAsync(CancellationToken.None);
             Assert.False(group.HasNewTodoItems(linkedId));
+            group.SetTodoVisibility(visibleCard, false);
             await group.SelectAsync(localId);
             await fixture.Shell.ReloadCommand.ExecuteAsync(null);
             group = Assert.Single(fixture.Shell.Panels).TabSession!;
             await group.RefreshTodoNotificationsAsync(CancellationToken.None);
             Assert.False(group.HasNewTodoItems(linkedId));
+        });
+    }
+
+    [Theory]
+    [InlineData("notes", "{\"PlainText\":42}", 2)]
+    [InlineData("todo", "{\"Items\":\"invalid\"}", 3)]
+    [InlineData("notes", "{\"FutureField\":\"keep\"}", 999)]
+    [InlineData("todo", "{\"FutureField\":\"keep\"}", 999)]
+    public async Task Invalid_or_newer_panel_state_is_not_overwritten(string type, string state, int version)
+    {
+        await RunOnStaAsync(async () =>
+        {
+            await using var f = new ShellFixture();
+            await f.Shell.InitializeAsync();
+            await f.Shell.AddPanelCommand.ExecuteAsync(type);
+            var id = Assert.Single(f.Shell.Panels).InstanceId;
+            await f.Host.SuspendAsync(id, CancellationToken.None);
+            var record = (await f.Instances.GetAsync(id))! with { StateJson = state, DataSchemaVersion = version };
+            await f.Instances.UpsertAsync(record);
+            Assert.Null(await f.Host.ActivateAsync(record, CancellationToken.None));
+            await f.Host.SuspendAsync(id, CancellationToken.None);
+            var restored = (await f.Instances.GetAsync(id))!;
+            Assert.Equal(state, restored.StateJson);
+            Assert.Equal(version, restored.DataSchemaVersion);
+        });
+    }
+
+    [Theory]
+    [InlineData("{\"Tabs\":[1]}", 2)]
+    [InlineData("{\"PlainText\":\"keep\",\"Future\":true}", 999)]
+    public async Task Legacy_note_migration_keeps_invalid_or_newer_source(string state, int version)
+    {
+        await RunOnStaAsync(async () =>
+        {
+            await using var f = new ShellFixture();
+            await f.Shell.InitializeAsync();
+            await f.Shell.AddPanelCommand.ExecuteAsync("notes");
+            var existing = (await f.Instances.GetAsync(Assert.Single(f.Shell.Panels).InstanceId))!;
+            var record = existing with { InstanceId = PanelInstanceId.New(), StateJson = state, DataSchemaVersion = version };
+            await f.Instances.UpsertAsync(record);
+            await Assert.ThrowsAnyAsync<Exception>(() => f.Initializer.EnsureAsync(record));
+            Assert.Null(await f.Groups.GetAsync(record.InstanceId));
+            Assert.Equal(state, (await f.Instances.GetAsync(record.InstanceId))!.StateJson);
+        });
+    }
+
+    [Fact]
+    public async Task Invalid_inactive_tab_can_be_opened_as_placeholder_without_replacing_data()
+    {
+        await RunOnStaAsync(async () =>
+        {
+            await using var f = new ShellFixture();
+            await f.Shell.InitializeAsync();
+            await f.Shell.AddPanelCommand.ExecuteAsync("notes");
+            var group = Assert.Single(f.Shell.Panels).TabSession!;
+            var first = group.Group.ActiveId;
+            await group.AddAsync();
+            var second = group.Group.ActiveId;
+            await group.SelectAsync(first);
+            var original = (await f.Instances.GetAsync(second))! with { StateJson = "{\"PlainText\":42}" };
+            await f.Instances.UpsertAsync(original);
+            await group.SelectAsync(second);
+            var placeholder = Assert.IsType<UnavailablePanelViewModel>(group.ActiveViewModel);
+            Assert.Equal("PanelDataInvalid", placeholder.ReasonKey);
+            await group.SelectAsync(first);
+            Assert.Equal(original.StateJson, (await f.Instances.GetAsync(second))!.StateJson);
+        });
+    }
+
+    [Fact]
+    public async Task Hidden_card_does_not_acknowledge_tasks_until_its_window_is_shown()
+    {
+        await RunOnStaAsync(async () =>
+        {
+            await using var f = new ShellFixture();
+            await f.Shell.InitializeAsync();
+            await f.Shell.AddPanelCommand.ExecuteAsync("todo");
+            var leaf = Assert.Single(f.Shell.Panels);
+            var group = leaf.TabSession!;
+            var link = new MicrosoftTodoLink(Guid.NewGuid(), "account", "list");
+            MicrosoftTodoSnapshot Snapshot(params string[] ids) => new(link, "Lista", new TodoDocument
+                { Items = ids.Select(id => new TodoItemState(id, false, RemoteId: id)).ToArray() });
+            var preferences = MicrosoftTodoPreferences.Empty(link.ClientId).Refresh(link.ClientId, link.AccountId, [Snapshot("old")], DateTimeOffset.UtcNow);
+            await f.MicrosoftTodo.SaveAsync(preferences, CancellationToken.None);
+            await group.ImportTabsAsync([new ImportedPanelTab("Lista", "{}", TodoDocument.SchemaVersion, link)], CancellationToken.None);
+            var linked = group.Group.Tabs[1].InstanceId;
+            await group.RefreshTodoNotificationsAsync(CancellationToken.None);
+            await group.SelectAsync(linked);
+            var card = new UberDashboard.App.Controls.PanelAppearanceBorder { DataContext = leaf };
+            var window = new System.Windows.Window { Content = card, ShowActivated = false, ShowInTaskbar = false };
+            try
+            {
+                window.Show();
+                await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Loaded);
+                window.Hide();
+                preferences = preferences.UpdateSnapshots([Snapshot("old", "new")], DateTimeOffset.UtcNow);
+                await f.MicrosoftTodo.SaveAsync(preferences, CancellationToken.None);
+                await group.RefreshTodoNotificationsAsync(CancellationToken.None);
+                Assert.True(group.HasNewTodoItems(linked));
+                window.Show();
+                await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Loaded);
+                await group.RefreshTodoNotificationsAsync(CancellationToken.None);
+                Assert.False(group.HasNewTodoItems(linked));
+            }
+            finally { window.Close(); }
         });
     }
 

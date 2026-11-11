@@ -1,5 +1,8 @@
 {
   "TodoTabNewItems": ["Nowe zadania do wyświetlenia", "New tasks to view"],
+  "PanelDataInvalid": ["Nie można odczytać danych panelu „{0}”. Oryginalne dane zachowano; przywróć kopię zapasową lub popraw dane przed ponownym otwarciem.", "The data for panel ‘{0}’ could not be read. The original data was kept; restore a backup or repair the data before reopening."],
+  "PanelDataNewerMigration": ["Nie można migrować nowszej wersji danych panelu.", "A newer panel data version cannot be migrated."],
+  "PanelDataNewer": ["Panel „{0}” zapisano w nowszym formacie. Dane zachowano; zaktualizuj aplikację lub wtyczkę, aby go otworzyć.", "Panel ‘{0}’ uses a newer data format. Its data was kept; update the app or plugin to open it."],
   "PanelShowName": ["Wyświetlaj nazwę panelu", "Show panel name"],
   "PanelShowNameHelp": ["Pokazuje lub ukrywa nazwę obok ikony panelu.", "Shows or hides the name beside the panel icon."],
   "GridColumns": ["Kolumny siatki", "Grid columns"],

@@ -7,6 +7,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using UberDashboard.App.Settings;
+using UberDashboard.App.Panels;
+using UberDashboard.App.Shell;
 using UberDashboard.App.Theming;
 
 namespace UberDashboard.App.Controls;
@@ -17,7 +19,33 @@ public sealed class PanelAppearanceBorder : Border
     private static readonly DependencyProperty ThemeRevisionProperty = DependencyProperty.Register("ThemeRevision", typeof(object), typeof(PanelAppearanceBorder), new PropertyMetadata(null, (d, _) => ((PanelAppearanceBorder)d).Refresh()));
     private static readonly DependencyProperty SurfaceOpacityProperty = DependencyProperty.Register("SurfaceOpacity", typeof(double), typeof(PanelAppearanceBorder), new PropertyMetadata(1d, (d, _) => ((PanelAppearanceBorder)d).Refresh()));
     private static readonly DependencyProperty PanelTextProperty = DependencyProperty.Register("PanelText", typeof(Brush), typeof(PanelAppearanceBorder), new PropertyMetadata(null, (d, _) => ((PanelAppearanceBorder)d).Refresh()));
-    public PanelAppearanceBorder() { SetResourceReference(PanelTextProperty, "Brush.Panel.DefaultText"); SetResourceReference(ThemeRevisionProperty, "Token.ThemeRevision"); SetResourceReference(SurfaceOpacityProperty, "Token.BackgroundSurfaceOpacity"); }
+    private Window? _owner;
+    private PanelGroupSession? _session;
+    public PanelAppearanceBorder()
+    {
+        SetResourceReference(PanelTextProperty, "Brush.Panel.DefaultText"); SetResourceReference(ThemeRevisionProperty, "Token.ThemeRevision"); SetResourceReference(SurfaceOpacityProperty, "Token.BackgroundSurfaceOpacity");
+        Loaded += (_, _) => AttachVisibility();
+        Unloaded += (_, _) => DetachVisibility();
+        DataContextChanged += (_, _) => { if (IsLoaded) AttachVisibility(); };
+        IsVisibleChanged += (_, _) => UpdateVisibility();
+    }
+    private void AttachVisibility()
+    {
+        DetachVisibility();
+        _session = (DataContext as PanelLeafViewModel)?.TabSession;
+        _owner = Window.GetWindow(this);
+        if (_owner is not null) { _owner.StateChanged += OwnerStateChanged; _owner.IsVisibleChanged += OwnerVisibilityChanged; }
+        UpdateVisibility();
+    }
+    private void DetachVisibility()
+    {
+        _session?.SetTodoVisibility(this, false);
+        if (_owner is not null) { _owner.StateChanged -= OwnerStateChanged; _owner.IsVisibleChanged -= OwnerVisibilityChanged; }
+        _owner = null; _session = null;
+    }
+    private void OwnerStateChanged(object? sender, EventArgs e) => UpdateVisibility();
+    private void OwnerVisibilityChanged(object sender, DependencyPropertyChangedEventArgs e) => UpdateVisibility();
+    private void UpdateVisibility() => _session?.SetTodoVisibility(this, IsVisible && _owner is { IsVisible: true, WindowState: not WindowState.Minimized });
     public static readonly DependencyProperty AppearanceProperty = DependencyProperty.Register(nameof(Appearance), typeof(PanelAppearanceViewModel), typeof(PanelAppearanceBorder), new PropertyMetadata(null, Changed));
     public PanelAppearanceViewModel? Appearance { get => (PanelAppearanceViewModel?)GetValue(AppearanceProperty); set => SetValue(AppearanceProperty, value); }
     private static void Changed(DependencyObject d, DependencyPropertyChangedEventArgs e)

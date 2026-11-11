@@ -13,6 +13,12 @@ public sealed partial class PanelGroupSession
     private readonly SemaphoreSlim _todoGate = new(1, 1);
     private readonly Dictionary<PanelInstanceId, HashSet<string>> _todoSeen = [];
     private readonly HashSet<PanelInstanceId> _todoUnread = [];
+    private readonly HashSet<object> _visibleTodoCards = [];
+    internal void SetTodoVisibility(object card, bool visible)
+    {
+        var changed = visible ? _visibleTodoCards.Add(card) : _visibleTodoCards.Remove(card);
+        if (changed && visible && _todoListening && _todoPreferences is not null) _ = UpdateTodoNotificationsAsync();
+    }
     private MicrosoftTodoListViewModel? _todoView;
     private MicrosoftTodoPreferences? _todoPreferences;
     private bool _todoListening;
@@ -103,7 +109,7 @@ public sealed partial class PanelGroupSession
                     _todoSeen[tab.InstanceId] = seen;
                     if (json is null) await _todoSeenStore.SetAsync(key, JsonSerializer.Serialize(seen), _clock.UtcNow, token);
                 }
-                if (tab.InstanceId == Group.ActiveId && _todoView is not null)
+                if (tab.InstanceId == Group.ActiveId && _todoView is not null && _visibleTodoCards.Count > 0)
                 {
                     var displayed = _todoView.Items.Select(item => item.RemoteId).Where(id => !string.IsNullOrEmpty(id)).Select(id => id!).ToArray();
                     if (displayed.Any(id => !seen.Contains(id)))
