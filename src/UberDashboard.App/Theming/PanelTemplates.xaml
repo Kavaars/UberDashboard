@@ -809,11 +809,13 @@
       <ListBox Margin="{Binding EdgePadding}" ItemsSource="{Binding Items}" Background="Transparent" BorderThickness="0"
                ItemContainerStyle="{StaticResource TodoListBoxItem}" AutomationProperties.Name="{loc:Text MicrosoftToDoTasks}"
                ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+        <ListBox.InputBindings><KeyBinding Key="F2" Command="{Binding EditTaskCommand}" CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=ListBox}}"/></ListBox.InputBindings>
         <ListBox.ItemTemplate>
           <DataTemplate>
             <DockPanel>
             <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsDone, Mode=OneWay}" Command="{Binding DataContext.ToggleTaskCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}" Style="{StaticResource ThemedCheckBox}" AutomationProperties.Name="{Binding Text}" ToolTip="{loc:Text MarksTheTaskCompleteOrReturnsIt}"/>
-            <TextBlock Margin="8,0,0,0" Text="{Binding Text}" TextWrapping="Wrap">
+            <TextBlock Margin="8,0,0,0" Text="{Binding Text}" TextWrapping="Wrap" ToolTip="{loc:Text TodoDoubleClickToEdit}">
+              <TextBlock.InputBindings><MouseBinding Gesture="LeftDoubleClick" Command="{Binding DataContext.EditTaskCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}" /></TextBlock.InputBindings>
               <TextBlock.Style>
                 <Style TargetType="TextBlock">
                   <Style.Triggers>
@@ -1344,7 +1346,7 @@
 
               <ContentControl Content="{Binding ViewModel}" ContentTemplateSelector="{StaticResource PanelOptionsSelector}" />
 
-              <StackPanel DataContext="{Binding Appearance}" IsEnabled="{Binding IsReady}"><CheckBox Content="{loc:Text PanelShowTabs}" IsChecked="{Binding ShowTabs}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelShowTabsHelp}"/><CheckBox Content="{loc:Text PanelLockWidth}" IsChecked="{Binding LockWidth}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelLockWidthHelp}"/><CheckBox Content="{loc:Text PanelLockHeight}" IsChecked="{Binding LockHeight}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelLockHeightHelp}"/></StackPanel>
+              <StackPanel DataContext="{Binding Appearance}" IsEnabled="{Binding IsReady}"><CheckBox Content="{loc:Text PanelShowName}" IsChecked="{Binding ShowPanelName}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelShowNameHelp}"/><CheckBox Content="{loc:Text PanelShowTabs}" IsChecked="{Binding ShowTabs}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelShowTabsHelp}"/><CheckBox Content="{loc:Text PanelLockWidth}" IsChecked="{Binding LockWidth}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelLockWidthHelp}"/><CheckBox Content="{loc:Text PanelLockHeight}" IsChecked="{Binding LockHeight}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelLockHeightHelp}"/></StackPanel>
               <Expander Header="{loc:Text Appearance}" Margin="0,12,0,0" IsExpanded="False" Foreground="{DynamicResource Brush.Text}">
 
               <StackPanel DataContext="{Binding Appearance}" IsEnabled="{Binding IsReady}">
@@ -1563,6 +1565,8 @@
                          Foreground="{DynamicResource Brush.Text}"
 
                          Text="{Binding DisplayName}"
+
+                         Visibility="{Binding Appearance.ShowPanelName, Converter={StaticResource BoolToVisibility}}"
 
                          TextTrimming="CharacterEllipsis"
 

@@ -77,6 +77,16 @@ public sealed class MicrosoftTodoSettingsTests
     }
 
     [Fact]
+    public void Unseen_tasks_are_detected_by_id_not_title_or_order()
+    {
+        var seen = new HashSet<string> { "one", "two" };
+        Assert.False(PanelGroupSession.HasUnseenTodoItems(["two", "one"], seen));
+        Assert.True(PanelGroupSession.HasUnseenTodoItems(["one", "new"], seen));
+        seen.Add("new");
+        Assert.False(PanelGroupSession.HasUnseenTodoItems(["new", "one"], seen));
+    }
+
+    [Fact]
     public void Import_keeps_task_titles_and_completion_and_skips_empty_titles()
     {
         var document = MicrosoftTodoSettings.CreateDocument([
@@ -85,7 +95,7 @@ public sealed class MicrosoftTodoSettingsTests
             new("3", " ", "completed"),
         ]);
         Assert.Collection(document.Items,
-            item => { Assert.Equal("Zadanie", item.Text); Assert.True(item.IsDone); },
+            item => { Assert.Equal("Zadanie", item.Text); Assert.True(item.IsDone); Assert.Equal("1", item.RemoteId); },
             item => { Assert.Equal("Drugie", item.Text); Assert.False(item.IsDone); });
     }
 

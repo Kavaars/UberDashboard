@@ -6,20 +6,22 @@
  xmlns:controls="clr-namespace:UberDashboard.App.Controls">
  <UserControl.Resources>
   <DataTemplate x:Key="ShortcutCard">
-   <Border CornerRadius="8" Padding="8" Margin="0" ToolTip="{Binding Target}">
+   <Border CornerRadius="8" Margin="0" ToolTip="{Binding Target}">
     <Border.Style>
      <Style TargetType="Border">
-      <Setter Property="Width" Value="100"/>
+      <Setter Property="HorizontalAlignment" Value="Stretch"/>
+      <Setter Property="Padding" Value="8"/>
       <Setter Property="Background" Value="Transparent"/>
       <Style.Triggers>
+       <DataTrigger Binding="{Binding DataContext.Mode, RelativeSource={RelativeSource AncestorType={x:Type local:ShortcutsView}}}" Value="Icons"><Setter Property="Padding" Value="2"/></DataTrigger>
        <DataTrigger Binding="{Binding DataContext.Mode, RelativeSource={RelativeSource AncestorType={x:Type local:ShortcutsView}}}" Value="List">
         <Setter Property="Width" Value="Auto"/>
        </DataTrigger>
        <DataTrigger Binding="{Binding DataContext.Mode, RelativeSource={RelativeSource AncestorType={x:Type local:ShortcutsView}}}" Value="Buttons">
-        <Setter Property="Width" Value="162"/><Setter Property="Background" Value="{DynamicResource Brush.Surface.Alt}"/>
+        <Setter Property="Background" Value="{DynamicResource Brush.Surface.Alt}"/>
        </DataTrigger>
        <DataTrigger Binding="{Binding DataContext.Mode, RelativeSource={RelativeSource AncestorType={x:Type local:ShortcutsView}}}" Value="Tiles">
-        <Setter Property="Width" Value="172"/><Setter Property="MinHeight" Value="114"/>
+
         <Setter Property="Background" Value="{DynamicResource Brush.Surface.Alt}"/>
        </DataTrigger>
        <DataTrigger Binding="{Binding HasBackground}" Value="True"><Setter Property="Background" Value="{Binding Background}"/></DataTrigger>
@@ -81,16 +83,16 @@
     <ListBox x:Name="ShortcutList" ItemsSource="{Binding Model.Items}" ItemTemplate="{StaticResource ShortcutCard}"
      controls:ModuleReorderBehavior.Managed="True" controls:ModuleReorderBehavior.Enabled="{Binding IsModuleEditMode}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
      MouseDoubleClick="OnDoubleClick" PreviewKeyDown="OnKeyDown" PreviewMouseLeftButtonUp="OnMouseUp"
-     AutomationProperties.Name="{loc:Text Shortcuts}" AutomationProperties.HelpText="{loc:Text ModuleKeyboardHelp}">
-     <ListBox.ItemsPanel><ItemsPanelTemplate><controls:ModularItemsPanel Spacing="{Binding ModuleSpacing}"><controls:ModularItemsPanel.Style><Style TargetType="controls:ModularItemsPanel"><Style.Triggers><DataTrigger Binding="{Binding Mode}" Value="List"><Setter Property="MaximumColumns" Value="1"/><Setter Property="CellHeight" Value="64"/></DataTrigger></Style.Triggers></Style></controls:ModularItemsPanel.Style></controls:ModularItemsPanel></ItemsPanelTemplate></ListBox.ItemsPanel>
+     AutomationProperties.Name="{loc:Text Shortcuts}" AutomationProperties.HelpText="{loc:Text ModuleKeyboardHelp}" ToolTip="{loc:Text ModuleKeyboardHelp}">
+     <ListBox.ItemsPanel><ItemsPanelTemplate><controls:ModularItemsPanel Spacing="{Binding ModuleSpacing}"><controls:ModularItemsPanel.Style><Style TargetType="controls:ModularItemsPanel"><Setter Property="CellWidth" Value="48"/><Setter Property="CellHeight" Value="64"/><Setter Property="AutoCellHeight" Value="True"/><Style.Triggers><DataTrigger Binding="{Binding Mode}" Value="Buttons"><Setter Property="AutoCellHeight" Value="False"/><Setter Property="CellWidth" Value="162"/><Setter Property="CellHeight" Value="64"/></DataTrigger><DataTrigger Binding="{Binding Mode}" Value="Tiles"><Setter Property="AutoCellHeight" Value="False"/><Setter Property="CellWidth" Value="172"/><Setter Property="CellHeight" Value="114"/></DataTrigger><DataTrigger Binding="{Binding Mode}" Value="List"><Setter Property="AutoCellHeight" Value="False"/><Setter Property="MaximumColumns" Value="1"/><Setter Property="CellHeight" Value="64"/></DataTrigger></Style.Triggers></Style></controls:ModularItemsPanel.Style></controls:ModularItemsPanel></ItemsPanelTemplate></ListBox.ItemsPanel>
      <ListBox.ItemContainerStyle>
       <Style TargetType="ListBoxItem" BasedOn="{StaticResource ThemedListBoxItem}">
        <Setter Property="Padding" Value="0"/>
-       <Setter Property="HorizontalContentAlignment" Value="Center"/>
+       <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
        <Setter Property="Template"><Setter.Value>
         <ControlTemplate TargetType="ListBoxItem">
          <Border x:Name="ItemBorder" Padding="{TemplateBinding Padding}" Background="Transparent" BorderBrush="Transparent" BorderThickness="0" CornerRadius="{DynamicResource Token.CornerRadius.S}">
-          <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+          <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Stretch"/>
          </Border>
          <ControlTemplate.Triggers>
           <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource Brush.Surface.Alt}"/></Trigger>

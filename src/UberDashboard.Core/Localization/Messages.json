@@ -1,4 +1,7 @@
 {
+  "TodoTabNewItems": ["Nowe zadania do wyświetlenia", "New tasks to view"],
+  "PanelShowName": ["Wyświetlaj nazwę panelu", "Show panel name"],
+  "PanelShowNameHelp": ["Pokazuje lub ukrywa nazwę obok ikony panelu.", "Shows or hides the name beside the panel icon."],
   "GridColumns": ["Kolumny siatki", "Grid columns"],
   "GridRows": ["Wiersze siatki", "Grid rows"],
   "GridDensityHelp": ["Gęstość siatki pulpitu, do której przyciągają się panele. Po zmianie panele są proporcjonalnie przeliczane.", "Density of the dashboard grid panels snap to. Panels are rescaled proportionally after a change."],

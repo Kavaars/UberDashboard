@@ -51,10 +51,10 @@ public sealed class PanelGroupTabStrip : ScrollViewer
         foreach (var button in _items.Children.OfType<Button>())
             if (button.Tag is PanelTab tab)
             {
-                ApplyMicrosoftTodoBorder(button, session.IsMicrosoftTodoTab(tab.InstanceId));
+                ApplyMicrosoftTodoBorder(button, session.IsMicrosoftTodoTab(tab.InstanceId), session.HasNewTodoItems(tab.InstanceId));
                 var selected = tab.InstanceId == session.Group.ActiveId;
                 button.SetResourceReference(Control.BackgroundProperty, selected ? "Brush.Surface.Alt" : "Brush.Surface");
-                System.Windows.Automation.AutomationProperties.SetItemStatus(button, selected ? UiText.Get("Active") : UiText.Get("Inactive"));
+                System.Windows.Automation.AutomationProperties.SetItemStatus(button, session.HasNewTodoItems(tab.InstanceId) ? UiText.Get("TodoTabNewItems") : selected ? UiText.Get("Active") : UiText.Get("Inactive"));
             }
     }
     private async Task Run(Func<Task> action)
@@ -72,11 +72,11 @@ public sealed class PanelGroupTabStrip : ScrollViewer
         {
             var button = new Button { Tag = tab, Content = tab.Name, Padding = new Thickness(10, 5, 10, 5), Margin = new Thickness(0, 0, 3, 0), AllowDrop = true };
             button.SetResourceReference(StyleProperty, "PanelActionButton");
-            ApplyMicrosoftTodoBorder(button, session.IsMicrosoftTodoTab(tab.InstanceId));
+            ApplyMicrosoftTodoBorder(button, session.IsMicrosoftTodoTab(tab.InstanceId), session.HasNewTodoItems(tab.InstanceId));
             button.SetResourceReference(Control.ForegroundProperty, "Brush.Text");
             button.SetResourceReference(Control.BackgroundProperty, tab.InstanceId == session.Group.ActiveId ? "Brush.Surface.Alt" : "Brush.Surface");
             System.Windows.Automation.AutomationProperties.SetName(button, UiText.Format("Tab2", tab.Name));
-            System.Windows.Automation.AutomationProperties.SetItemStatus(button, tab.InstanceId == session.Group.ActiveId ? UiText.Get("Active") : UiText.Get("Inactive"));
+            System.Windows.Automation.AutomationProperties.SetItemStatus(button, session.HasNewTodoItems(tab.InstanceId) ? UiText.Get("TodoTabNewItems") : tab.InstanceId == session.Group.ActiveId ? UiText.Get("Active") : UiText.Get("Inactive"));
             button.Click += async (_, _) => await Run(() => session.SelectAsync(tab.InstanceId));
             button.MouseDoubleClick += (_, e) => { Rename(button, tab, session); e.Handled = true; };
             button.KeyDown += async (_, e) =>
@@ -145,11 +145,11 @@ public sealed class PanelGroupTabStrip : ScrollViewer
         add.Click += async (_, _) => await Run(() => session.AddAsync());
         _items.Children.Add(add);
     }
-    private static void ApplyMicrosoftTodoBorder(Button button, bool linked)
+    private static void ApplyMicrosoftTodoBorder(Button button, bool linked, bool unread)
     {
-        if (linked)
+        if (linked || unread)
         {
-            button.SetResourceReference(Control.BorderBrushProperty, "Brush.MicrosoftTodo.TabBorder");
+            button.SetResourceReference(Control.BorderBrushProperty, unread ? "Brush.Warning" : "Brush.MicrosoftTodo.TabBorder");
             button.BorderThickness = new Thickness(1);
         }
         else

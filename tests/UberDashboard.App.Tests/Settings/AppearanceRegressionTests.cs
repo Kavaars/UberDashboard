@@ -11,6 +11,8 @@ public sealed class AppearanceRegressionTests
         var old = System.Text.Json.JsonSerializer.Deserialize<PanelAppearanceSettings>("{}");
         Assert.NotNull(old);
         Assert.False(old.OverrideTextColor);
+        Assert.True(old.ShowPanelName);
+        Assert.False(System.Text.Json.JsonSerializer.Deserialize<PanelAppearanceSettings>("{\"ShowPanelName\":false}")!.ShowPanelName);
         var settings = new PanelAppearanceSettings { OverrideTextColor = true, TextColor = "#FF2384A1" }.Normalize();
         var restored = System.Text.Json.JsonSerializer.Deserialize<PanelAppearanceSettings>(System.Text.Json.JsonSerializer.Serialize(settings));
         Assert.NotNull(restored);

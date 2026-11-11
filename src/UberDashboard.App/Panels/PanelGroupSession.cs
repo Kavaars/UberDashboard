@@ -11,7 +11,7 @@ using UberDashboard.Core.Panels;
 namespace UberDashboard.App.Panels;
 
 /// <summary>Serializuje operacje zakładek jednej grupy i cykl życia ich instancji.</summary>
-public sealed class PanelGroupSession : ObservableObject
+public sealed partial class PanelGroupSession : ObservableObject
 {
     private readonly IPanelTabGroupStore _groups;
     private readonly IPanelInstanceStore _instances;
@@ -82,6 +82,7 @@ public sealed class PanelGroupSession : ObservableObject
             await _groups.AddBatchAsync(Group, next, records, token).ConfigureAwait(true);
             foreach (var record in records.Where(HasMicrosoftTodoLink)) _microsoftTodoTabs.Add(record.InstanceId);
             Group = next;
+            if (_todoListening && _todoPreferences is not null) _ = UpdateTodoNotificationsAsync();
             Changed?.Invoke(this, EventArgs.Empty);
             _toasts.Show(UiText.Format("ImportedTabs", records.Count), ToastSeverity.Success);
         }
@@ -105,6 +106,9 @@ public sealed class PanelGroupSession : ObservableObject
                 if (await _instances.GetAsync(tab.InstanceId, token).ConfigureAwait(true) is { } record && HasMicrosoftTodoLink(record))
                     _microsoftTodoTabs.Add(tab.InstanceId);
             await SetViewAsync(Group.ActiveId, token).ConfigureAwait(true);
+            try { await StartTodoNotificationsAsync(token).ConfigureAwait(true); }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { StopTodoNotifications(); throw; }
+            catch (Exception error) { StopTodoNotifications(); ReportError(error); }
         }
         finally { _gate.Release(); }
     }
@@ -138,7 +142,7 @@ public sealed class PanelGroupSession : ObservableObject
             catch (Exception restoreError) { ReportError(restoreError); }
             throw;
         }
-        Group = next; ActiveViewModel = instance.ViewModel; Changed?.Invoke(this, EventArgs.Empty);
+        Group = next; ActiveViewModel = instance.ViewModel; AttachTodoView(); Changed?.Invoke(this, EventArgs.Empty);
     }
 
     public async Task AddAsync(CancellationToken token = default)
@@ -242,7 +246,7 @@ public sealed class PanelGroupSession : ObservableObject
         {
             if (_closed) return false;
             _closed = true;
-            try { await _host.SuspendAsync(Group.ActiveId, token).ConfigureAwait(true); return true; }
+            try { await _host.SuspendAsync(Group.ActiveId, token).ConfigureAwait(true); StopTodoNotifications(); return true; }
             catch { _closed = false; throw; }
         }
         finally { IsBusy = false; _gate.Release(); }
@@ -264,7 +268,7 @@ public sealed class PanelGroupSession : ObservableObject
                     temporarilyHosted.Add(tab.InstanceId);
             }
             await _host.RemoveManyWithCommitAsync(Group.Tabs.Select(t => t.InstanceId), ct => _groups.DeleteAsync(Group, ct), token).ConfigureAwait(true);
-            _closed = true;
+            _closed = true; StopTodoNotifications();
         }
         catch
         {
@@ -289,6 +293,7 @@ public sealed class PanelGroupSession : ObservableObject
         var record = await _instances.GetAsync(id, token).ConfigureAwait(true);
         var instance = record is null ? null : await _host.ActivateAsync(record, token).ConfigureAwait(true);
         ActiveViewModel = instance?.ViewModel ?? new UnavailablePanelViewModel(_root.PluginId, _root.DisplayName);
+        AttachTodoView();
         Changed?.Invoke(this, EventArgs.Empty);
     }
 }

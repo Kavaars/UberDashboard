@@ -52,6 +52,7 @@ public sealed class ShellViewModel : ObservableObject
     private readonly IClock _clock;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<ShellViewModel> _logger;
+    private readonly IServiceProvider? _services;
     private readonly Dictionary<PanelInstanceId, PanelLeafViewModel> _leaves = [];
     private readonly Dictionary<PanelInstanceId, PanelGroupSession> _groups = [];
     private readonly HashSet<PanelInstanceId> _groupChildren = [];
@@ -103,7 +104,7 @@ public sealed class ShellViewModel : ObservableObject
         IClock clock,
         ILoggerFactory loggerFactory,
         ILogger<ShellViewModel> logger,
-        IPanelRemovalConfirmation removalConfirmation, IAppSettingsStore appearanceStore, PanelGroupInitializer? groupInitializer = null, IPanelTabGroupStore? groupStore = null)
+        IPanelRemovalConfirmation removalConfirmation, IAppSettingsStore appearanceStore, PanelGroupInitializer? groupInitializer = null, IPanelTabGroupStore? groupStore = null, IServiceProvider? services = null)
     {
         ArgumentNullException.ThrowIfNull(dashboards);
         ArgumentNullException.ThrowIfNull(layouts);
@@ -119,7 +120,7 @@ public sealed class ShellViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(loggerFactory);
         ArgumentNullException.ThrowIfNull(logger);
 
-        _appearanceStore = appearanceStore;
+        _appearanceStore = appearanceStore; _services = services;
         _groupInitializer = groupInitializer; _groupStore = groupStore;
         _removalConfirmation = removalConfirmation;
         _dashboards = dashboards;
@@ -709,6 +710,8 @@ public sealed class ShellViewModel : ObservableObject
                 if (member.InstanceId != root.InstanceId) _groupChildren.Add(member.InstanceId);
             }
             var session = new PanelGroupSession(root, group, _groupStore, _instances, _host, _clock, _toasts);
+            if (_services?.GetService(typeof(Features.Todo.MicrosoftTodoSettings)) is Features.Todo.MicrosoftTodoSettings todoSettings)
+                session.ConfigureTodoNotifications(todoSettings, _appearanceStore);
             await session.ActivateAsync(token).ConfigureAwait(true);
             _groups[root.InstanceId] = session;
         }

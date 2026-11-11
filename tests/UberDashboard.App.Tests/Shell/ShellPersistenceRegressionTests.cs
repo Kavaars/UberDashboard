@@ -54,6 +54,42 @@ public sealed class ShellPersistenceRegressionTests
         });
     }
 
+    [Fact]
+    public async Task Microsoft_tab_marks_new_tasks_until_viewed_and_remembers_them_after_reload()
+    {
+        await RunOnStaAsync(async () =>
+        {
+            await using var fixture = new ShellFixture();
+            await fixture.Shell.InitializeAsync();
+            await fixture.Shell.AddPanelCommand.ExecuteAsync("todo");
+            var group = Assert.Single(fixture.Shell.Panels).TabSession!;
+            var localId = group.Group.ActiveId;
+            var link = new MicrosoftTodoLink(Guid.NewGuid(), "account", "list");
+            MicrosoftTodoSnapshot Snapshot(params string[] ids) => new(link, "Lista", new TodoDocument
+            {
+                Items = ids.Select(id => new TodoItemState(id, false, RemoteId: id)).ToArray(),
+            });
+            var preferences = MicrosoftTodoPreferences.Empty(link.ClientId).Refresh(link.ClientId, link.AccountId, [Snapshot("old")], DateTimeOffset.UtcNow);
+            await fixture.MicrosoftTodo.SaveAsync(preferences, CancellationToken.None);
+            await group.ImportTabsAsync([new ImportedPanelTab("Lista", "{}", TodoDocument.SchemaVersion, link)], CancellationToken.None);
+            var linkedId = group.Group.Tabs[1].InstanceId;
+            await group.RefreshTodoNotificationsAsync(CancellationToken.None);
+            Assert.False(group.HasNewTodoItems(linkedId));
+            preferences = preferences.UpdateSnapshots([Snapshot("old", "new")], DateTimeOffset.UtcNow);
+            await fixture.MicrosoftTodo.SaveAsync(preferences, CancellationToken.None);
+            await group.RefreshTodoNotificationsAsync(CancellationToken.None);
+            Assert.True(group.HasNewTodoItems(linkedId));
+            await group.SelectAsync(linkedId);
+            await group.RefreshTodoNotificationsAsync(CancellationToken.None);
+            Assert.False(group.HasNewTodoItems(linkedId));
+            await group.SelectAsync(localId);
+            await fixture.Shell.ReloadCommand.ExecuteAsync(null);
+            group = Assert.Single(fixture.Shell.Panels).TabSession!;
+            await group.RefreshTodoNotificationsAsync(CancellationToken.None);
+            Assert.False(group.HasNewTodoItems(linkedId));
+        });
+    }
+
     [Theory]
     [InlineData("weather")]
     [InlineData("affirmations")]

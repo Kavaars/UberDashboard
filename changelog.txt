@@ -318,3 +318,5 @@ Prace robocze 1.9.0 (2026-11-07T08:55:37+01:00)
 2026-11-07 — Poprawiono przeciąganie modułów na dalsze pola szerokiego panelu oraz usunięto zaznaczanie modułów poza trybem edycji.
 
 2026-11-07 — Dopasowano rozmiar pól monitora zasobów do zawartości, ograniczając pustą przestrzeń wokół odczytów.
+
+2026-11-11T12:10:00+01:00 | Mniejsze odstępy ikon skrótów, ukrywanie nazwy panelu, oznaczenie nowych zadań i edycja list Microsoft To Do.

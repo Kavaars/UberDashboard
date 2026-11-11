@@ -70,6 +70,6 @@ internal sealed class MicrosoftTodoSettings(IAppSettingsStore store, IClock cloc
     public static TodoDocument CreateDocument(IEnumerable<MicrosoftTodoTask> tasks) => new()
     {
         Items = tasks.Where(task => !string.IsNullOrWhiteSpace(task.Title))
-            .Select(task => new TodoItemState(task.Title, task.Status == "completed", CompletedAt: ParseDate(task.CompletedDateTime?.DateTime), CreatedAt: task.CreatedDateTime)).ToArray(),
+            .Select(task => new TodoItemState(task.Title, task.Status == "completed", CompletedAt: ParseDate(task.CompletedDateTime?.DateTime), CreatedAt: task.CreatedDateTime, RemoteId: task.Id)).ToArray(),
     };
 }

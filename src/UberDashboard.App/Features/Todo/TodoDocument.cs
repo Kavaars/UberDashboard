@@ -1,7 +1,7 @@
 namespace UberDashboard.App.Features.Todo;
 
 /// <summary>Pojedyncze zadanie w utrwalonym stanie listy.</summary>
-public sealed record TodoItemState(string Text, bool IsDone, Guid? Id = null, DateTimeOffset? CompletedAt = null, DateTimeOffset? CreatedAt = null);
+public sealed record TodoItemState(string Text, bool IsDone, Guid? Id = null, DateTimeOffset? CompletedAt = null, DateTimeOffset? CreatedAt = null, string? RemoteId = null);
 
 /// <summary>
 /// Stan listy zadań utrwalany w magazynie instancji. Dokument jest niezależny od

@@ -36,6 +36,7 @@ public sealed class MicrosoftTodoListViewModel : ObservableObject, IPanelOptions
     public IAsyncRelayCommand KeepCompletedCommand { get; }
     public int ItemStyle { get => _options.ItemStyle; set { _options.ItemStyle = value; OnPropertyChanged(); } }
     public IAsyncRelayCommand<TodoItemState> ToggleTaskCommand { get; }
+    public IAsyncRelayCommand<TodoItemState> EditTaskCommand { get; }
     public double EdgeSpacing { get => _options.EdgeSpacing; set { _options.EdgeSpacing = value; OnPropertyChanged(); OnPropertyChanged(nameof(EdgePadding)); } }
     public double EntrySpacing { get => _options.EntrySpacing; set { _options.EntrySpacing = value; OnPropertyChanged(); OnPropertyChanged(nameof(EntryPadding)); } }
     public System.Windows.Thickness EdgePadding => _options.EdgePadding;
@@ -52,7 +53,7 @@ public sealed class MicrosoftTodoListViewModel : ObservableObject, IPanelOptions
     }
     private static DateTimeOffset? Date(string? value) => DateTimeOffset.TryParse(value, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal, out var date) ? date : null;
     private static TodoItemState ToItem(SyncEntity e) => new(e.Local!["title"]?.GetValue<string>() ?? "", e.Local["status"]?.GetValue<string>() == "completed", e.LocalId,
-        Date(e.Local["completedDateTime"]?["dateTime"]?.GetValue<string>()), Date(e.Metadata?["createdDateTime"]?.GetValue<string>()));
+        Date(e.Local["completedDateTime"]?["dateTime"]?.GetValue<string>()), Date(e.Metadata?["createdDateTime"]?.GetValue<string>()), e.RemoteId);
     public string Status { get => _status; private set { if (SetProperty(ref _status, value)) OnPropertyChanged(nameof(SyncStatusText)); } }
     public string SyncStatusText => string.IsNullOrWhiteSpace(Status) ? LastSyncText : $"{Status} · {LastSyncText}";
     public string NewItemText { get => _newItemText; set => SetProperty(ref _newItemText, value); }
@@ -63,6 +64,7 @@ public sealed class MicrosoftTodoListViewModel : ObservableObject, IPanelOptions
     {
         _options = options;
         ToggleTaskCommand = new AsyncRelayCommand<TodoItemState>(ToggleTaskAsync);
+        EditTaskCommand = new AsyncRelayCommand<TodoItemState>(EditTaskAsync);
         AddItemCommand = new AsyncRelayCommand(AddItemAsync);
         ToggleOptionsCommand = new RelayCommand(() => IsOptionsOpen = !IsOptionsOpen);
         ClearCompletedCommand = new AsyncRelayCommand(() => RemoveCompletedAsync(0));
@@ -209,6 +211,52 @@ public sealed class MicrosoftTodoListViewModel : ObservableObject, IPanelOptions
         finally { OnPropertyChanged(nameof(Items)); }
     }
 
+    private async Task EditTaskAsync(TodoItemState? item)
+    {
+        if (item is null || _sync is null || _session is null || _link is null || System.Windows.Application.Current.MainWindow is not { } owner) return;
+        try
+        {
+            var id = await EnsureWritableBindingAsync(owner);
+            if (id is null) return;
+            var state = await _sync.Store.ReadAsync(id.Value, _closeToken);
+            var entity = state?.Items.FirstOrDefault(e => e.Kind == SyncEntityKind.Item &&
+                (item.Id is not null && e.LocalId == item.Id || item.RemoteId is not null && e.RemoteId == item.RemoteId));
+            if (entity is null && item.RemoteId is not null)
+            {
+                await _sync.Coordinator.SynchronizeAsync(id.Value, _closeToken);
+                state = await _sync.Store.ReadAsync(id.Value, _closeToken);
+                entity = state?.Items.FirstOrDefault(e => e.Kind == SyncEntityKind.Item && e.RemoteId == item.RemoteId);
+            }
+            if (entity?.Local is null || entity.Conflicts is { Length: > 0 })
+            {
+                _notifier?.Publish(UiText.Get("TodoSyncConflict"), PanelNotificationSeverity.Warning);
+                return;
+            }
+            var desired = SyncEditorWindow.Edit(owner, SyncProviderKind.MicrosoftTodo, entity.Local, metadata: entity.Metadata);
+            if (desired is null) return;
+            await _sync.Coordinator.EditFromSnapshotAsync(id.Value, entity.LocalId, entity.Local, entity.Revision, desired, _closeToken);
+            _sync.Request(id.Value);
+            await RefreshLocalAsync();
+        }
+        catch (OperationCanceledException) when (_closeToken.IsCancellationRequested) { }
+        catch (Exception) { _notifier?.Publish(UiText.Get("SyncLocalReadFailed"), PanelNotificationSeverity.Warning); }
+    }
+
+    private async Task<Guid?> EnsureWritableBindingAsync(System.Windows.Window owner)
+    {
+        if (_sync is null || _session is null || _link is null) return null;
+        var existing = await FindBindingAsync();
+        if (existing is not null) return existing;
+        if (UberDashboard.App.Controls.ThemedMessageBox.Show(owner, UiText.Get("SyncReadWriteConsentNotice"),
+            UiText.Get("SyncEditorTitle"), System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question) != System.Windows.MessageBoxResult.Yes) return null;
+        var credential = await _session.SignInAsync(_link.ClientId, _closeToken, _link.AccountId, allowWrite: true);
+        if (credential.Account.HomeAccountId.Identifier != _link.AccountId ||
+            !credential.Scopes.Any(s => s.Equals("Tasks.ReadWrite", StringComparison.OrdinalIgnoreCase) || s.EndsWith("/Tasks.ReadWrite", StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException();
+        return await _sync.EnableAsync(SyncProviderKind.MicrosoftTodo, _link.ClientId.ToString("D"), _link.AccountId,
+            "lists/" + Uri.EscapeDataString(_link.ListId) + "/tasks", _snapshot?.Name ?? "Microsoft To Do", _closeToken);
+    }
+
     private async Task SyncNowAsync()
     {
         try
@@ -280,18 +328,8 @@ public sealed class MicrosoftTodoListViewModel : ObservableObject, IPanelOptions
         if (_sync is null || _session is null || _link is null || System.Windows.Application.Current.MainWindow is not { } owner) return;
         try
         {
-            var existing = await FindBindingAsync();
-            if (existing is null)
-            {
-                if (UberDashboard.App.Controls.ThemedMessageBox.Show(owner, UiText.Get("SyncReadWriteConsentNotice"),
-                    UiText.Get("SyncEditorTitle"), System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question) != System.Windows.MessageBoxResult.Yes) return;
-                var credential = await _session.SignInAsync(_link.ClientId, _closeToken, _link.AccountId, allowWrite: true);
-                if (credential.Account.HomeAccountId.Identifier != _link.AccountId ||
-                    !credential.Scopes.Any(s => s.Equals("Tasks.ReadWrite", StringComparison.OrdinalIgnoreCase) || s.EndsWith("/Tasks.ReadWrite", StringComparison.OrdinalIgnoreCase)))
-                    throw new InvalidOperationException();
-                existing = await _sync.EnableAsync(SyncProviderKind.MicrosoftTodo, _link.ClientId.ToString("D"), _link.AccountId,
-                    "lists/" + Uri.EscapeDataString(_link.ListId) + "/tasks", _snapshot?.Name ?? "Microsoft To Do", _closeToken);
-            }
+            var existing = await EnsureWritableBindingAsync(owner);
+            if (existing is null) return;
             SyncEditorWindow.Open(owner, _sync, existing.Value, _closeToken, async () =>
             {
                 var credential = await _session.SignInAsync(_link.ClientId, _closeToken, _link.AccountId, allowWrite: true);
