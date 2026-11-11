@@ -35,7 +35,9 @@ Microsoft To Do skonfigurujesz w **Ustawienia → Integracje**. Listę można za
 
 W bieżącym kodzie pozycja **Synchronizacja dwukierunkowa** w menu zakładki To Do lub przycisk w kalendarzu otwiera odpowiedni edytor. Pierwsze włączenie wymaga osobnej zgody Microsoft lub Google na zapis. Edytor pozwala tworzyć, zmieniać i usuwać podstawowe zadania oraz wydarzenia. Zmiany trafiają najpierw do lokalnej kolejki, która zachowuje je także po restarcie. Synchronizacja działa podczas uruchomienia aplikacji, również w zasobniku.
 
-Zakładki list powiązanych z Microsoft To Do wyróżnia cienka niebieska ramka wokół nazwy.
+Zakładki list powiązanych z Microsoft To Do wyróżnia niebieska ramka; złota oznacza nowe zadania, których jeszcze nie wyświetlono. Po pierwszym uruchomieniu z tą funkcją istniejąca kopia stanowi punkt odniesienia. Dwuklik zadania lub F2 otwiera edycję; zapis wymaga włączonej synchronizacji i zgody na zapis.
+
+W opcjach każdego panelu można ukryć jego nazwę, pozostawiając ikonę.
 
 W opcjach panelu listy zadań suwaki regulują odstęp treści od krawędzi oraz odstęp nad i pod wpisami. Ustawienie zera pozwala uzyskać zwarty układ. Opcje są dostępne także dla list Microsoft To Do i zapisywane osobno dla każdej zakładki.
 
@@ -91,4 +93,4 @@ Pełna historia: [changelog.txt](changelog.txt).
 Problemy oraz propozycje zgłaszaj w [Issues projektu](https://github.com/Kavaars/UberDashboard/issues). W sprawach prywatności kontaktuj się przez [profil Kavaars](https://github.com/Kavaars). Nie zamieszczaj w publicznych zgłoszeniach tokenów, haseł, plików poświadczeń ani prywatnej treści notatek i kalendarzy.
 
 
-Pogoda, Monitor zasobów i Skróty udostępniają **Tryb edycji elementów** w menu kontekstowym panelu. W tym trybie przeciągnij element na komórkę siatki; zajęte pola przesuwają się, a wolne można pozostawić puste. Ctrl+Shift+strzałka w lewo lub w prawo przesuwa wybrany element klawiaturą. Układ zapisuje się oddzielnie dla każdej zakładki. Siatka zawija się do szerokości panelu, zachowując zapisane pozycje. W opcjach suwak odstępu zmienia odległość między modułami w obie strony względem wartości zerowej. Prognoza godzinowa zajmuje trzy kolumny, a w wąskim panelu można ją przewijać poziomo. Świt i zmierzch są w jednym module, a opis bieżącej pogody znajduje się przy ikonie. Wzory paneli wtyczek opisano w [instrukcji](plugins/PanelTemplates/README.md).
+Pogoda, Monitor zasobów i Skróty udostępniają **Tryb edycji elementów** w menu kontekstowym panelu. W tym trybie przeciągnij element na komórkę siatki; zajęte pola przesuwają się, a wolne można pozostawić puste. Ctrl+Shift+strzałki przesuwają wybrany element klawiaturą. Przeciągnięcie prawego dolnego narożnika modułu albo Ctrl+Alt+strzałki zmienia jego rozmiar. Układ zapisuje się oddzielnie dla każdej zakładki. Siatka zawija się do szerokości panelu, zachowując zapisane pozycje. W opcjach suwak odstępu zmienia odległość między modułami w obie strony względem wartości zerowej. Prognoza godzinowa zajmuje trzy kolumny, a w wąskim panelu można ją przewijać poziomo. Świt i zmierzch są w jednym module, a opis bieżącej pogody znajduje się przy ikonie. Wzory paneli wtyczek opisano w [instrukcji](plugins/PanelTemplates/README.md).

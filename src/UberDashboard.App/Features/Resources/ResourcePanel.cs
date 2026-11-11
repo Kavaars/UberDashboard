@@ -46,6 +46,14 @@ public sealed partial class ResourcePanel : ObservableObject, IPanelInstance, IP
         ChangeVersion++; StateChanged?.Invoke(this, EventArgs.Empty);
     }
     [ObservableProperty] private bool _isModuleEditMode;
+    public void ResizeModule(string id, int width, int height)
+    {
+        if (!IsModuleEditMode || ModulePositions.FirstOrDefault(position => position.Id == id) is not { } current) return;
+        var updated = current with { Width = Math.Clamp(width, 1, 4), Height = Math.Clamp(height, 1, 16) };
+        if (updated == current) return;
+        _modulePositions = ModulePositions.Select(position => position.Id == id ? updated : position).ToArray();
+        OnPropertyChanged(nameof(ModulePositions)); ChangeVersion++; StateChanged?.Invoke(this, EventArgs.Empty);
+    }
     public void MoveModule(object source, object target)
     {
         if (!IsModuleEditMode || source is not ResourceReading from || target is not ResourceReading to || from.Key == to.Key) return;

@@ -40,7 +40,7 @@ public sealed class ModularItemsPanel : Panel
         new FrameworkPropertyMetadata(1, FrameworkPropertyMetadataOptions.AffectsParentMeasure), value => value is int span && span >= 1 && span <= LogicalColumns);
     public static int GetColumnSpan(DependencyObject value) => (int)value.GetValue(ColumnSpanProperty);
     public static void SetColumnSpan(DependencyObject value, int span) => value.SetValue(ColumnSpanProperty, span);
-    private readonly Dictionary<UIElement, (int Start, int Span, int Logical)> _placements = [];
+    private readonly Dictionary<UIElement, (int Start, int Span, int Height, int Logical)> _placements = [];
     private int _columns = 1;
     private double _columnWidth = DefaultCellWidth;
     private double _cellHeight = 120;
@@ -69,29 +69,44 @@ public sealed class ModularItemsPanel : Panel
     {
         var width = double.IsFinite(availableSize.Width) ? Math.Max(1, availableSize.Width) : CellWidth * LogicalColumns;
         _columns = Math.Clamp((int)((width + Gap) / (CellWidth + Gap)), 1, Math.Clamp(MaximumColumns, 1, 1024));
-        _columnWidth = _columns == 1 ? width : CellWidth;
-        var ordered = InternalChildren.Cast<UIElement>().Select(child => (Child: child, Slot: Index(child), Span: GetColumnSpan(child)))
+        _columnWidth = Math.Max(1, (width - (_columns - 1) * Gap) / _columns);
+        var ordered = InternalChildren.Cast<UIElement>().Where(child => child.Visibility != Visibility.Collapsed)
+            .Select(child => (Child: child, Slot: Index(child), Span: WidthOf(child), Height: HeightOf(child)))
             .OrderBy(item => item.Slot).ToArray();
-        var arranged = ModuleGrid.Arrange(ordered.Select(item => (item.Slot, item.Span)).ToArray(), _columns);
         _placements.Clear();
         _cellHeight = CellHeight;
         if (AutoCellHeight)
         {
             foreach (var item in ordered)
             {
-                item.Child.Measure(new Size(_columnWidth * Math.Min(item.Span, _columns) + Gap * (Math.Min(item.Span, _columns) - 1), double.PositiveInfinity));
+                var span = Math.Min(item.Span, _columns);
+                item.Child.Measure(new Size(_columnWidth * span + Gap * (span - 1), double.PositiveInfinity));
                 _cellHeight = Math.Max(_cellHeight, item.Child.DesiredSize.Height);
             }
         }
-        var last = -1;
-        for (var i = 0; i < ordered.Length; i++)
+        var occupied = new HashSet<int>();
+        var lastRow = 0;
+        foreach (var item in ordered)
         {
-            var item = ordered[i]; var placement = arranged[i];
-            _placements[item.Child] = (placement.Start, placement.Span, item.Slot);
-            item.Child.Measure(new Size(_columnWidth * placement.Span + Gap * (placement.Span - 1), _cellHeight));
-            last = Math.Max(last, placement.Start + placement.Span - 1);
+            var span = Math.Min(item.Span, _columns);
+            var start = item.Slot;
+            while (true)
+            {
+                if (start % _columns + span > _columns) { start += _columns - start % _columns; continue; }
+                var free = true;
+                for (var y = 0; y < item.Height && free; y++)
+                    for (var x = 0; x < span; x++)
+                        if (occupied.Contains(start + y * _columns + x)) { free = false; break; }
+                if (free) break;
+                start++;
+            }
+            for (var y = 0; y < item.Height; y++)
+                for (var x = 0; x < span; x++) occupied.Add(start + y * _columns + x);
+            _placements[item.Child] = (start, span, item.Height, item.Slot);
+            item.Child.Measure(new Size(_columnWidth * span + Gap * (span - 1), _cellHeight * item.Height + Gap * (item.Height - 1)));
+            lastRow = Math.Max(lastRow, start / _columns + item.Height);
         }
-        var rows = Math.Max(1, last / _columns + 1) + (DataContext is IModularPanel { IsModuleEditMode: true } ? 1 : 0);
+        var rows = Math.Max(1, lastRow) + (DataContext is IModularPanel { IsModuleEditMode: true } ? 1 : 0);
         return new Size(_columns * _columnWidth + (_columns - 1) * Gap, rows * _cellHeight + (rows - 1) * Gap);
     }
     protected override Size ArrangeOverride(Size finalSize)
@@ -100,10 +115,18 @@ public sealed class ModularItemsPanel : Panel
         {
             if (!_placements.TryGetValue(child, out var placement)) continue;
             child.Arrange(new Rect(placement.Start % _columns * ColumnStep, placement.Start / _columns * RowStep,
-                _columnWidth * placement.Span + Gap * (placement.Span - 1), _cellHeight));
+                _columnWidth * placement.Span + Gap * (placement.Span - 1), _cellHeight * placement.Height + Gap * (placement.Height - 1)));
         }
         return finalSize;
     }
+    private ModulePosition? PositionOf(UIElement element) =>
+        DataContext is IModularPanel model && element is FrameworkElement { DataContext: { } item } && model.GetModuleId(item) is { } id
+            ? model.ModulePositions.FirstOrDefault(position => position.Id == id) : null;
+    private int WidthOf(UIElement element) => PositionOf(element) is { Width: > 0 } position ? position.Width : GetColumnSpan(element);
+    private int HeightOf(UIElement element) => Math.Clamp(PositionOf(element)?.Height ?? 1, 1, 16);
+    public (int Width, int Height) SizeOf(UIElement element) => (WidthOf(element), HeightOf(element));
+    public (int Width, int Height) SizeFromDelta(UIElement element, Point delta, int width, int height) =>
+        (Math.Clamp(width + (int)Math.Round(delta.X / ColumnStep), 1, LogicalColumns), Math.Clamp(height + (int)Math.Round(delta.Y / RowStep), 1, 16));
     private int Index(UIElement element)
     {
         if (DataContext is IModularPanel model && element is FrameworkElement { DataContext: { } item } && model.GetModuleId(item) is { } id &&
@@ -115,7 +138,7 @@ public sealed class ModularItemsPanel : Panel
         var col = Math.Clamp((int)(Math.Max(0, point.X) / ColumnStep), 0, _columns - 1);
         var row = Math.Clamp((int)(Math.Max(0, point.Y) / RowStep), 0, 4095);
         var slot = Math.Min(row * _columns + col, 4095 * LogicalColumns + LogicalColumns - 1);
-        var hit = _placements.Values.FirstOrDefault(p => slot >= p.Start && slot < p.Start + p.Span);
+        var hit = _placements.Values.FirstOrDefault(p => slot / _columns >= p.Start / _columns && slot / _columns < p.Start / _columns + p.Height && slot % _columns >= p.Start % _columns && slot % _columns < p.Start % _columns + p.Span);
         if (hit.Span > 0) slot = hit.Logical;
         else
         {

@@ -1,7 +1,11 @@
 namespace UberDashboard.Core.ModularPanels;
 
 /// <summary>A stable element's position in a modular panel's logical grid.</summary>
-public sealed record ModulePosition(string Id, int Column, int Row);
+public sealed record ModulePosition(string Id, int Column, int Row)
+{
+    public int Width { get; init; }
+    public int Height { get; init; } = 1;
+}
 
 /// <summary>Pure grid operations; positions are independent of screen pixels and panel size.</summary>
 public static class ModuleGrid
@@ -23,7 +27,7 @@ public static class ModuleGrid
                 item.Column >= columns || item.Row > MaximumCoordinate) continue;
             var slot = checked(item.Row * columns + item.Column);
             if (!used.Add(slot)) continue;
-            positions.Add(item.Id, item);
+            positions.Add(item.Id, item with { Width = Math.Clamp(item.Width, 0, columns), Height = Math.Clamp(item.Height, 1, 16) });
         }
         var next = 0;
         foreach (var id in ids)

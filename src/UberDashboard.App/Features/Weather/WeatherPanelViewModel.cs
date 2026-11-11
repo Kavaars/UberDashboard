@@ -41,6 +41,14 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         if (moved.SequenceEqual(ModulePositions)) return;
         _modulePositions = moved; OnPropertyChanged(nameof(ModulePositions)); Changed?.Invoke(this, EventArgs.Empty);
     }
+    public void ResizeModule(string id, int width, int height)
+    {
+        if (!IsModuleEditMode || ModulePositions.FirstOrDefault(position => position.Id == id) is not { } current) return;
+        var updated = current with { Width = Math.Clamp(width, 1, 4), Height = Math.Clamp(height, 1, 16) };
+        if (updated == current) return;
+        _modulePositions = ModulePositions.Select(position => position.Id == id ? updated : position).ToArray();
+        OnPropertyChanged(nameof(ModulePositions)); Changed?.Invoke(this, EventArgs.Empty);
+    }
     public void MoveModule(object source, object target)
     {
         if (source is not WeatherModule from || target is not WeatherModule to) return;

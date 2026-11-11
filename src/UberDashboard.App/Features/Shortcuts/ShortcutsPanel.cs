@@ -47,6 +47,14 @@ public sealed partial class ShortcutsPanel : ObservableObject, IPanelInstance, I
         Model.ModulePositions = positions;
         OnPropertyChanged(nameof(ModulePositions)); Save();
     }
+    public void ResizeModule(string id, int width, int height)
+    {
+        if (!IsModuleEditMode || ModulePositions.FirstOrDefault(position => position.Id == id) is not { } current) return;
+        var updated = current with { Width = Math.Clamp(width, 1, 4), Height = Math.Clamp(height, 1, 16) };
+        if (updated == current) return;
+        Model.ModulePositions = ModulePositions.Select(position => position.Id == id ? updated : position).ToArray();
+        OnPropertyChanged(nameof(ModulePositions)); Save();
+    }
     public void MoveModule(object source, object target)
     {
         if (!IsModuleEditMode || source is not ShortcutEntry from || target is not ShortcutEntry to) return;

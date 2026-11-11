@@ -50,4 +50,16 @@ public sealed class ModuleGridTests
         Assert.True(placements[2].Start > placements[1].Start);
     }
 
+    [Fact]
+    public void Restoring_and_moving_preserves_sizes_and_old_documents_remain_valid()
+    {
+        Assert.NotNull(typeof(ModulePosition).GetConstructor([typeof(string), typeof(int), typeof(int)]));
+        var old = System.Text.Json.JsonSerializer.Deserialize<ModulePosition>("{\"Id\":\"a\",\"Column\":0,\"Row\":0}")!;
+        var positions = ModuleGrid.Restore(["a", "b"], [old, new("b", 1, 0) { Width = 3, Height = 2 }], 4);
+        var moved = ModuleGrid.Move(positions, "b", 0, 1, 4);
+        Assert.Equal((0, 1), (moved[0].Width, moved[0].Height));
+        Assert.Equal((3, 2), (moved[1].Width, moved[1].Height));
+        Assert.Equal(moved, System.Text.Json.JsonSerializer.Deserialize<ModulePosition[]>(System.Text.Json.JsonSerializer.Serialize(moved)));
+    }
+
 }

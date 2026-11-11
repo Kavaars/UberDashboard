@@ -176,9 +176,9 @@
     <DockPanel Margin="{DynamicResource Token.Padding.Panel}">
       <TextBlock DockPanel.Dock="Top" Text="{Binding Status}" TextWrapping="Wrap" Margin="0,0,0,6"/>
       <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <ListBox ItemsSource="{Binding Readings}" x:Name="ResourceList" AutomationProperties.Name="{loc:Text ResourceMonitor}" AutomationProperties.HelpText="{loc:Text ModuleKeyboardHelp}" controls:ModuleReorderBehavior.Managed="True" controls:ModuleReorderBehavior.Enabled="{Binding IsModuleEditMode}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-          <ListBox.ItemsPanel><ItemsPanelTemplate><controls:ModularItemsPanel CellHeight="24" AutoCellHeight="True" Spacing="{Binding ModuleSpacing}">
-            <controls:ModularItemsPanel.Style><Style TargetType="controls:ModularItemsPanel"><Style.Triggers><DataTrigger Binding="{Binding ShowTiles}" Value="True"><Setter Property="CellWidth" Value="108"/></DataTrigger></Style.Triggers></Style></controls:ModularItemsPanel.Style>
+        <ListBox ItemsSource="{Binding Readings}" x:Name="ResourceList" AutomationProperties.Name="{loc:Text ResourceMonitor}" AutomationProperties.HelpText="{loc:Text ModuleKeyboardHelp}" ToolTip="{loc:Text ModuleKeyboardHelp}" controls:ModuleReorderBehavior.Managed="True" controls:ModuleReorderBehavior.Enabled="{Binding IsModuleEditMode}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+          <ListBox.ItemsPanel><ItemsPanelTemplate><controls:ModularItemsPanel Spacing="{Binding ModuleSpacing}">
+            <controls:ModularItemsPanel.Style><Style TargetType="controls:ModularItemsPanel"><Setter Property="CellHeight" Value="24"/><Setter Property="AutoCellHeight" Value="True"/><Style.Triggers><DataTrigger Binding="{Binding ShowTiles}" Value="True"><Setter Property="CellWidth" Value="100"/><Setter Property="CellHeight" Value="60"/><Setter Property="AutoCellHeight" Value="False"/></DataTrigger></Style.Triggers></Style></controls:ModularItemsPanel.Style>
           </controls:ModularItemsPanel></ItemsPanelTemplate></ListBox.ItemsPanel>
           <ListBox.ItemTemplate>
             <DataTemplate>
@@ -192,7 +192,7 @@
                   </StackPanel>
                 </DockPanel>
               </Border>
-              <Border x:Name="TileReading" Visibility="Collapsed" Width="100" Height="60" Margin="2" Padding="3" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" ToolTip="{Binding Name}" AutomationProperties.Name="{Binding Name}" AutomationProperties.HelpText="{Binding Device}">
+              <Border x:Name="TileReading" Visibility="Collapsed" MinHeight="60" Margin="2" Padding="3" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" ToolTip="{Binding Name}" AutomationProperties.Name="{Binding Name}" AutomationProperties.HelpText="{Binding Device}">
                 <Grid ClipToBounds="True">
                   <Viewbox Stretch="Uniform"><TextBlock Text="{Binding TileLabel}" FontWeight="Bold" Foreground="{DynamicResource Brush.Text.Muted}" Opacity="0.28"/></Viewbox>
                   <Viewbox Stretch="Uniform" Margin="2"><TextBlock Text="{Binding TileValue}" FontWeight="Bold" Foreground="{DynamicResource Brush.Text}"/></Viewbox>
@@ -1035,7 +1035,7 @@
           <ProgressBar Height="3" IsIndeterminate="True" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}"/>
           </StackPanel>
       <controls:FitColumnsBox Scale="{Binding ModuleScale}">
-      <ListBox Padding="0" ItemsSource="{Binding Modules}" controls:ModuleReorderBehavior.Managed="True" controls:ModuleReorderBehavior.Enabled="{Binding IsModuleEditMode}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="{loc:Text Weather}" AutomationProperties.HelpText="{loc:Text ModuleKeyboardHelp}">
+      <ListBox Padding="0" ItemsSource="{Binding Modules}" controls:ModuleReorderBehavior.Managed="True" controls:ModuleReorderBehavior.Enabled="{Binding IsModuleEditMode}" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="{loc:Text Weather}" AutomationProperties.HelpText="{loc:Text ModuleKeyboardHelp}" ToolTip="{loc:Text ModuleKeyboardHelp}">
         <ListBox.ItemsPanel>
           <ItemsPanelTemplate>
           <controls:ModularItemsPanel CellHeight="112" Spacing="{Binding ModuleSpacing}"/>

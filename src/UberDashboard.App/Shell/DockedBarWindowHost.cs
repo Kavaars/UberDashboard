@@ -27,6 +27,8 @@ public sealed class DockedBarWindowHost(AppBarController appBar, IMonitorProvide
     private int _thickness;
     private bool _waiting;
     private DispatcherTimer? _settle;
+    private PixelRect? _lastBounds;
+    private bool _restorePending;
 
     // Po zmianie monitorów Windows potrafi jeszcze przesunąć okna lub zgłosić monitor z opóźnieniem,
     // więc pozycję paska ponawiamy po krótkiej chwili (jednorazowo, z każdą próbą od nowa przy braku monitora).
@@ -47,7 +49,7 @@ public sealed class DockedBarWindowHost(AppBarController appBar, IMonitorProvide
         _waiting = false;
         if (_window is { IsVisible: false } window) window.Show();
         _applying = true;
-        try { return ShellWindowInterop.ApplyBounds(handle, bounds); }
+        try { var applied = ShellWindowInterop.ApplyBounds(handle, bounds); if (applied) _lastBounds = bounds; return applied; }
         finally { _applying = false; }
     }
 
@@ -111,6 +113,7 @@ public sealed class DockedBarWindowHost(AppBarController appBar, IMonitorProvide
         window.WindowState = snapshot.State;
         window.ShowInTaskbar = snapshot.ShowInTaskbar;
         _waiting = false;
+        _lastBounds = null;
         _monitorId = null;
         _snapshot = null;
         _source = null;
@@ -128,7 +131,22 @@ public sealed class DockedBarWindowHost(AppBarController appBar, IMonitorProvide
         else if ((uint)message == ShellWindowInterop.TaskbarCreatedMessage) QueuePosition(true, true);
         else if (message is 0x007E or 0x02E0) { QueuePosition(false, true); ScheduleSettle(); }
         else if (message == 0x0006) appBar.NotifyActivated((wParam.ToInt64() & 0xffff) != 0);
-        else if (message == 0x0047) appBar.NotifyWindowPositionChanged();
+        else if (message == 0x0047)
+        {
+            appBar.NotifyWindowPositionChanged();
+            if (!_waiting && !_restorePending && _lastBounds is { } expected && ShellWindowInterop.ReadBounds(hwnd) is { } actual && actual != expected)
+            {
+                _restorePending = true;
+                _window?.Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+                {
+                    _restorePending = false;
+                    if (_window is null || _waiting || _lastBounds is not { } bounds) return;
+                    _applying = true;
+                    try { ShellWindowInterop.ApplyBounds(hwnd, bounds); }
+                    finally { _applying = false; }
+                }));
+            }
+        }
         else if (message == 0x0002) appBar.Remove();
         return IntPtr.Zero;
     }
@@ -168,6 +186,7 @@ public sealed class DockedBarWindowHost(AppBarController appBar, IMonitorProvide
                     ScheduleSettle();
                     return;
                 }
+                _lastBounds = result.Rect;
             }
             finally { _applying = false; }
         }));

@@ -17,4 +17,6 @@ public interface IModularPanel
     string? GetModuleId(object item);
     /// <summary>Moves a module when editing is enabled; the implementation persists and notifies the change.</summary>
     void MoveModuleToCell(string id, int column, int row);
+    /// <summary>Changes module dimensions in grid cells when supported by the panel.</summary>
+    void ResizeModule(string id, int width, int height) { }
 }

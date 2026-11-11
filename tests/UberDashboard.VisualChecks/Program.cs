@@ -86,6 +86,8 @@ internal static class Program
                 foreach (var name in new[] { "PART_VerticalScrollBar", "PART_HorizontalScrollBar" })
                 {
                     var bar = (System.Windows.Controls.Primitives.ScrollBar)scroll.Template.FindName(name, scroll);
+                    if (Math.Abs((bar.Orientation == Orientation.Vertical ? bar.Width : bar.Height) - 6.5) > 0.01)
+                        throw new InvalidOperationException($"Incorrect scroll bar thickness: {name}");
                     bar.ApplyTemplate();
                     if (bar.Template.FindName("PART_Track", bar) is System.Windows.Controls.Primitives.Track appliedTrack) appliedTrack.Thumb.ApplyTemplate();
                     if (bar.Template.FindName("PART_Track", bar) is not System.Windows.Controls.Primitives.Track track ||
@@ -93,6 +95,29 @@ internal static class Program
                         track.Orientation != bar.Orientation)
                         throw new InvalidOperationException($"Missing themed scroll grip: {name}");
                 }
+
+                var moduleGrid = new UberDashboard.App.Controls.ModularItemsPanel { CellWidth = 180, CellHeight = 100 };
+                moduleGrid.DataContext = new ResizeCheckModel();
+                moduleGrid.Children.Add(new Border { DataContext = "a" });
+                moduleGrid.Children.Add(new Border { DataContext = "b" });
+                moduleGrid.Measure(new Size(500, 300));
+                moduleGrid.Arrange(new Rect(0, 0, 500, 300));
+                if (((FrameworkElement)moduleGrid.Children[0]).ActualHeight != 100) throw new InvalidOperationException("Unexpected default module height.");
+                if (Math.Abs(((FrameworkElement)moduleGrid.Children[1]).TranslatePoint(new Point(), moduleGrid).X + ((FrameworkElement)moduleGrid.Children[1]).ActualWidth - 500) > 0.01)
+                    throw new InvalidOperationException("Module moduleGrid does not fill its width.");
+                var check = (ResizeCheckModel)moduleGrid.DataContext;
+                check.ResizeModule("a", 2, 2);
+                moduleGrid.InvalidateMeasure(); moduleGrid.Measure(new Size(500, 600)); moduleGrid.Arrange(new Rect(0, 0, 500, 600));
+                var a = (FrameworkElement)moduleGrid.Children[0]; var b = (FrameworkElement)moduleGrid.Children[1];
+                if (a.ActualHeight < 200 || new Rect(a.TranslatePoint(new Point(), moduleGrid), a.RenderSize).IntersectsWith(new Rect(b.TranslatePoint(new Point(), moduleGrid), b.RenderSize)))
+                    throw new InvalidOperationException("Resized module geometry is invalid.");
+                Console.WriteLine("MODULE RESIZE GEOMETRY PASS");
+                var scaledChild = new Border { Height = 100 };
+                var scaledBox = new UberDashboard.App.Controls.FitColumnsBox { Scale = 0.5, Child = scaledChild };
+                scaledBox.Measure(new Size(500, 300));
+                scaledBox.Arrange(new Rect(0, 0, 500, scaledBox.DesiredSize.Height));
+                if (Math.Abs(scaledChild.RenderTransform.Transform(new Point(scaledChild.ActualWidth, 0)).X - 500) > 0.01)
+                    throw new InvalidOperationException("Scaled grid does not fill its width.");
 
                 var shell = (ShellViewModel)window.DataContext;
                 var theme = provider.GetRequiredService<ThemeService>();
@@ -403,7 +428,7 @@ internal static class Program
                                     var normalHeight = reading.ActualHeight;
                                     if (normalHeight >= 74 || normalHeight < reading.DesiredSize.Height - 0.1)
                                         throw new InvalidOperationException($"Resource field did not fit its content: tiles={tiles}, height={normalHeight}, desired={reading.DesiredSize.Height}.");
-                                    if (tiles && reading.ActualWidth > 112)
+                                    if (tiles && reading.ActualWidth > 128)
                                         throw new InvalidOperationException($"Resource tile field is too wide: {reading.ActualWidth}.");
                                     var textBlocks = Descendants(reading).OfType<TextBlock>().Where(text => text.Visibility == Visibility.Visible).ToArray();
                                     foreach (var text in textBlocks) text.FontSize = 24;
@@ -427,14 +452,17 @@ internal static class Program
                                 var originalSpacing = weatherLayout.ModuleSpacing;
                                 weatherLayout.ModuleSpacing = -8; editCard.UpdateLayout();
                                 var near = rangeContainer.TranslatePoint(new Point(), grid);
+                                var nearEnd = tempContainer.TranslatePoint(new Point(tempContainer.ActualWidth, 0), grid);
                                 var width = tempFrame.ActualWidth; var height = tempFrame.ActualHeight;
                                 if (Math.Abs(width - rangeFrame.ActualWidth) > 1 || Math.Abs(height - rangeFrame.ActualHeight) > 1 ||
                                     width / tempContainer.ActualWidth < .97 || height / tempContainer.ActualHeight < .97)
                                     throw new InvalidOperationException("Weather frames do not fill equal-sized cells uniformly.");
                                 weatherLayout.ModuleSpacing = 16; editCard.UpdateLayout();
                                 var far = rangeContainer.TranslatePoint(new Point(), grid);
-                                if ((far.X <= near.X && far.Y <= near.Y) || Math.Abs(width - tempFrame.ActualWidth) > 1 || Math.Abs(height - tempFrame.ActualHeight) > 1)
-                                    throw new InvalidOperationException("Module spacing did not move cells without resizing frames.");
+                                var farEnd = tempContainer.TranslatePoint(new Point(tempContainer.ActualWidth, 0), grid);
+                                if ((far.Y <= near.Y && far.X - farEnd.X <= near.X - nearEnd.X) ||
+                                    Math.Abs(tempFrame.ActualWidth - rangeFrame.ActualWidth) > 1 || Math.Abs(height - tempFrame.ActualHeight) > 1)
+                                    throw new InvalidOperationException("Module spacing did not increase the gap or preserve uniform frames.");
                                 weatherLayout.ModuleSpacing = originalSpacing; editCard.UpdateLayout();
                             }
                             if (leaf.PanelTypeId == "weather")
@@ -450,11 +478,12 @@ internal static class Program
                                 var wideItem = wideList.Items.Cast<object>().First(value => modular.GetModuleId(value) is not null);
                                 var wideId = modular.GetModuleId(wideItem)!;
                                 var originalPosition = modular.ModulePositions.Single(position => position.Id == wideId);
-                                var wideCell = wideGrid.CellAt(new Point(6 * 188 + 10, 10));
+                                var seventhColumn = wideGrid.RenderSize.Width * 6 / 7;
+                                var wideCell = wideGrid.CellAt(new Point(seventhColumn + 10, 10));
                                 modular.MoveModuleToCell(wideId, wideCell.Column, wideCell.Row); wideList.UpdateLayout();
                                 var wideContainer = (FrameworkElement)wideList.ItemContainerGenerator.ContainerFromItem(wideItem);
                                 var widePoint = wideContainer.TranslatePoint(new Point(), wideGrid);
-                                if (widePoint.X < 6 * 188 - 1) throw new InvalidOperationException($"Module could not reach the seventh visible column: grid={wideGrid.RenderSize}, target={wideCell}, result={widePoint}.");
+                                if (widePoint.X < seventhColumn - 1) throw new InvalidOperationException($"Module could not reach the seventh visible column: grid={wideGrid.RenderSize}, target={wideCell}, result={widePoint}.");
                                 wideList.SelectedItem = wideItem;
                                 if (wideList.SelectedItem is null) throw new InvalidOperationException("Module selection is unavailable in edit mode.");
                                 modular.IsModuleEditMode = false;
@@ -470,6 +499,18 @@ internal static class Program
                             if (item is not null && modular.GetModuleId(item) is { } id && list.ItemContainerGenerator.ContainerFromItem(item) is FrameworkElement container)
                             {
                                 var original = modular.ModulePositions.Single(position => position.Id == id);
+                                modular.ResizeModule(id, 2, 2);
+                                editCard.UpdateLayout();
+                                var resized = modular.ModulePositions.Single(position => position.Id == id);
+                                if (resized.Width != 2 || resized.Height != 2) throw new InvalidOperationException("Module size was not saved.");
+                                var firstBounds = new Rect(container.TranslatePoint(new Point(), grid), container.RenderSize);
+                                foreach (var other in list.Items.Cast<object>().Where(value => !ReferenceEquals(value, item)))
+                                {
+                                    if (list.ItemContainerGenerator.ContainerFromItem(other) is not FrameworkElement { IsVisible: true } element) continue;
+                                    var bounds = new Rect(element.TranslatePoint(new Point(), grid), element.RenderSize);
+                                    if (firstBounds.IntersectsWith(bounds)) throw new InvalidOperationException("Resized modules overlap.");
+                                }
+                                modular.ResizeModule(id, original.Width == 0 ? 1 : original.Width, original.Height);
                                 modular.MoveModuleToCell(id, 3, 4);
                                 editCard.UpdateLayout();
                                 var moved = container.TranslatePoint(new Point(), grid);
@@ -499,4 +540,13 @@ internal static class Program
         Dispatcher.Run();
         return _exitCode;
     }
+}
+
+internal sealed class ResizeCheckModel : UberDashboard.Contracts.Panels.IModularPanel
+{
+    public bool IsModuleEditMode { get; set; } = true;
+    public IReadOnlyList<UberDashboard.Core.ModularPanels.ModulePosition> ModulePositions { get; private set; } = [new("a", 0, 0), new("b", 1, 0)];
+    public string? GetModuleId(object item) => item as string;
+    public void MoveModuleToCell(string id, int column, int row) { }
+    public void ResizeModule(string id, int width, int height) => ModulePositions = ModulePositions.Select(position => position.Id == id ? position with { Width = width, Height = height } : position).ToArray();
 }
