@@ -17,7 +17,9 @@ public sealed record WeatherHourlyForecastDisplayItem(
     string ColorGlyph,
     string TemperatureText,
     string ConditionText,
-    double TemperatureCelsius);
+    double TemperatureCelsius,
+    int WeatherCode,
+    bool IsDay);
 
 /// <summary>
 /// Model widoku panelu pogody z wyszukiwaniem lokalizacji, odświeżaniem i fallbackiem do cache.
@@ -151,6 +153,13 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
 
     [ObservableProperty]
     private string colorConditionGlyph = "•";
+    [ObservableProperty] private int weatherCode = -1;
+    [ObservableProperty] private bool weatherIsDay = true;
+    [ObservableProperty] private string iconSet = "legacy";
+    partial void OnIconSetChanged(string value) => Changed?.Invoke(this, EventArgs.Empty);
+    public IReadOnlyList<WeatherIconOption> IconSetOptions { get; } =
+    [new("legacy", "WeatherIconsExisting"), new("line", "WeatherIconsLine"), new("color", "WeatherIconsColor"), new("mono", "WeatherIconsMono")];
+    public sealed record WeatherIconOption(string Id, string NameKey) { public string Name => UiText.Get(NameKey); }
 
     [ObservableProperty]
     private string windText = "—";
@@ -160,6 +169,12 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
 
     [ObservableProperty]
     private string dailyRangeText = "—";
+
+    [ObservableProperty]
+    private string highText = "—";
+
+    [ObservableProperty]
+    private string lowText = "—";
 
     [ObservableProperty]
     private string sunriseText = "—";
@@ -299,6 +314,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         SelectedLocation = document.SelectedLocation;
         AutoRefreshMinutes = Math.Clamp(document.AutoRefreshMinutes, 5, 180);
         ColorfulTheme = document.ColorfulTheme;
+        IconSet = document.IconSet is "line" or "color" or "mono" ? document.IconSet : "legacy";
         ShowLocation = document.ShowLocation; ShowIcon = document.ShowIcon; ShowTemperature = document.ShowTemperature;
         ShowCondition = document.ShowCondition; ShowDailyRange = document.ShowDailyRange; ShowSunrise = document.ShowSunrise;
         ShowSunset = document.ShowSunset; ShowForecast = document.ShowForecast;
@@ -321,6 +337,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         SelectedLocation = SelectedLocation,
         AutoRefreshMinutes = AutoRefreshMinutes,
         ColorfulTheme = ColorfulTheme,
+        IconSet = IconSet,
         ShowLocation = ShowLocation, ShowIcon = ShowIcon, ShowTemperature = ShowTemperature,
         ShowCondition = ShowCondition, ShowDailyRange = ShowDailyRange, ShowSunrise = ShowSunrise,
         ShowSunset = ShowSunset, ShowForecast = ShowForecast,
@@ -536,6 +553,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
     private void ApplySnapshot(WeatherSnapshot snapshot)
     {
         TemperatureCelsius = snapshot.TemperatureCelsius;
+        WeatherCode = snapshot.WeatherCode; WeatherIsDay = snapshot.IsDay;
         ConditionText = WeatherConditionCatalog.Describe(snapshot.WeatherCode);
         ConditionGlyph = WeatherConditionCatalog.Glyph(snapshot.WeatherCode, snapshot.IsDay);
         ColorConditionGlyph = WeatherConditionCatalog.ColorGlyph(snapshot.WeatherCode, snapshot.IsDay);
@@ -544,6 +562,8 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
         DailyRangeText = snapshot.DailyHighCelsius.HasValue || snapshot.DailyLowCelsius.HasValue
             ? UiText.Format("HighLow2", FormatTemperature(snapshot.DailyHighCelsius), FormatTemperature(snapshot.DailyLowCelsius))
             : "—";
+        HighText = FormatTemperature(snapshot.DailyHighCelsius);
+        LowText = FormatTemperature(snapshot.DailyLowCelsius);
         SunriseText = snapshot.Sunrise?.ToString("HH:mm") ?? "—";
         SunsetText = snapshot.Sunset?.ToString("HH:mm") ?? "—";
         ReplaceHourlyForecast(snapshot.HourlyForecast ?? Array.Empty<WeatherHourlyForecastPoint>());
@@ -555,12 +575,15 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
     private void ResetSnapshot()
     {
         TemperatureCelsius = null;
+        WeatherCode = -1; WeatherIsDay = true;
         ConditionText = UiText.Get("NoData");
         ConditionGlyph = "•";
         ColorConditionGlyph = "•";
         WindText = "—";
         UpdatedText = "—";
         DailyRangeText = "—";
+        HighText = "—";
+        LowText = "—";
         SunriseText = "—";
         SunsetText = "—";
         HourlyForecast.Clear();
@@ -608,7 +631,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
                 WeatherConditionCatalog.Glyph(point.WeatherCode, point.IsDay),
                 WeatherConditionCatalog.ColorGlyph(point.WeatherCode, point.IsDay),
                 $"{point.TemperatureCelsius:0.#} °C",
-                WeatherConditionCatalog.Describe(point.WeatherCode), point.TemperatureCelsius));
+                WeatherConditionCatalog.Describe(point.WeatherCode), point.TemperatureCelsius, point.WeatherCode, point.IsDay));
         }
 
         OnPropertyChanged(nameof(HasHourlyForecast));

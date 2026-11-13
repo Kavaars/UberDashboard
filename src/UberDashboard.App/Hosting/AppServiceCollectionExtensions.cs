@@ -128,6 +128,12 @@ public static class AppServiceCollectionExtensions
                 provider.GetRequiredService<IWeatherService>(),
                 provider.GetRequiredService<IWeatherLocationSearchService>(),
                 provider.GetRequiredService<IWeatherCacheStore>()))));
+
+        services.AddSingleton<BuiltInPanelRegistration>(provider => new BuiltInPanelRegistration(
+            Features.HomeAssistant.HomeAssistantPanelDescriptor.Id,
+            new Features.HomeAssistant.HomeAssistantPanelDescriptor(
+                provider.GetRequiredService<PanelStateScheduler>(),
+                provider.GetRequiredService<UberDashboard.Application.HomeAssistant.IHomeAssistantService>())));
     }
 
     private static PanelCatalog CreateCatalog(IServiceProvider provider)

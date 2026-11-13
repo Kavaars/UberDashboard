@@ -5,7 +5,7 @@ using UberDashboard.Core.Layout;
 namespace UberDashboard.Core.Panels;
 
 /// <summary>Osobna instancja panelu i nazwa jej zakładki.</summary>
-public sealed record PanelTab(PanelInstanceId InstanceId, string Name);
+public sealed record PanelTab(PanelInstanceId InstanceId, string Name, string? Color = null);
 
 /// <summary>Niezmienny opis kolejności zakładek panelu i aktywnej instancji.</summary>
 public sealed class PanelTabGroup
@@ -56,6 +56,15 @@ public sealed class PanelTabGroup
     {
         var index = Find(id);
         return new PanelTabGroup(GroupId, Tabs.SetItem(index, Tabs[index] with { Name = ValidateName(name) }), ActiveId);
+    }
+
+    /// <summary>Ustawia kolor tła zakładki w formacie #RRGGBB; null przywraca kolor domyślny.</summary>
+    public PanelTabGroup Recolor(PanelInstanceId id, string? color)
+    {
+        var index = Find(id);
+        if (color is not null && !System.Text.RegularExpressions.Regex.IsMatch(color, "^#[0-9A-Fa-f]{6}$"))
+            throw new ArgumentException(UiText.Get("InvalidTabColor"), nameof(color));
+        return new PanelTabGroup(GroupId, Tabs.SetItem(index, Tabs[index] with { Color = color }), ActiveId);
     }
 
     public PanelTabGroup Select(PanelInstanceId id)

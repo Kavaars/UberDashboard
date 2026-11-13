@@ -108,6 +108,61 @@ public sealed class LiveSettingsTests
     }
 
     [Fact]
+    public async Task Color_theme_presets_save_colors_without_changing_wallpaper()
+    {
+        var store = new FakeAppSettingsStore(); var clock = new FakeClock();
+        var settings = new ApplicationSettingsService(store, clock);
+        using var theme = new ThemeService(store, settings, clock, NullLogger<ThemeService>.Instance);
+        var integration = new Integration();
+        var vm = new SettingsViewModel(settings, new FakeWindowModeSettingsService(), new Coordinator(),
+            new FakeMonitorProvider { Monitors = [] }, theme, new ToastService(NullLogger<ToastService>.Instance), integration, integration, new Picker());
+        await vm.LoadAsync();
+        vm.WallpaperPath = "custom.png";
+        Assert.Equal(10, vm.ColorThemePresets.Count);
+        foreach (var preset in vm.ColorThemePresets)
+        {
+            vm.SelectedColorThemePreset = preset;
+            Assert.Equal(preset, vm.SelectedColorThemePreset);
+            Assert.Equal(preset.Accent, vm.AccentColor);
+            Assert.Equal(preset.Surface, vm.SurfaceColor);
+        }
+        await vm.FlushAsync();
+        await vm.LoadAsync();
+        Assert.Equal(vm.ColorThemePresets[^1], vm.SelectedColorThemePreset);
+        Assert.Equal("custom.png", vm.WallpaperPath);
+        vm.AccentColor = "#123456";
+        Assert.Null(vm.SelectedColorThemePreset);
+        await vm.FlushAsync();
+    }
+
+    [Fact]
+    public async Task Built_in_wallpaper_selection_survives_reload_and_preserves_custom_paths()
+    {
+        var store = new FakeAppSettingsStore(); var clock = new FakeClock();
+        var settings = new ApplicationSettingsService(store, clock);
+        using var theme = new ThemeService(store, settings, clock, NullLogger<ThemeService>.Instance);
+        var integration = new Integration();
+        var vm = new SettingsViewModel(settings, new FakeWindowModeSettingsService(), new Coordinator(),
+            new FakeMonitorProvider { Monitors = [] }, theme, new ToastService(NullLogger<ToastService>.Instance), integration, integration, new Picker());
+        await vm.LoadAsync();
+        Assert.Equal(10, vm.BuiltInWallpapers.Count);
+        var selected = vm.BuiltInWallpapers[0];
+        vm.SelectedBuiltInWallpaper = selected.Id;
+        await vm.FlushAsync();
+        Assert.Equal(selected.Id, (await settings.LoadAsync()).WallpaperPath);
+        await vm.LoadAsync();
+        Assert.Equal(selected.Id, vm.SelectedBuiltInWallpaper);
+        Assert.Equal(selected.ImagePath, BuiltInWallpaper.ResolvePath(selected.Id));
+        vm.WallpaperPath = "custom.png";
+        await vm.FlushAsync();
+        Assert.Null(vm.SelectedBuiltInWallpaper);
+        Assert.Equal("custom.png", BuiltInWallpaper.ResolvePath("custom.png"));
+        vm.RemoveWallpaperCommand.Execute(null);
+        await vm.FlushAsync();
+        Assert.Null((await settings.LoadAsync()).WallpaperPath);
+    }
+
+    [Fact]
     public async Task Appearance_survives_reload_and_is_isolated_by_instance()
     {
         var store = new FakeAppSettingsStore(); var clock = new FakeClock(); var id = Guid.NewGuid();

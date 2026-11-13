@@ -67,6 +67,23 @@ internal static class Program
                 services.AddUberDashboardApp();
                 services.AddSingleton<UberDashboard.Application.Weather.IWeatherService, SampleWeatherService>();
                 await using var provider = services.BuildServiceProvider();
+                foreach (var iconSet in new[] { "line", "color", "mono" })
+                {
+                    foreach (var code in new[] { 0, 2, 3, 45, 61, 71, 95, -1 })
+                    {
+                        var icon = new UberDashboard.App.Features.Weather.WeatherIcon
+                        { Width = 48, Height = 48, Code = code, IconSet = iconSet, Foreground = Brushes.Black };
+                        icon.Measure(new Size(48, 48)); icon.Arrange(new Rect(0, 0, 48, 48)); icon.UpdateLayout();
+                        var image = new RenderTargetBitmap(48, 48, 96, 96, PixelFormats.Pbgra32);
+                        image.Render(icon);
+                        var pixels = new byte[48 * 48 * 4]; image.CopyPixels(pixels, 48 * 4, 0);
+                        if (!pixels.Where((_, index) => index % 4 == 3).Any(alpha => alpha != 0))
+                            throw new InvalidOperationException($"Weather icon is blank: {iconSet}/{code}");
+                        var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(image));
+                        using var iconOutput = File.Create(Path.Combine(output, $"weather-{iconSet}-{code}.png")); encoder.Save(iconOutput);
+                    }
+                }
+                Console.WriteLine("WEATHER ICON SETS PASS");
                 var window = provider.GetRequiredService<UberDashboard.App.MainWindow>();
                 DockedBarChecks.Run(provider);
                 await WindowPlacementChecks.RunAsync(provider);
@@ -172,6 +189,7 @@ internal static class Program
                     }
                     if (leaf.ViewModel is UberDashboard.App.Features.Weather.WeatherPanelViewModel weather)
                     {
+                        weather.IconSet = "line";
                         weather.IsNetworkEnabled = true;
                         weather.SelectedLocation = new("Testowe miasto", "Region", "Polska", 50, 20, "Europe/Warsaw");
                         await weather.RefreshAsync();
@@ -502,7 +520,8 @@ internal static class Program
                                 modular.ResizeModule(id, 2, 2);
                                 editCard.UpdateLayout();
                                 var resized = modular.ModulePositions.Single(position => position.Id == id);
-                                if (resized.Width != 2 || resized.Height != 2) throw new InvalidOperationException("Module size was not saved.");
+                                // Monitor zasobów ma jednakowy rozmiar modułów i ignoruje zmianę rozmiaru.
+                                if (leaf.PanelTypeId != "system-resources" && (resized.Width != 2 || resized.Height != 2)) throw new InvalidOperationException("Module size was not saved.");
                                 var firstBounds = new Rect(container.TranslatePoint(new Point(), grid), container.RenderSize);
                                 foreach (var other in list.Items.Cast<object>().Where(value => !ReferenceEquals(value, item)))
                                 {

@@ -138,7 +138,7 @@ public partial class MainWindow : Window
                 {
                     image = await Task.Run(() =>
                     {
-                        using var stream = File.OpenRead(path);
+                        using var stream = File.OpenRead(BuiltInWallpaper.ResolvePath(path));
                         var bitmap = new BitmapImage();
                         bitmap.BeginInit(); bitmap.CacheOption = BitmapCacheOption.OnLoad;
                         bitmap.DecodePixelWidth = 2560; bitmap.StreamSource = stream; bitmap.EndInit(); bitmap.Freeze();

@@ -1,3 +1,7 @@
+2026-11-13T19:46:38+01:00 | Afirmacje: pisz po kliknięciu w panel; osobne pole usunięto. Zakładki: kolor tła w menu zakładki. Pogoda: większe max/min i bieżące warunki. Monitor zasobów: jednakowe moduły, podpowiedź opisuje wskaźnik, bez czasu pomiaru. Usunięto przycisk Edytuj układ z paska; zostaje w menu Układ.
+2026-11-11T19:01:44+01:00 | Odświeżono kafelki monitora zasobów: ikony, czytelniejsze wartości i wskaźniki procentowe.
+2026-11-11T18:44:58+01:00 | Dodano dziesięć motywów kolorystycznych oraz wybór zestawu ikon pogody.
+2026-11-11T18:29:55+01:00 | Dodano galerię dziesięciu abstrakcyjnych tapet aplikacji.
 2026-11-11T12:39:26+01:00 | Ochrona zapisów paneli przed nadpisaniem przy błędnym lub nowszym formacie; nowe zadania nie są oznaczane jako widziane w ukrytym oknie.
 2026-11-11T12:23:21+01:00 | Dopasowano wymiary kafelków zasobów i zachowano zgodność zapisów oraz istniejących wtyczek. Uzupełniono instrukcję modułów i ToDo.
 2026-11-11T11:07:43+01:00 | Moduły pogody, zasobów i skrótów: indywidualna zmiana rozmiaru w trybie edycji.

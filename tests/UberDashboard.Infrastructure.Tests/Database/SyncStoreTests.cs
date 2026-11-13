@@ -182,7 +182,7 @@ public sealed class SyncStoreTests
         Assert.Equal(6, upgraded.FormatVersion); Assert.Equal(newRevision, upgraded.Version); Assert.Null(upgraded.Cursor);
         Assert.Equal(original.Queue[0].Id, upgraded.Queue[0].Id); Assert.Equal("offline", upgraded.Items[0].Local!["summary"]!.GetValue<string>());
         Assert.False(await store.SaveAsync(upgraded, 17));
-        var backup = Directory.GetFiles(Path.Combine(fixture.Root, "Data", "Backups"), "pre-sync-v9-*.db").Single(path =>
+        var backup = Directory.GetFiles(Path.Combine(fixture.Root, "Data", "Backups"), $"pre-sync-v{UberDashboard.Infrastructure.Database.SqliteSchema.CurrentVersion}-*.db").Single(path =>
         {
             using var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={path};Mode=ReadOnly;Pooling=False"); connection.Open();
             using var command = connection.CreateCommand(); command.CommandText = "SELECT MAX(Version) FROM SchemaMigration"; return (long)command.ExecuteScalar()! == schemaVersion;

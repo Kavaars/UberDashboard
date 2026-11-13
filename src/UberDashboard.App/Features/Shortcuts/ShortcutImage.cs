@@ -72,7 +72,6 @@ public sealed class ShortcutImage : System.Windows.Controls.Image
             return bitmap;
         }
         if (string.IsNullOrWhiteSpace(target) || !Path.IsPathFullyQualified(target) || target.StartsWith(@"\\", StringComparison.Ordinal)) return null;
-        if (Path.GetExtension(target).ToLowerInvariant() is not (".exe" or ".lnk" or ".ico")) return null;
         if (!File.Exists(target)) return null;
         using var icon = System.Drawing.Icon.ExtractAssociatedIcon(target);
         if (icon is null) return null;

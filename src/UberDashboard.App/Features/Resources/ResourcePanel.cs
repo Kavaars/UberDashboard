@@ -34,7 +34,8 @@ public sealed partial class ResourcePanel : ObservableObject, IPanelInstance, IP
     private bool _reportedError;
     private readonly List<string> _moduleOrder = [];
     private IReadOnlyList<ModulePosition> _modulePositions = [];
-    public IReadOnlyList<ModulePosition> ModulePositions => ModuleGrid.Restore(_moduleOrder, _modulePositions, 4);
+    // Wszystkie moduły mają ten sam rozmiar, więc zapisany rozmiar z dawnych wersji jest ignorowany.
+    public IReadOnlyList<ModulePosition> ModulePositions => ModuleGrid.Restore(_moduleOrder, _modulePositions, 4).Select(position => position with { Width = 0, Height = 1 }).ToArray();
     public string? GetModuleId(object item) => (item as ResourceReading)?.Key;
     public void MoveModuleToCell(string id, int column, int row)
     {
@@ -46,14 +47,8 @@ public sealed partial class ResourcePanel : ObservableObject, IPanelInstance, IP
         ChangeVersion++; StateChanged?.Invoke(this, EventArgs.Empty);
     }
     [ObservableProperty] private bool _isModuleEditMode;
-    public void ResizeModule(string id, int width, int height)
-    {
-        if (!IsModuleEditMode || ModulePositions.FirstOrDefault(position => position.Id == id) is not { } current) return;
-        var updated = current with { Width = Math.Clamp(width, 1, 4), Height = Math.Clamp(height, 1, 16) };
-        if (updated == current) return;
-        _modulePositions = ModulePositions.Select(position => position.Id == id ? updated : position).ToArray();
-        OnPropertyChanged(nameof(ModulePositions)); ChangeVersion++; StateChanged?.Invoke(this, EventArgs.Empty);
-    }
+    /// <summary>Zmiana rozmiaru modułu jest wyłączona: wszystkie moduły mają jednakowy rozmiar.</summary>
+    public void ResizeModule(string id, int width, int height) { }
     public void MoveModule(object source, object target)
     {
         if (!IsModuleEditMode || source is not ResourceReading from || target is not ResourceReading to || from.Key == to.Key) return;
@@ -179,7 +174,7 @@ public sealed partial class ResourcePanel : ObservableObject, IPanelInstance, IP
             linked.Token.ThrowIfCancellationRequested();
             _allReadings = result;
             UpdateReadings();
-            Status = UiText.Format("ReadingAt", DateTime.Now);
+            Status = string.Empty;
             _reportedError = false;
         }
         catch (OperationCanceledException) when (linked.IsCancellationRequested) { }

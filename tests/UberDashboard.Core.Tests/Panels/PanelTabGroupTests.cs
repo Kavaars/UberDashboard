@@ -18,6 +18,16 @@ public sealed class PanelTabGroupTests
     }
 
     [Fact]
+    public void Recolor_sets_and_clears_hex_color_and_rejects_invalid_values()
+    {
+        var first = PanelInstanceId.New();
+        var group = PanelTabGroup.Create(first, "Jeden").Recolor(first, "#3E63DD");
+        Assert.Equal("#3E63DD", group.Tabs[0].Color);
+        Assert.Null(group.Recolor(first, null).Tabs[0].Color);
+        Assert.Throws<ArgumentException>(() => group.Recolor(first, "niebieski"));
+    }
+
+    [Fact]
     public void Removing_active_tab_selects_neighbour_and_last_tab_is_protected()
     {
         var first = PanelInstanceId.New();

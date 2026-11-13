@@ -16,6 +16,7 @@ public sealed class WeatherPanelDocument
     public double ModuleSpacing { get; init; }
     public double ModuleScale { get; init; } = 1;
 
+    public string? IconSet { get; init; }
     public bool ColorfulTheme { get; init; }
     public bool ShowLocation { get; init; } = true;
     public bool ShowIcon { get; init; } = true;

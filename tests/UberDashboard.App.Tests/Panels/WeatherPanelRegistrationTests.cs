@@ -17,14 +17,16 @@ public sealed class WeatherPanelRegistrationTests
         services.AddSingleton<IWeatherService, FakeWeatherService>();
         services.AddSingleton<IWeatherLocationSearchService, FakeWeatherLocationSearchService>();
         services.AddSingleton<IWeatherCacheStore, FakeWeatherCacheStore>();
+        services.AddSingleton<UberDashboard.Application.HomeAssistant.IHomeAssistantService, UberDashboard.App.Tests.HomeAssistant.FakeHomeAssistantService>();
         services.AddUberDashboardApp();
 
         await using var provider = services.BuildServiceProvider();
         var catalog = provider.GetRequiredService<PanelCatalog>();
 
         Assert.NotNull(catalog.DescriptorOf("weather"));
-        Assert.Equal(8, catalog.Registrations.Count);
+        Assert.Equal(9, catalog.Registrations.Count);
         Assert.NotNull(catalog.DescriptorOf("shortcuts"));
+        Assert.NotNull(catalog.DescriptorOf("homeassistant"));
         Assert.NotNull(catalog.DescriptorOf("calendar"));
         Assert.NotNull(catalog.DescriptorOf("system-resources"));
         Assert.NotNull(catalog.DescriptorOf("affirmations"));

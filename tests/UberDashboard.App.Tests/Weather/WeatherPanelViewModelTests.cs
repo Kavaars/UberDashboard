@@ -246,6 +246,35 @@ public sealed class WeatherPanelViewModelTests
         Assert.Equal(saved.NetworkConsentGrantedAtUtc, restored.Snapshot().NetworkConsentGrantedAtUtc);
     }
     [Fact]
+    public void Icon_sets_roundtrip_per_panel_and_old_documents_keep_the_existing_icons()
+    {
+        using var first = new WeatherPanelViewModel(new FakeWeatherService(), new FakeWeatherLocationSearchService(), new FakeWeatherCacheStore(), new FakePanelNotifier());
+        using var second = new WeatherPanelViewModel(new FakeWeatherService(), new FakeWeatherLocationSearchService(), new FakeWeatherCacheStore(), new FakePanelNotifier());
+        first.Load(new WeatherPanelDocument());
+        Assert.Equal("legacy", first.IconSet);
+        foreach (var set in new[] { "line", "color", "mono" })
+        {
+            first.IconSet = set;
+            second.Load(first.Snapshot());
+            Assert.Equal(set, second.IconSet);
+        }
+        second.Load(new WeatherPanelDocument { IconSet = "unknown" });
+        Assert.Equal("legacy", second.IconSet);
+        Assert.Equal("mono", first.IconSet);
+    }
+
+    [Theory]
+    [InlineData(0, "clear")]
+    [InlineData(2, "partly")]
+    [InlineData(3, "cloud")]
+    [InlineData(48, "fog")]
+    [InlineData(67, "rain")]
+    [InlineData(86, "snow")]
+    [InlineData(99, "storm")]
+    [InlineData(-1, "unknown")]
+    public void Weather_icon_covers_condition_groups(int code, string expected) => Assert.Equal(expected, WeatherConditionCatalog.IconKind(code));
+
+    [Fact]
     public void Application_theme_glyphs_do_not_use_emoji_presentation()
     {
         foreach (var code in new[] { 0, 1, 2, 3, 45, 61, 71, 95 })

@@ -3,8 +3,41 @@ using LibreHardwareMonitor.Hardware;
 
 namespace UberDashboard.App.Features.Resources;
 
-public sealed record ResourceReading(string Device, string Name, string Value, string Key = "")
+public sealed record ResourceReading(string Device, string Name, string Value, string Key = "", float? Percent = null)
 {
+    public string IconPath => Key.Contains("Temperature", StringComparison.Ordinal) ? "M 10,14 L 10,4 A 2,2 0 0 1 14,4 L 14,14 A 4,4 0 1 1 10,14 M 12,8 L 12,17" :
+        Key.Contains("Fan", StringComparison.Ordinal) || Key.Contains("Control:", StringComparison.Ordinal) || Key.Contains("Speed:", StringComparison.Ordinal) ? "M 12,12 C 4,10 6,3 10,4 C 13,5 12,9 12,12 M 12,12 C 17,5 22,10 20,14 C 18,17 15,14 12,12 M 12,12 C 15,20 8,22 6,18 C 5,15 9,13 12,12" :
+        Key.Contains("Ram", StringComparison.OrdinalIgnoreCase) ? "M 3,8 L 21,8 L 21,16 L 3,16 Z M 6,10 L 6,14 M 10,10 L 10,14 M 14,10 L 14,14 M 18,10 L 18,14 M 6,16 L 6,19 M 10,16 L 10,19 M 14,16 L 14,19 M 18,16 L 18,19" :
+        Key.Contains("Gpu", StringComparison.Ordinal) ? "M 3,6 L 21,6 L 21,18 L 3,18 Z M 5,9 L 9,9 M 5,12 L 9,12 M 16,12 m -3,0 a 3,3 0 1 0 6,0 a 3,3 0 1 0 -6,0" :
+        "M 6,6 L 18,6 L 18,18 L 6,18 Z M 9,9 L 15,9 L 15,15 L 9,15 Z M 9,3 L 9,6 M 15,3 L 15,6 M 9,18 L 9,21 M 15,18 L 15,21 M 3,9 L 6,9 M 3,15 L 6,15 M 18,9 L 21,9 M 18,15 L 21,15";
+    public string? ProgressDash => Percent is float value && float.IsFinite(value) && value is >= 0 and <= 100
+        ? (value * 3 * Math.PI / 50).ToString(System.Globalization.CultureInfo.InvariantCulture) + " 18.85" : null;
+    /// <summary>Opis tego, co pokazuje moduł; używany w podpowiedzi po najechaniu.</summary>
+    public string Description
+    {
+        get
+        {
+            var part = Key[(Key.IndexOf('|') + 1)..];
+            var text = part switch
+            {
+                "CpuUsage" or "Usage" => UiText.Get("ResourceCpuUsageHelp"),
+                "CpuTemperature" or "Temperature" => UiText.Get("ResourceCpuTemperatureHelp"),
+                "RamUsage" => UiText.Get("ResourceRamUsageHelp"),
+                "RamUsed" => UiText.Get("ResourceRamUsedHelp"),
+                "GpuUsage" => UiText.Get("ResourceGpuUsageHelp"),
+                "GpuTemperature" => UiText.Get("ResourceGpuTemperatureHelp"),
+                "VramUsage" => UiText.Get("ResourceVramUsageHelp"),
+                "VramUsed" => UiText.Get("ResourceVramUsedHelp"),
+                "FanControl" => UiText.Get("ResourceFanControlHelp"),
+                _ when part.StartsWith("Control:", StringComparison.Ordinal) => UiText.Get("ResourceFanControlHelp"),
+                _ when part.StartsWith("Speed:", StringComparison.Ordinal) => UiText.Get("ResourceFanSpeedHelp"),
+                _ => Name,
+            };
+            if (part is "CpuTemperature" or "Temperature" && Value == UiText.Get("Unavailable") && !HardwareSampler.IsElevated)
+                text += " " + UiText.Get("ResourceCpuTemperatureNeedsAdmin");
+            return text;
+        }
+    }
     public string TileLabel => Key.Contains("Temperature", StringComparison.Ordinal)
         ? (Key.Contains("Gpu", StringComparison.Ordinal) ? "GPU °" : "CPU °")
         : Symbol;
@@ -82,7 +115,7 @@ internal sealed class HardwareSampler : IDisposable, IAsyncDisposable
         {
             Add(rows, cpu.Name, UiText.Get("CpuUsage"), "CpuUsage", Read(cpu, SensorType.Load, "CPU Total"), "%");
             Add(rows, cpu.Name, UiText.Get("CpuTemperature"), "CpuTemperature",
-                Read(cpu, SensorType.Temperature, "CPU Package", "Core (Tctl/Tdie)", "Core (Tdie)", "Core (Tctl)", "Core Average", "CCD Max (Tdie)", "CPU Core Max"), "°C");
+                ReadCpuTemperature(cpu), "°C");
         }
         if (cpus.Length == 0)
         {
@@ -137,6 +170,34 @@ internal sealed class HardwareSampler : IDisposable, IAsyncDisposable
             Add(rows, device, UiText.Format("Speed", sensor.Name), "Speed:" + sensor.Name, sensor.Value, "RPM");
     }
 
+    /// <summary>Nazwy czujników różnią się między CPU Intel i AMD; gdy żadna nie pasuje, bierze najgorętszy rdzeń.</summary>
+    private static float? ReadCpuTemperature(IHardware cpu)
+    {
+        var named = Read(cpu, SensorType.Temperature, "CPU Package", "Core (Tctl/Tdie)", "Core (Tdie)", "Core (Tctl)", "Core Average", "CCD Max (Tdie)", "CPU Core Max");
+        if (named is not null) return named;
+        float? hottest = null;
+        foreach (var sensor in cpu.Sensors)
+        {
+            if (sensor.SensorType != SensorType.Temperature || sensor.Value is not float value || !float.IsFinite(value) || value <= 0) continue;
+            if (!(sensor.Name.StartsWith("CPU", StringComparison.OrdinalIgnoreCase) || sensor.Name.StartsWith("Core", StringComparison.OrdinalIgnoreCase)) ||
+                sensor.Name.Contains("Distance", StringComparison.OrdinalIgnoreCase)) continue;
+            hottest = Math.Max(hottest ?? value, value);
+        }
+        return hottest;
+    }
+
+    /// <summary>Sterownik LibreHardwareMonitor czyta temperatury CPU tylko z uprawnieniami administratora.</summary>
+    internal static readonly bool IsElevated = CheckElevated();
+    private static bool CheckElevated()
+    {
+        try
+        {
+            using var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
+            return new System.Security.Principal.WindowsPrincipal(identity).IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+        }
+        catch (Exception) { return true; }
+    }
+
     private static float? Read(IHardware? device, SensorType type, params string[] names)
     {
         foreach (var name in names)
@@ -156,7 +217,7 @@ internal sealed class HardwareSampler : IDisposable, IAsyncDisposable
             ? $"{number:0.#} {unit}" : UiText.Get("Unavailable");
 
     private static void Add(List<ResourceReading> rows, string device, string name, string key, float? value, string unit) =>
-        rows.Add(new(device, name, Format(value, unit), (device == UiText.Get("Memory") ? "Memory" : device == UiText.Get("CpuCooling") ? "CpuCooling" : device) + "|" + key));
+        rows.Add(new(device, name, Format(value, unit), (device == UiText.Get("Memory") ? "Memory" : device == UiText.Get("CpuCooling") ? "CpuCooling" : device) + "|" + key, unit == "%" ? value : null));
 
     private void CloseComputer()
     {

@@ -14,7 +14,7 @@ Twój własny pulpit z notatkami, zadaniami, kalendarzem, pogodą i skrótami �
 - **Pogoda** — prognoza dla wybranej miejscowości, pobierana z Open-Meteo po włączeniu połączeń.
 - **Skróty** — uruchamianie aplikacji, otwieranie folderów, dokumentów i stron; widoki ikon, listy, przycisków oraz kafelków.
 - **Monitor zasobów** — wykorzystanie CPU, GPU, RAM i VRAM; temperatury i wentylatory zależą od dostępnych czujników.
-- **Afirmacje** — własne teksty do ćwiczenia i śledzenie postępów; opcjonalny codzienny reset o wybranej godzinie lokalnej zachowuje historię. Starsze włączone interwały są przenoszone na 07:00.
+- **Afirmacje** — własne teksty do ćwiczenia i śledzenie postępów; pisz, klikając w pole panelu z afirmacją; opcjonalny codzienny reset o wybranej godzinie lokalnej zachowuje historię. Starsze włączone interwały są przenoszone na 07:00.
 - **Wtyczki** — dodatkowe panele w paczkach `.udplugin`, między innymi ramka na zdjęcia PhotoFrame.
 - **Personalizacja** — motyw jasny, ciemny lub systemowy, kolory, fonty, tapety i wygląd poszczególnych paneli. Interfejs jest dostępny po polsku i angielsku.
 
@@ -23,9 +23,11 @@ Twój własny pulpit z notatkami, zadaniami, kalendarzem, pogodą i skrótami �
 Projekt jest w rozwoju. Bieżąca wersja źródeł to **1.9.0**; gotowy instalator nie został jeszcze opublikowany w [Wydaniach](https://github.com/Kavaars/UberDashboard/releases). Lista zmian poniżej opisuje również funkcje rozwijane w bieżącym kodzie.
 
 1. Po uruchomieniu utwórz lub wybierz pulpit i dodaj potrzebne panele.
-2. Włącz **Edytuj układ**, aby zmienić ich położenie i rozmiary. Menu **Układ** pozwala zrobić to również bez przeciągania.
-3. Użyj **+** w nagłówku panelu, aby dodać zakładkę. Nazwę zmienisz dwuklikiem lub klawiszem **F2**, a kolejność także skrótem **Ctrl+Shift+strzałka**.
+2. W menu **Układ** na górnym pasku włącz **Edytuj układ**, aby zmienić położenie i rozmiary paneli. Przeciąganie działa w tym trybie; osobnego przycisku na pasku nie ma.
+3. Użyj **+** w nagłówku panelu, aby dodać zakładkę. Nazwę zmienisz dwuklikiem lub klawiszem **F2**, a kolejność także skrótem **Ctrl+Shift+strzałka**. W menu kontekstowym zakładki **Kolor zakładki** ustawia kolor jej tła w każdym panelu; **Kolor domyślny** go usuwa.
 4. Opcje panelu i sekcja **Wygląd** pozwalają dopasować jego działanie i prezentację. W **Ustawieniach** wybierzesz między innymi tryb okna, motyw, język i integracje. Zmiana języka działa po ponownym uruchomieniu.
+
+W **Ustawienia → Wygląd** dostępnych jest 10 gotowych motywów kolorystycznych dopasowanych do tapet. Wybranie motywu zastępuje cztery bieżące kolory interfejsu, ale nie zmienia wybranej tapety. W opcjach panelu **Pogoda** można niezależnie wybrać ikony liniowe, kolorowe, monochromatyczne lub dotychczasowe; wybór zapisuje się osobno dla każdej zakładki.
 
 Zmiany zapisują się automatycznie. Jeśli zapis się nie powiedzie, aplikacja pokazuje błąd i umożliwia ponowienie. Uszkodzony lub nowszy, nieobsługiwany stan panelu nie jest nadpisywany; jego miejsce zajmuje komunikat o zachowaniu danych. Własna tapeta wskazuje plik na dysku — po jego przeniesieniu trzeba wybrać go ponownie.
 
@@ -93,4 +95,4 @@ Pełna historia: [changelog.txt](changelog.txt).
 Problemy oraz propozycje zgłaszaj w [Issues projektu](https://github.com/Kavaars/UberDashboard/issues). W sprawach prywatności kontaktuj się przez [profil Kavaars](https://github.com/Kavaars). Nie zamieszczaj w publicznych zgłoszeniach tokenów, haseł, plików poświadczeń ani prywatnej treści notatek i kalendarzy.
 
 
-Pogoda, Monitor zasobów i Skróty udostępniają **Tryb edycji elementów** w menu kontekstowym panelu. W tym trybie przeciągnij element na komórkę siatki; zajęte pola przesuwają się, a wolne można pozostawić puste. Ctrl+Shift+strzałki przesuwają wybrany element klawiaturą. Przeciągnięcie prawego dolnego narożnika modułu albo Ctrl+Alt+strzałki zmienia jego rozmiar. Układ zapisuje się oddzielnie dla każdej zakładki. Siatka zawija się do szerokości panelu, zachowując zapisane pozycje. W opcjach suwak odstępu zmienia odległość między modułami w obie strony względem wartości zerowej. Prognoza godzinowa zajmuje trzy kolumny, a w wąskim panelu można ją przewijać poziomo. Świt i zmierzch są w jednym module, a opis bieżącej pogody znajduje się przy ikonie. Wzory paneli wtyczek opisano w [instrukcji](plugins/PanelTemplates/README.md).
+Pogoda, Monitor zasobów i Skróty udostępniają **Tryb edycji elementów** w menu kontekstowym panelu. W tym trybie przeciągnij element na komórkę siatki; zajęte pola przesuwają się, a wolne można pozostawić puste. Ctrl+Shift+strzałki przesuwają wybrany element klawiaturą. Przeciągnięcie prawego dolnego narożnika modułu albo Ctrl+Alt+strzałki zmienia jego rozmiar (nie dotyczy Monitora zasobów, którego moduły mają jednakowy rozmiar). Układ zapisuje się oddzielnie dla każdej zakładki. Siatka zawija się do szerokości panelu, zachowując zapisane pozycje. W opcjach suwak odstępu zmienia odległość między modułami w obie strony względem wartości zerowej. Prognoza godzinowa zajmuje trzy kolumny, a w wąskim panelu można ją przewijać poziomo. Świt i zmierzch są w jednym module, a opis bieżącej pogody znajduje się przy ikonie. Wzory paneli wtyczek opisano w [instrukcji](plugins/PanelTemplates/README.md).

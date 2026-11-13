@@ -79,11 +79,12 @@ public sealed class PanelTabGroupStore(IWorkQueue queue, SqliteDatabase database
             {
                 using var command = database.Connection.CreateCommand();
                 command.Transaction = tx;
-                command.CommandText = "INSERT INTO PanelTabMember (GroupId, InstanceId, Name, SortOrder) VALUES ($group, $id, $name, $order);";
+                command.CommandText = "INSERT INTO PanelTabMember (GroupId, InstanceId, Name, SortOrder, Color) VALUES ($group, $id, $name, $order, $color);";
                 command.Parameters.AddWithValue("$group", group.GroupId.ToString());
                 command.Parameters.AddWithValue("$id", group.Tabs[i].InstanceId.ToString());
                 command.Parameters.AddWithValue("$name", group.Tabs[i].Name);
                 command.Parameters.AddWithValue("$order", i);
+                command.Parameters.AddWithValue("$color", (object?)group.Tabs[i].Color ?? DBNull.Value);
                 command.ExecuteNonQuery();
             }
             tx.Commit();
@@ -219,11 +220,11 @@ public sealed class PanelTabGroupStore(IWorkQueue queue, SqliteDatabase database
         header.Parameters.AddWithValue("$id", expected.GroupId.ToString());
         if (!string.Equals(header.ExecuteScalar() as string, expected.ActiveId.ToString(), StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException(UiText.Get("TheGroupChangedTryAgain"));
         using var read = database.Connection.CreateCommand(); read.Transaction = tx;
-        read.CommandText = "SELECT InstanceId, Name FROM PanelTabMember WHERE GroupId = $id ORDER BY SortOrder;";
+        read.CommandText = "SELECT InstanceId, Name, Color FROM PanelTabMember WHERE GroupId = $id ORDER BY SortOrder;";
         read.Parameters.AddWithValue("$id", expected.GroupId.ToString());
         using var reader = read.ExecuteReader();
         var items = new List<PanelTab>();
-        while (reader.Read()) items.Add(new PanelTab(new PanelInstanceId(Guid.Parse(reader.GetString(0))), reader.GetString(1)));
+        while (reader.Read()) items.Add(ReadTab(reader));
         if (!items.SequenceEqual(expected.Tabs)) throw new InvalidOperationException(UiText.Get("TheGroupChangedTryAgain"));
     }
 
@@ -237,9 +238,9 @@ public sealed class PanelTabGroupStore(IWorkQueue queue, SqliteDatabase database
         for (var i = 0; i < updated.Tabs.Length; i++)
         {
             using var insert = database.Connection.CreateCommand(); insert.Transaction = tx;
-            insert.CommandText = "INSERT INTO PanelTabMember (GroupId, InstanceId, Name, SortOrder) VALUES ($group, $id, $name, $order);";
+            insert.CommandText = "INSERT INTO PanelTabMember (GroupId, InstanceId, Name, SortOrder, Color) VALUES ($group, $id, $name, $order, $color);";
             insert.Parameters.AddWithValue("$group", updated.GroupId.ToString()); insert.Parameters.AddWithValue("$id", updated.Tabs[i].InstanceId.ToString());
-            insert.Parameters.AddWithValue("$name", updated.Tabs[i].Name); insert.Parameters.AddWithValue("$order", i); insert.ExecuteNonQuery();
+            insert.Parameters.AddWithValue("$name", updated.Tabs[i].Name); insert.Parameters.AddWithValue("$order", i); insert.Parameters.AddWithValue("$color", (object?)updated.Tabs[i].Color ?? DBNull.Value); insert.ExecuteNonQuery();
         }
         using var update = database.Connection.CreateCommand(); update.Transaction = tx;
         update.CommandText = "UPDATE PanelTabGroup SET ActiveInstanceId = $active WHERE GroupId = $id;";
@@ -269,10 +270,10 @@ public sealed class PanelTabGroupStore(IWorkQueue queue, SqliteDatabase database
             using (var read = database.Connection.CreateCommand())
             {
                 read.Transaction = tx;
-                read.CommandText = "SELECT InstanceId, Name FROM PanelTabMember WHERE GroupId = $id ORDER BY SortOrder;";
+                read.CommandText = "SELECT InstanceId, Name, Color FROM PanelTabMember WHERE GroupId = $id ORDER BY SortOrder;";
                 read.Parameters.AddWithValue("$id", expected.GroupId.ToString());
                 using var reader = read.ExecuteReader();
-                while (reader.Read()) existing.Add(new PanelTab(new PanelInstanceId(Guid.Parse(reader.GetString(0))), reader.GetString(1)));
+                while (reader.Read()) existing.Add(ReadTab(reader));
             }
             if (!existing.SequenceEqual(expected.Tabs)) throw new InvalidOperationException(UiText.Get("TheGroupChangedTryAgain"));
             using (var delete = database.Connection.CreateCommand())
@@ -286,11 +287,11 @@ public sealed class PanelTabGroupStore(IWorkQueue queue, SqliteDatabase database
             {
                 using var insert = database.Connection.CreateCommand();
                 insert.Transaction = tx;
-                insert.CommandText = "INSERT INTO PanelTabMember (GroupId, InstanceId, Name, SortOrder) VALUES ($group, $id, $name, $order);";
+                insert.CommandText = "INSERT INTO PanelTabMember (GroupId, InstanceId, Name, SortOrder, Color) VALUES ($group, $id, $name, $order, $color);";
                 insert.Parameters.AddWithValue("$group", updated.GroupId.ToString());
                 insert.Parameters.AddWithValue("$id", updated.Tabs[i].InstanceId.ToString());
                 insert.Parameters.AddWithValue("$name", updated.Tabs[i].Name);
-                insert.Parameters.AddWithValue("$order", i);
+                insert.Parameters.AddWithValue("$order", i); insert.Parameters.AddWithValue("$color", (object?)updated.Tabs[i].Color ?? DBNull.Value);
                 insert.ExecuteNonQuery();
             }
             using (var update = database.Connection.CreateCommand())
@@ -331,11 +332,15 @@ public sealed class PanelTabGroupStore(IWorkQueue queue, SqliteDatabase database
             var original = reader.IsDBNull(1) ? null : reader.GetString(1);
             reader.Close();
             using var members = database.Connection.CreateCommand();
-            members.CommandText = "SELECT InstanceId, Name FROM PanelTabMember WHERE GroupId = $id ORDER BY SortOrder;";
+            members.CommandText = "SELECT InstanceId, Name, Color FROM PanelTabMember WHERE GroupId = $id ORDER BY SortOrder;";
             members.Parameters.AddWithValue("$id", groupId.ToString());
             using var items = members.ExecuteReader();
             var tabs = new List<PanelTab>();
-            while (items.Read()) tabs.Add(new PanelTab(new PanelInstanceId(Guid.Parse(items.GetString(0))), items.GetString(1)));
+            while (items.Read()) tabs.Add(ReadTab(items));
             return new StoredPanelTabGroup(PanelTabGroup.Restore(groupId, tabs, active), original);
         }, cancellationToken);
+
+    /// <summary>Kolumny: InstanceId, Name, Color (NULL = kolor domyślny).</summary>
+    private static PanelTab ReadTab(System.Data.IDataRecord record) =>
+        new(new PanelInstanceId(Guid.Parse(record.GetString(0))), record.GetString(1), record.IsDBNull(2) ? null : record.GetString(2));
 }

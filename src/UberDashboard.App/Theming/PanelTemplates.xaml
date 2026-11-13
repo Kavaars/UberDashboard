@@ -18,8 +18,9 @@
 
                     xmlns:weather="clr-namespace:UberDashboard.App.Features.Weather"
                     xmlns:calendar="clr-namespace:UberDashboard.App.Features.Calendar"
-                    xmlns:resources="clr-namespace:UberDashboard.App.Features.Resources" xmlns:shortcuts="clr-namespace:UberDashboard.App.Features.Shortcuts">
+                    xmlns:resources="clr-namespace:UberDashboard.App.Features.Resources" xmlns:shortcuts="clr-namespace:UberDashboard.App.Features.Shortcuts" xmlns:homeassistant="clr-namespace:UberDashboard.App.Features.HomeAssistant">
   <DataTemplate DataType="{x:Type shortcuts:ShortcutsPanel}"><shortcuts:ShortcutsView/></DataTemplate>
+  <DataTemplate DataType="{x:Type homeassistant:HomeAssistantPanel}"><homeassistant:HomeAssistantView/></DataTemplate>
 
 
 
@@ -183,19 +184,29 @@
           <ListBox.ItemTemplate>
             <DataTemplate>
               <Grid>
-              <Border x:Name="TextReading" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" Padding="0,4">
+              <Border x:Name="TextReading" Background="Transparent" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" Padding="0,4" ToolTip="{Binding Description}">
                 <DockPanel>
                   <TextBlock DockPanel.Dock="Right" Text="{Binding Value}" FontWeight="SemiBold" Margin="8,0,0,0"/>
                   <StackPanel>
-                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}"/>
-                    <TextBlock Text="{Binding Device}" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip="{Binding Device}"/>
+                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Text="{Binding Device}" FontSize="11" TextTrimming="CharacterEllipsis"/>
                   </StackPanel>
                 </DockPanel>
               </Border>
-              <Border x:Name="TileReading" Visibility="Collapsed" MinHeight="60" Margin="2" Padding="3" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" ToolTip="{Binding Name}" AutomationProperties.Name="{Binding Name}" AutomationProperties.HelpText="{Binding Device}">
+              <Border x:Name="TileReading" Visibility="Collapsed" MinHeight="60" Margin="2" Padding="5" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6" Background="Transparent" ToolTip="{Binding Description}" AutomationProperties.Name="{Binding Name}" AutomationProperties.HelpText="{Binding Value}">
                 <Grid ClipToBounds="True">
-                  <Viewbox Stretch="Uniform"><TextBlock Text="{Binding TileLabel}" FontWeight="Bold" Foreground="{DynamicResource Brush.Text.Muted}" Opacity="0.28"/></Viewbox>
-                  <Viewbox Stretch="Uniform" Margin="2"><TextBlock Text="{Binding TileValue}" FontWeight="Bold" Foreground="{DynamicResource Brush.Text}"/></Viewbox>
+                  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                  <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="18"/><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/></Grid.ColumnDefinitions>
+                    <Viewbox Width="16" Height="16"><Path Data="{Binding IconPath}" Stroke="{DynamicResource Brush.Accent}" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/></Viewbox>
+                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="3,0"/>
+                    <Grid Grid.Column="2" Width="14" Height="14">
+                      <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding ProgressDash}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></Grid.Style>
+                      <Ellipse Stroke="{DynamicResource Brush.Border}" StrokeThickness="2"/>
+                      <Ellipse Stroke="{DynamicResource Brush.Accent}" StrokeThickness="2" StrokeDashArray="{Binding ProgressDash}" RenderTransformOrigin="0.5,0.5"><Ellipse.RenderTransform><RotateTransform Angle="-90"/></Ellipse.RenderTransform></Ellipse>
+                    </Grid>
+                  </Grid>
+                  <Viewbox Grid.Row="1" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"><TextBlock Text="{Binding Value}" FontSize="28" FontWeight="Bold" Foreground="{DynamicResource Brush.Text}"/></Viewbox>
                 </Grid>
               </Border>
               </Grid>
@@ -275,17 +286,12 @@
 
       <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
 
-      <DockPanel><Button DockPanel.Dock="Right" Content="{loc:Text Reset}" Style="{StaticResource ToolbarButton}" Command="{Binding ResetCommand}" ToolTip="{loc:Text RestartsAllAffirmationsAndResetsTheAutomatic}"/><Grid DockPanel.Dock="Right" Height="28" Margin="4,0">
+      <DockPanel><Button DockPanel.Dock="Right" Content="{loc:Text Reset}" Style="{StaticResource ToolbarButton}" Command="{Binding ResetCommand}" ToolTip="{loc:Text RestartsAllAffirmationsAndResetsTheAutomatic}"/>
 
-          <controls:AffirmationInput x:Name="AffirmationEditor" Padding="4,2" Style="{StaticResource ThemedTextBox}" IsEnabled="{Binding HasCurrent}" AutomationProperties.Name="{loc:Text TypeTheDisplayedAffirmation}" ToolTip="{loc:Text ClickHereOrOnTheAffirmationAnd}"/>
+        <!-- Ukryty edytor przejmuje klawisze; pisanie startuje po kliknięciu w panel (FocusTarget poniżej). -->
+        <controls:AffirmationInput x:Name="AffirmationEditor" Width="0" Height="0" Opacity="0" IsTabStop="False" BorderThickness="0" Padding="0" IsEnabled="{Binding HasCurrent}" AutomationProperties.Name="{loc:Text TypeTheDisplayedAffirmation}"/>
 
-          <TextBlock Text="{loc:Text TypeHere}" Margin="5,0" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Text.Muted}" IsHitTestVisible="False">
-
-            <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding IsKeyboardFocusWithin, ElementName=AffirmationEditor}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
-
-          </TextBlock>
-
-        </Grid><TextBlock Text="{Binding Status}" Foreground="{DynamicResource Brush.Text.Muted}" TextWrapping="Wrap"/></DockPanel>
+        <TextBlock Text="{Binding Status}" Foreground="{DynamicResource Brush.Text.Muted}" TextWrapping="Wrap"/></DockPanel>
 
       <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,8"><StackPanel Background="Transparent" controls:AffirmationInput.FocusTarget="{Binding ElementName=AffirmationEditor}" ToolTip="{loc:Text ClickTheTextToStartTyping}">
 
@@ -455,7 +461,9 @@
                        Foreground="{DynamicResource Brush.Text}"
 
                        Text="{loc:Text WeatherOptions}" />
-            <CheckBox Margin="0,8,0,0" Content="{loc:Text WeatherColorful}" IsChecked="{Binding ColorfulTheme}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherColorfulHelp}" /></StackPanel>
+            <CheckBox Margin="0,8,0,0" Content="{loc:Text WeatherColorful}" IsChecked="{Binding ColorfulTheme}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherColorfulHelp}" />
+            <TextBlock Text="{loc:Text WeatherIconSet}" Foreground="{DynamicResource Brush.Text}" Margin="0,8,0,4"/>
+            <ComboBox ItemsSource="{Binding IconSetOptions}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding IconSet}" Style="{StaticResource ThemedComboBox}" AutomationProperties.Name="{loc:Text WeatherIconSet}" ToolTip="{loc:Text WeatherIconSetHelp}"/></StackPanel>
 
 
 
@@ -1150,7 +1158,7 @@
           </Style>
           </TextBlock.Style>
           </TextBlock>
-          <StackPanel Orientation="Horizontal">
+          <StackPanel HorizontalAlignment="Center">
           <TextBlock FontSize="48" TextWrapping="Wrap">
           <TextBlock.Style>
           <Style TargetType="TextBlock">
@@ -1159,7 +1167,7 @@
           <Setter Property="FontFamily" Value="Segoe UI Symbol"/>
           <Setter Property="Text" Value="{Binding Owner.ConditionGlyph}"/>
           <Style.Triggers>
-          <MultiDataTrigger><MultiDataTrigger.Conditions><Condition Binding="{Binding Id}" Value="icon"/><Condition Binding="{Binding Owner.ShowIcon}" Value="True"/></MultiDataTrigger.Conditions><Setter Property="Visibility" Value="Visible"/></MultiDataTrigger>
+          <MultiDataTrigger><MultiDataTrigger.Conditions><Condition Binding="{Binding Id}" Value="icon"/><Condition Binding="{Binding Owner.ShowIcon}" Value="True"/><Condition Binding="{Binding Owner.IconSet}" Value="legacy"/></MultiDataTrigger.Conditions><Setter Property="Visibility" Value="Visible"/></MultiDataTrigger>
           <DataTrigger Binding="{Binding Owner.ColorfulTheme}" Value="True">
           <Setter Property="Text" Value="{Binding Owner.ColorConditionGlyph}"/>
           <Setter Property="FontFamily" Value="Segoe UI Emoji"/>
@@ -1168,7 +1176,10 @@
           </Style>
           </TextBlock.Style>
           </TextBlock>
-          <TextBlock Text="{Binding Owner.ConditionText}" ToolTip="{Binding Owner.ConditionText}" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="20" TextTrimming="CharacterEllipsis">
+          <weather:WeatherIcon Width="72" Height="72" Code="{Binding Owner.WeatherCode}" IsDay="{Binding Owner.WeatherIsDay}" IconSet="{Binding Owner.IconSet}" Foreground="{DynamicResource Brush.Text}" ToolTip="{Binding Owner.ConditionText}" AutomationProperties.Name="{Binding Owner.ConditionText}">
+            <weather:WeatherIcon.Style><Style TargetType="weather:WeatherIcon"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><MultiDataTrigger><MultiDataTrigger.Conditions><Condition Binding="{Binding Id}" Value="icon"/><Condition Binding="{Binding Owner.ShowIcon}" Value="True"/></MultiDataTrigger.Conditions><Setter Property="Visibility" Value="Visible"/></MultiDataTrigger><DataTrigger Binding="{Binding Owner.IconSet}" Value="legacy"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></weather:WeatherIcon.Style>
+          </weather:WeatherIcon>
+          <TextBlock Text="{Binding Owner.ConditionText}" ToolTip="{Binding Owner.ConditionText}" Margin="0,4,0,0" TextAlignment="Center" TextWrapping="Wrap" FontSize="28" FontWeight="SemiBold">
           <TextBlock.Style>
           <Style TargetType="TextBlock">
           <Setter Property="Visibility" Value="Collapsed"/>
@@ -1196,19 +1207,12 @@
           </Style>
           </TextBlock.Style>
           </TextBlock>
-          <TextBlock Text="{Binding Owner.DailyRangeText}" ToolTip="{Binding Owner.DailyRangeText}" FontSize="20" TextTrimming="CharacterEllipsis">
-          <TextBlock.Style>
-          <Style TargetType="TextBlock">
-          <Setter Property="Visibility" Value="Collapsed"/>
-          <Setter Property="Foreground" Value="{DynamicResource Brush.Text}"/>
-          <Style.Triggers>
-          <DataTrigger Binding="{Binding Id}" Value="range">
-          <Setter Property="Visibility" Value="Visible"/>
-          </DataTrigger>
-          </Style.Triggers>
-          </Style>
-          </TextBlock.Style>
-          </TextBlock>
+          <Grid>
+            <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Id}" Value="range"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Grid.Style>
+            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+            <StackPanel Margin="0,0,16,0"><TextBlock Text="{loc:Text WeatherMax}" FontSize="14" Foreground="{DynamicResource Brush.Text.Muted}"/><TextBlock Text="{Binding Owner.HighText}" FontSize="36" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" TextTrimming="CharacterEllipsis"/></StackPanel>
+            <StackPanel Grid.Column="1"><TextBlock Text="{loc:Text WeatherMin}" FontSize="14" Foreground="{DynamicResource Brush.Text.Muted}"/><TextBlock Text="{Binding Owner.LowText}" FontSize="36" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" TextTrimming="CharacterEllipsis"/></StackPanel>
+          </Grid>
           <Grid>
             <Grid.Style><Style TargetType="Grid"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Id}" Value="sunrise"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Grid.Style>
             <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
@@ -1267,8 +1271,10 @@
           <TextBlock.Style>
           <Style TargetType="TextBlock">
           <Setter Property="Text" Value="{Binding Glyph}"/>
+          <Setter Property="Visibility" Value="Collapsed"/>
           <Setter Property="FontFamily" Value="Segoe UI Symbol"/>
           <Style.Triggers>
+          <DataTrigger Binding="{Binding DataContext.IconSet, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="legacy"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
           <DataTrigger Binding="{Binding DataContext.ColorfulTheme, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="True">
           <Setter Property="Text" Value="{Binding ColorGlyph}"/>
           <Setter Property="FontFamily" Value="Segoe UI Emoji"/>
@@ -1277,6 +1283,9 @@
           </Style>
           </TextBlock.Style>
           </TextBlock>
+          <weather:WeatherIcon Width="36" Height="36" HorizontalAlignment="Center" Code="{Binding WeatherCode}" IsDay="{Binding IsDay}" IconSet="{Binding DataContext.IconSet, RelativeSource={RelativeSource AncestorType=ListBox}}" Foreground="{DynamicResource Brush.Text}" AutomationProperties.Name="{Binding ConditionText}">
+            <weather:WeatherIcon.Style><Style TargetType="weather:WeatherIcon"><Style.Triggers><DataTrigger Binding="{Binding DataContext.IconSet, RelativeSource={RelativeSource AncestorType=ListBox}}" Value="legacy"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></weather:WeatherIcon.Style>
+          </weather:WeatherIcon>
           <TextBlock Text="{Binding TemperatureText}" FontSize="20" HorizontalAlignment="Center" FontWeight="SemiBold">
           <TextBlock.Style>
           <Style TargetType="TextBlock">

@@ -17,9 +17,9 @@ Dane sesji są zaszyfrowane dla bieżącego użytkownika Windows, osobno dla ins
 
 ## Monitor zasobów
 
-Monitor co dwie sekundy aktualizuje użycie CPU, GPU, RAM i VRAM, temperaturę CPU i GPU oraz dane wentylatorów. Każda rozpoznana karta graficzna ma własne wiersze pomiarów. Procent sterowania oznacza wartość raportowaną przez kontroler, a RPM to zmierzone obroty. Obie wartości zależą od czujników dostępnych na danym sprzęcie. Wiersz bez pomiaru pokazuje **Niedostępne**.
+Monitor co dwie sekundy aktualizuje użycie CPU, GPU, RAM i VRAM, temperaturę CPU i GPU oraz dane wentylatorów. Każda rozpoznana karta graficzna ma własne wiersze pomiarów. Procent sterowania oznacza wartość raportowaną przez kontroler, a RPM to zmierzone obroty. Obie wartości zależą od czujników dostępnych na danym sprzęcie. Wiersz bez pomiaru pokazuje **Niedostępne**. Najechanie na moduł pokazuje podpowiedź, co wskazuje dany odczyt. Moduły mają jednakowy rozmiar, a panel nie pokazuje już czasu ostatniego pomiaru.
 
-Dostęp do części czujników płyty głównej i CPU zależy od sterownika, sprzętu i uprawnień. Odczyt zapewnia [LibreHardwareMonitor 0.9.6](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/tree/v0.9.6).
+Dostęp do części czujników płyty głównej i CPU zależy od sterownika, sprzętu i uprawnień. Odczyt temperatury CPU zwykle wymaga uruchomienia aplikacji jako administrator; bez tego moduł pokazuje **Niedostępne**, a podpowiedź to wyjaśnia. Odczyt zapewnia [LibreHardwareMonitor 0.9.6](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/tree/v0.9.6).
 
 
 Monitor zasobów: w opcjach panelu pola wyboru pokazują lub ukrywają poszczególne wykryte odczyty. Wybór jest zapisywany osobno dla każdej instancji; nowo wykryte odczyty są domyślnie widoczne. Dostępność odczytów zależy od sprzętu i uprawnień.

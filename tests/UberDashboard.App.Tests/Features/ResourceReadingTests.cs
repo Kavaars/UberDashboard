@@ -20,6 +20,16 @@ public sealed class ResourceReadingTests
     }
 
     [Fact]
+    public void Tile_progress_only_uses_valid_percent_readings()
+    {
+        Assert.Equal("0 18.85", new ResourceReading("cpu", "CPU", "0 %", "cpu|CpuUsage", 0).ProgressDash);
+        Assert.NotNull(new ResourceReading("cpu", "CPU", "100 %", "cpu|CpuUsage", 100).ProgressDash);
+        Assert.Null(new ResourceReading("cpu", "CPU", "Niedostępne", "cpu|CpuUsage", float.NaN).ProgressDash);
+        Assert.Null(new ResourceReading("cpu", "CPU", "101 %", "cpu|CpuUsage", 101).ProgressDash);
+        Assert.Null(new ResourceReading("cpu", "CPU", "58 °C", "cpu|CpuTemperature").ProgressDash);
+    }
+
+    [Fact]
     public void Vram_usage_requires_capacity_and_used_values()
     {
         Assert.Null(HardwareSampler.MemoryPercent(512, 0));

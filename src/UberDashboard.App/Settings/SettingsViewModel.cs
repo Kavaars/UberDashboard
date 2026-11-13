@@ -40,6 +40,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
     {
         base.OnPropertyChanged(e);
+        if (e.PropertyName is nameof(SelectedTheme) or nameof(AccentColor) or nameof(WindowBackgroundColor) or nameof(SurfaceColor) or nameof(SurfaceAltColor))
+            base.OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(SelectedColorThemePreset)));
         if (!_loaded || e.PropertyName == nameof(SaveStatus)) return;
         _integrationDirty |= e.PropertyName is nameof(StartWithWindows) or nameof(EnableTrayIcon) or nameof(SelectedCloseBehavior);
         _windowDirty |= e.PropertyName is nameof(SelectedLaunchMode) or nameof(SelectedMonitor) or nameof(SelectedDockEdge) or nameof(DockThickness) or nameof(WidgetOpacity) or nameof(DesktopWidgetFallbackToNormal);
@@ -195,7 +197,38 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private int weatherRefreshMinutes = 20;
 
+    public IReadOnlyList<ColorThemePreset> ColorThemePresets => ColorThemePreset.All;
+    public ColorThemePreset? SelectedColorThemePreset
+    {
+        get => ColorThemePreset.All.FirstOrDefault(p => p.BaseTheme == SelectedTheme && p.Accent == AccentColor && p.Window == WindowBackgroundColor && p.Surface == SurfaceColor && p.Alternate == SurfaceAltColor);
+        set
+        {
+            if (value is null || !_loaded || value == SelectedColorThemePreset) return;
+            _loaded = false;
+            try
+            {
+                SelectedTheme = value.BaseTheme; AccentColor = value.Accent; WindowBackgroundColor = value.Window;
+                SurfaceColor = value.Surface; SurfaceAltColor = value.Alternate;
+            }
+            finally { _loaded = true; }
+            OnPropertyChanged(nameof(SelectedTheme));
+            OnPropertyChanged(nameof(SelectedColorThemePreset));
+        }
+    }
+
     [ObservableProperty] private string? wallpaperPath;
+    public IReadOnlyList<BuiltInWallpaper> BuiltInWallpapers => BuiltInWallpaper.All;
+    public string? SelectedBuiltInWallpaper
+    {
+        get => BuiltInWallpaper.All.Any(item => item.Id == WallpaperPath) ? WallpaperPath : null;
+        set { if (value is not null) WallpaperPath = value; }
+    }
+    public string? WallpaperDisplayName => BuiltInWallpaper.All.FirstOrDefault(item => item.Id == WallpaperPath)?.Name ?? WallpaperPath;
+    partial void OnWallpaperPathChanged(string? value)
+    {
+        OnPropertyChanged(nameof(SelectedBuiltInWallpaper));
+        OnPropertyChanged(nameof(WallpaperDisplayName));
+    }
     [ObservableProperty] private double wallpaperBlur;
     [ObservableProperty] private double backgroundSurfaceOpacity = 0.7;
     [ObservableProperty] private double windowOpacity = 1;

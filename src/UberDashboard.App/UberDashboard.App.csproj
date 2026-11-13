@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <AssemblyMetadata Include="BuildTimestampUtc" Value="$([System.DateTime]::UtcNow.ToString('o'))" />
+    <Content Include="Wallpapers\*.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <EmbeddedResource Include="Features\Shortcuts\Assets\Lucide\*.svg" />
     <Content Include="Features\Shortcuts\Assets\Lucide\LICENSE.txt" Link="Licenses\Lucide.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <EmbeddedResource Include="..\..\changelog.txt" LogicalName="UberDashboard.Changelog.txt" />

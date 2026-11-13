@@ -45,6 +45,10 @@ public static class InfrastructureServiceCollectionExtensions
             client.Timeout = TimeSpan.FromSeconds(10);
         });
 
+        services.AddHttpClient<UberDashboard.Application.HomeAssistant.IHomeAssistantService, HomeAssistant.HomeAssistantService>(client =>
+            client.Timeout = TimeSpan.FromSeconds(10))
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+
         services.AddHttpClient<IWeatherLocationSearchService, OpenMeteoLocationSearchService>(client =>
         {
             client.BaseAddress = new Uri("https://geocoding-api.open-meteo.com");

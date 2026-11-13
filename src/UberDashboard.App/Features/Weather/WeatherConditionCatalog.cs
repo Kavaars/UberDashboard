@@ -6,6 +6,13 @@ namespace UberDashboard.App.Features.Weather;
 /// </summary>
 internal static class WeatherConditionCatalog
 {
+    public static string IconKind(int code) => code switch
+    {
+        0 or 1 => "clear", 2 => "partly", 3 => "cloud", 45 or 48 => "fog",
+        51 or 53 or 55 or 56 or 57 or 61 or 63 or 65 or 66 or 67 or 80 or 81 or 82 => "rain",
+        71 or 73 or 75 or 77 or 85 or 86 => "snow", 95 or 96 or 99 => "storm", _ => "unknown",
+    };
+
     public static string Describe(int code) => code switch
     {
         0 => UiText.Get("Clear"),

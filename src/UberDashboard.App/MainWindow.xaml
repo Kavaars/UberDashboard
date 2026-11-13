@@ -68,7 +68,6 @@
           </ContextMenu>
           </controls:PanelLayoutMenuButton.ContextMenu>
         </controls:PanelLayoutMenuButton>
-        <ToggleButton DockPanel.Dock="Right" Content="{loc:Text EditLayout}" IsChecked="{Binding IsEditMode}" Margin="6,0,0,0" ToolTip="{loc:Text MovePanelOnGridHelp}" />
         <TextBlock DockPanel.Dock="Left" Text="UberDashboard" VerticalAlignment="Center" Margin="6,0,16,0" FontWeight="SemiBold">
           <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding IsDockedBar}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
         </TextBlock>

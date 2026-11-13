@@ -53,7 +53,7 @@ public sealed class PanelGroupTabStrip : ScrollViewer
             {
                 ApplyMicrosoftTodoBorder(button, session.IsMicrosoftTodoTab(tab.InstanceId), session.HasNewTodoItems(tab.InstanceId));
                 var selected = tab.InstanceId == session.Group.ActiveId;
-                button.SetResourceReference(Control.BackgroundProperty, selected ? "Brush.Surface.Alt" : "Brush.Surface");
+                ApplyTabAppearance(button, tab, selected);
                 System.Windows.Automation.AutomationProperties.SetItemStatus(button, session.HasNewTodoItems(tab.InstanceId) ? UiText.Get("TodoTabNewItems") : selected ? UiText.Get("Active") : UiText.Get("Inactive"));
             }
     }
@@ -74,7 +74,7 @@ public sealed class PanelGroupTabStrip : ScrollViewer
             button.SetResourceReference(StyleProperty, "PanelActionButton");
             ApplyMicrosoftTodoBorder(button, session.IsMicrosoftTodoTab(tab.InstanceId), session.HasNewTodoItems(tab.InstanceId));
             button.SetResourceReference(Control.ForegroundProperty, "Brush.Text");
-            button.SetResourceReference(Control.BackgroundProperty, tab.InstanceId == session.Group.ActiveId ? "Brush.Surface.Alt" : "Brush.Surface");
+            ApplyTabAppearance(button, tab, tab.InstanceId == session.Group.ActiveId);
             System.Windows.Automation.AutomationProperties.SetName(button, UiText.Format("Tab2", tab.Name));
             System.Windows.Automation.AutomationProperties.SetItemStatus(button, session.HasNewTodoItems(tab.InstanceId) ? UiText.Get("TodoTabNewItems") : tab.InstanceId == session.Group.ActiveId ? UiText.Get("Active") : UiText.Get("Inactive"));
             button.Click += async (_, _) => await Run(() => session.SelectAsync(tab.InstanceId));
@@ -134,6 +134,18 @@ public sealed class PanelGroupTabStrip : ScrollViewer
                 import.Click += async (_, _) => await Run(() => PanelFileImport.RunAsync(session, Window.GetWindow(this)));
                 menu.Items.Add(import);
             }
+            var color = new MenuItem { Header = UiText.Get("TabColor") };
+            foreach (var (key, hex) in TabColors)
+            {
+                var swatch = new MenuItem { Header = UiText.Get(key), Icon = new System.Windows.Shapes.Rectangle { Width = 12, Height = 12, Fill = ColorBrush(hex) } };
+                swatch.Click += async (_, _) => await Run(() => session.UpdateAsync(group => group.Recolor(tab.InstanceId, hex)));
+                color.Items.Add(swatch);
+            }
+            var reset = new MenuItem { Header = UiText.Get("TabColorDefault") };
+            reset.Click += async (_, _) => await Run(() => session.UpdateAsync(group => group.Recolor(tab.InstanceId, null)));
+            color.Items.Add(new Separator());
+            color.Items.Add(reset);
+            menu.Items.Add(color);
             button.ContextMenu = menu;
             _items.Children.Add(button);
         }
@@ -145,6 +157,34 @@ public sealed class PanelGroupTabStrip : ScrollViewer
         add.Click += async (_, _) => await Run(() => session.AddAsync());
         _items.Children.Add(add);
     }
+    /// <summary>Kolor tła zakładki; domyślny to tło zależne od tego, czy zakładka jest aktywna.</summary>
+    private static void ApplyTabAppearance(Button button, PanelTab tab, bool selected)
+    {
+        if (tab.Color is { } hex)
+        {
+            button.Background = ColorBrush(hex);
+            button.FontWeight = selected ? FontWeights.Bold : FontWeights.Normal;
+        }
+        else
+        {
+            button.SetResourceReference(Control.BackgroundProperty, selected ? "Brush.Surface.Alt" : "Brush.Surface");
+            button.FontWeight = FontWeights.Normal;
+        }
+    }
+
+    private static System.Windows.Media.Brush ColorBrush(string hex)
+    {
+        var brush = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(hex));
+        brush.Freeze();
+        return brush;
+    }
+
+    private static readonly (string Key, string Hex)[] TabColors =
+    [
+        ("TabColorRed", "#E5484D"), ("TabColorOrange", "#F76B15"), ("TabColorYellow", "#F5C518"), ("TabColorGreen", "#30A46C"),
+        ("TabColorBlue", "#3E63DD"), ("TabColorPurple", "#8E4EC6"), ("TabColorPink", "#D6409F"), ("TabColorGray", "#8B8D98"),
+    ];
+
     private static void ApplyMicrosoftTodoBorder(Button button, bool linked, bool unread)
     {
         if (linked || unread)
