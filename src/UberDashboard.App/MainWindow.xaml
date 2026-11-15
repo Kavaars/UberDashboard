@@ -62,6 +62,7 @@
             <Separator />
             <MenuItem Header="{loc:Text Settings}" Command="{Binding OpenSettingsCommand}" />
             <MenuItem Header="{loc:Text ChangeTheme}" Command="{Binding ToggleThemeCommand}" />
+            <Separator />
             <MenuItem Header="{loc:Text NewDashboard}" Command="{Binding NewDashboardCommand}" />
             <MenuItem Header="{loc:Text SaveLayout}" Command="{Binding RetrySaveLayoutCommand}" />
             <MenuItem Header="{loc:Text Reload}" Command="{Binding ReloadCommand}" />
@@ -71,12 +72,16 @@
         <TextBlock DockPanel.Dock="Left" Text="UberDashboard" VerticalAlignment="Center" Margin="6,0,16,0" FontWeight="SemiBold">
           <TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding IsDockedBar}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger></Style.Triggers></Style></TextBlock.Style>
         </TextBlock>
+        <StackPanel Orientation="Horizontal">
         <ComboBox MaxWidth="240" HorizontalAlignment="Left" MinWidth="90"
                   ItemsSource="{Binding Dashboards}" SelectedItem="{Binding SelectedDashboard}"
                   Style="{StaticResource ThemedComboBox}" AutomationProperties.Name="{loc:Text ActiveDashboard}"
                   ToolTip="{loc:Text SwitchesDashboardsAndLoadsTheSavedLayout}">
           <ComboBox.ItemTemplate><DataTemplate><DockPanel><Button DockPanel.Dock="Right" Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" Padding="5,2" Tag="{Binding}" Click="DeleteDashboard_Click" AutomationProperties.Name="{loc:Text DeleteDashboard}" ToolTip="{loc:Text DeletesThisDashboardItsPanelsAndIts}"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource PanelActionGlyphButton}"><Style.Triggers><DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ComboBoxItem}}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger><DataTrigger Binding="{Binding DataContext.Dashboards.Count, RelativeSource={RelativeSource AncestorType=ComboBox}}" Value="1"><Setter Property="IsEnabled" Value="False"/></DataTrigger></Style.Triggers></Style></Button.Style></Button><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,8,0"/></DockPanel></DataTemplate></ComboBox.ItemTemplate>
         </ComboBox>
+        <TextBlock x:Name="ClockText" VerticalAlignment="Center" Margin="14,0,0,0"
+                   Foreground="{DynamicResource Brush.Text.Muted}" TextWrapping="NoWrap" />
+        </StackPanel>
       </DockPanel>
     </Border>
 

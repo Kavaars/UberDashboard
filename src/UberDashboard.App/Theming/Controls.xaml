@@ -263,8 +263,9 @@
 
   <Style x:Key="ThemedComboBoxItem" TargetType="ComboBoxItem">
     <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
-    <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
-    <Setter Property="Padding" Value="10,7" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Padding" Value="8,6" />
+    <Setter Property="Margin" Value="0,1" />
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
     <Setter Property="Template">
       <Setter.Value>
@@ -272,7 +273,8 @@
           <Border x:Name="ItemBorder"
                   Background="{TemplateBinding Background}"
                   BorderBrush="Transparent"
-                  BorderThickness="1">
+                  BorderThickness="1"
+                  CornerRadius="{DynamicResource Token.CornerRadius.S}">
             <ContentPresenter Margin="{TemplateBinding Padding}"
                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
           </Border>
@@ -370,12 +372,13 @@
                    PopupAnimation="Fade">
               <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
                       Margin="0,4,0,0"
-                      Background="{DynamicResource Brush.Surface}"
+                      Background="{DynamicResource Brush.Popup}"
                       BorderBrush="{DynamicResource Brush.Border}"
                       BorderThickness="1"
+                      Padding="5"
                       CornerRadius="{DynamicResource Token.CornerRadius.M}">
                 <DockPanel>
-                  <controls:PopupDragHandle Target="{Binding ElementName=Popup}" Height="12" Cursor="SizeAll" Background="{DynamicResource Brush.Surface.Alt}" DockPanel.Dock="Top" AutomationProperties.Name="{loc:Text MoveMenu}"/>
+                  <controls:PopupDragHandle Target="{Binding ElementName=Popup}" DockPanel.Dock="Top" AutomationProperties.Name="{loc:Text MoveMenu}"/>
                   <ScrollViewer CanContentScroll="True" MaxHeight="308" VerticalScrollBarVisibility="Auto">
                     <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
                   </ScrollViewer>
@@ -426,36 +429,74 @@
   <Style x:Key="ToolbarMenuItem" TargetType="MenuItem">
     <Setter Property="FontFamily" Value="{DynamicResource Token.FontFamily}" />
     <Setter Property="FontSize" Value="{DynamicResource Token.FontSize.Body}" />
-    <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
+    <Setter Property="Background" Value="Transparent" />
     <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
-    <Setter Property="Padding" Value="10,5" />
+    <Setter Property="Padding" Value="8,7" />
+    <Setter Property="Margin" Value="0,1" />
     <Setter Property="Cursor" Value="Hand" />
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="MenuItem">
-          <Border x:Name="Item" Background="Transparent" CornerRadius="{DynamicResource Token.CornerRadius.S}" Padding="{TemplateBinding Padding}">
+          <Border x:Name="Item" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" CornerRadius="{DynamicResource Token.CornerRadius.S}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
             <Grid>
-              <Grid.ColumnDefinitions><ColumnDefinition Width="20" /><ColumnDefinition Width="*" /><ColumnDefinition Width="18" /></Grid.ColumnDefinitions>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="22" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="18" />
+              </Grid.ColumnDefinitions>
               <Grid>
-                <ContentPresenter Content="{TemplateBinding Icon}" VerticalAlignment="Center" />
-                <TextBlock x:Name="Check" Text="✓" Visibility="Collapsed" VerticalAlignment="Center" />
+                <ContentPresenter Content="{TemplateBinding Icon}" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                <Path x:Name="Check" Visibility="Collapsed" Data="M 0 4 L 3.5 7.5 L 10 0" Stroke="{DynamicResource Brush.Accent}" StrokeThickness="2" Width="11" Height="8" Stretch="Uniform" HorizontalAlignment="Left" VerticalAlignment="Center" />
               </Grid>
-              <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center" Margin="2,0,12,0" />
-              <TextBlock x:Name="Arrow" Grid.Column="2" Text="›" Visibility="Collapsed" VerticalAlignment="Center" />
-              <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsSubmenuOpen}" Placement="Right" AllowsTransparency="True" Focusable="False">
-                <Border Background="{DynamicResource Brush.Popup}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="{DynamicResource Token.CornerRadius.M}" Padding="4">
-                  <DockPanel><controls:PopupDragHandle Target="{Binding ElementName=PART_Popup}" Height="12" Cursor="SizeAll" Background="{DynamicResource Brush.Surface.Alt}" DockPanel.Dock="Top" AutomationProperties.Name="{loc:Text MoveMenu}"/><ScrollViewer MaxHeight="468" VerticalScrollBarVisibility="Auto" CanContentScroll="True"><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" /></ScrollViewer></DockPanel>
+              <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center" Margin="4,0,16,0" />
+              <TextBlock Grid.Column="2" Text="{TemplateBinding InputGestureText}" Foreground="{DynamicResource Brush.Text.Muted}" FontSize="{DynamicResource Token.FontSize.Caption}" VerticalAlignment="Center" Margin="0,0,4,0" />
+              <TextBlock x:Name="Arrow" Grid.Column="3" Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="10" HorizontalAlignment="Right" Foreground="{DynamicResource Brush.Text.Muted}" Visibility="Collapsed" VerticalAlignment="Center" />
+              <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsSubmenuOpen}" Placement="Right" HorizontalOffset="6" VerticalOffset="-6" AllowsTransparency="True" Focusable="False">
+                <Border Background="{DynamicResource Brush.Popup}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="{DynamicResource Token.CornerRadius.M}" Padding="5" MinWidth="180">
+                  <DockPanel><controls:PopupDragHandle Target="{Binding ElementName=PART_Popup}" DockPanel.Dock="Top" AutomationProperties.Name="{loc:Text MoveMenu}"/><ScrollViewer MaxHeight="468" VerticalScrollBarVisibility="Auto" CanContentScroll="True"><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" /></ScrollViewer></DockPanel>
                 </Border>
               </Popup>
             </Grid>
           </Border>
           <ControlTemplate.Triggers>
-            <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Item" Property="Background" Value="{DynamicResource Brush.Surface.Alt}" /></Trigger>
-            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Item" Property="Background" Value="{DynamicResource Brush.Surface.Alt}" /></Trigger>
+            <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Item" Property="Background" Value="{DynamicResource Brush.Surface.Alt}" /><Setter TargetName="Item" Property="BorderBrush" Value="{DynamicResource Brush.Border}" /></Trigger>
+            <Trigger Property="IsSubmenuOpen" Value="True"><Setter TargetName="Item" Property="Background" Value="{DynamicResource Brush.Surface.Alt}" /></Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Item" Property="BorderBrush" Value="{DynamicResource Brush.Accent}" /></Trigger>
             <Trigger Property="IsChecked" Value="True"><Setter TargetName="Check" Property="Visibility" Value="Visible" /></Trigger>
             <Trigger Property="HasItems" Value="True"><Setter TargetName="Arrow" Property="Visibility" Value="Visible" /></Trigger>
-            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5" /></Trigger>
+            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45" /></Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style x:Key="ThemedMenuSeparator" TargetType="Separator">
+    <Setter Property="Margin" Value="6,4" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Separator"><Border Height="1" Background="{DynamicResource Brush.Border}" SnapsToDevicePixels="True" /></ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Grip used to move floating menus: a small pill instead of a flat bar -->
+  <Style TargetType="controls:PopupDragHandle">
+    <Setter Property="Height" Value="14" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Cursor" Value="SizeAll" />
+    <Setter Property="Focusable" Value="False" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="controls:PopupDragHandle">
+          <Border Background="Transparent">
+            <Border x:Name="Pill" Width="32" Height="4" CornerRadius="2" Background="{DynamicResource Brush.Border}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Pill" Property="Background" Value="{DynamicResource Brush.Accent}" /></Trigger>
+            <Trigger Property="IsDragging" Value="True"><Setter TargetName="Pill" Property="Background" Value="{DynamicResource Brush.Accent}" /></Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
       </Setter.Value>
@@ -472,9 +513,9 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="ContextMenu">
-          <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource Token.CornerRadius.M}" Padding="5">
+          <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="{DynamicResource Token.CornerRadius.M}" Padding="5" MinWidth="190">
             <DockPanel>
-              <controls:PopupDragHandle Target="{Binding RelativeSource={RelativeSource TemplatedParent}}" Height="12" Cursor="SizeAll" Background="{DynamicResource Brush.Surface.Alt}" DockPanel.Dock="Top" AutomationProperties.Name="{loc:Text MoveMenu}"/>
+              <controls:PopupDragHandle Target="{Binding RelativeSource={RelativeSource TemplatedParent}}" DockPanel.Dock="Top" AutomationProperties.Name="{loc:Text MoveMenu}"/>
               <ScrollViewer MaxHeight="508" VerticalScrollBarVisibility="Auto" CanContentScroll="True"><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle" /></ScrollViewer>
             </DockPanel>
           </Border>
@@ -483,6 +524,7 @@
     </Setter>
     <Style.Resources>
       <Style TargetType="MenuItem" BasedOn="{StaticResource ToolbarMenuItem}" />
+      <Style TargetType="Separator" BasedOn="{StaticResource ThemedMenuSeparator}" />
     </Style.Resources>
   </Style>
 

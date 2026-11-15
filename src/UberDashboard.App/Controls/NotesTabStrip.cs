@@ -43,7 +43,13 @@ public sealed class NotesTabStrip : ScrollViewer
     {
         if (e.PropertyName != nameof(NotesPanelViewModel.SelectedTab)) return;
         foreach (var button in _items.Children.OfType<Button>())
-            if (button.DataContext is NotesTab tab) button.SetResourceReference(Control.BackgroundProperty, ReferenceEquals(tab, _model?.SelectedTab) ? "Brush.Surface.Alt" : "Brush.Surface");
+            if (button.DataContext is NotesTab tab) ApplyAppearance(button, ReferenceEquals(tab, _model?.SelectedTab));
+    }
+    private static void ApplyAppearance(Button button, bool selected)
+    {
+        button.SetResourceReference(Control.BackgroundProperty, selected ? "Brush.Accent" : "Brush.Surface");
+        button.SetResourceReference(Control.ForegroundProperty, selected ? "Brush.Accent.Text" : "Brush.Text");
+        button.FontWeight = selected ? FontWeights.Bold : FontWeights.Normal;
     }
     private void RenderTabs()
     {
@@ -52,8 +58,7 @@ public sealed class NotesTabStrip : ScrollViewer
         foreach (var tab in model.Tabs)
         {
             var button = new Button { Padding = new Thickness(10, 5, 10, 5), Margin = new Thickness(0, 0, 3, 0), DataContext = tab, AllowDrop = true };
-            button.SetResourceReference(Control.ForegroundProperty, "Brush.Text");
-            button.SetResourceReference(Control.BackgroundProperty, ReferenceEquals(tab, model.SelectedTab) ? "Brush.Surface.Alt" : "Brush.Surface");
+            ApplyAppearance(button, ReferenceEquals(tab, model.SelectedTab));
             var title = new TextBlock(); title.SetBinding(TextBlock.TextProperty, new Binding(nameof(NotesTab.Title)));
             button.Content = title;
             System.Windows.Automation.AutomationProperties.SetName(button, UiText.Get("NoteTab"));

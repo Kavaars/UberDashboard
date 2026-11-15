@@ -28,7 +28,7 @@ public sealed class TrayIconService : ITrayIconService
             return;
         }
 
-        var contextMenu = new ContextMenuStrip { ShowImageMargin = false };
+        var contextMenu = new ContextMenuStrip { ShowImageMargin = false, Padding = new Padding(4), Font = new Font("Segoe UI", 9.5f) };
         contextMenu.Opening += (_, _) =>
         {
             var surface = ThemeColor("Brush.Surface", SystemColors.Menu);
@@ -51,6 +51,11 @@ public sealed class TrayIconService : ITrayIconService
             dragStart = current;
         };
         grip.MouseUp += (_, _) => dragStart = null;
+        grip.Paint += (_, e) =>
+        {
+            using var pill = new SolidBrush(ThemeColor("Brush.Border", SystemColors.ControlDark));
+            e.Graphics.FillRectangle(pill, (grip.Width - 32) / 2, (grip.Height - 4) / 2, 32, 4);
+        };
         contextMenu.Items.Add(new ToolStripControlHost(grip) { AutoSize = false, Height = 14, Width = 180, Margin = Padding.Empty, Padding = Padding.Empty });
         contextMenu.Items.Add(UiText.Get("ShowUberdashboard"), null, (_, _) => restoreMainWindow());
         contextMenu.Items.Add(UiText.Get("ResetWindowToPrimaryMonitor"), null, (_, _) => resetMainWindow());

@@ -13,6 +13,10 @@ public sealed class HomeAssistantTests
     [Theory]
     [InlineData("http://192.168.1.10:8123", "http://192.168.1.10:8123/")]
     [InlineData(" https://ha.local/ha/ ", "https://ha.local/ha/")]
+    [InlineData("http://homeassistant.local:8123", "http://homeassistant.local:8123/")]
+    [InlineData("http://homeassistant:8123", "http://homeassistant:8123/")]
+    [InlineData("http://172.16.0.5", "http://172.16.0.5/")]
+    [InlineData("https://dom.duckdns.org", "https://dom.duckdns.org/")]
     public void Base_url_is_normalized_with_trailing_slash(string input, string expected) =>
         Assert.Equal(expected, HomeAssistantValidation.NormalizeBaseUrl(input).ToString());
 
@@ -21,6 +25,9 @@ public sealed class HomeAssistantTests
     [InlineData("http://user:pass@ha.local")]
     [InlineData("http://ha.local/?token=1")]
     [InlineData("not a url")]
+    [InlineData("http://dom.duckdns.org:8123")]
+    [InlineData("http://8.8.8.8:8123")]
+    [InlineData("http://172.32.0.1")]
     public void Base_url_rejects_unsafe_or_invalid_values(string input) =>
         Assert.Throws<ArgumentException>(() => HomeAssistantValidation.NormalizeBaseUrl(input));
 

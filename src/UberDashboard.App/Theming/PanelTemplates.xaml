@@ -309,82 +309,6 @@
 
 
 
-<DataTemplate x:Key="NotesOptionsTemplate">
-
-        <Border>
-
-          <StackPanel>
-
-            <TextBlock FontWeight="SemiBold"
-
-                       Foreground="{DynamicResource Brush.Text}"
-
-                       Text="{loc:Text NotepadOptions}" />
-
-            <CheckBox Margin="0,12,0,0"
-
-                      Content="{loc:Text WrapLinesInTheEditor}"
-
-                      IsChecked="{Binding WordWrapEnabled}"
-
-                      Style="{StaticResource ThemedCheckBox}"
-
-                      ToolTip="{loc:Text TogglesWrappingWithWrappingOffLongLines}" />
-
-            <DockPanel Margin="0,12,0,0">
-
-              <StackPanel DockPanel.Dock="Right"
-
-                          Orientation="Horizontal">
-
-                <Button Command="{Binding ImportCommand}"
-
-                        Content="&#xE8B5;"
-
-                        Style="{StaticResource PanelActionGlyphButton}"
-
-                        ToolTip="{loc:Text LoadsANoteFromATextFile}" />
-
-                <Button Command="{Binding ExportCommand}"
-
-                        Content="&#xE898;"
-
-                        Style="{StaticResource PanelActionGlyphButton}"
-
-                        ToolTip="{loc:Text SavesTheCurrentNoteToAText}" />
-
-              </StackPanel>
-
-              <TextBlock VerticalAlignment="Center"
-
-                         Foreground="{DynamicResource Brush.Text.Muted}"
-
-                         Text="{loc:Text ImportExport}" />
-
-            </DockPanel>
-
-
-
-          </StackPanel>
-
-        </Border>
-
-
-
-</DataTemplate>
-
-<DataTemplate x:Key="TodoSpacingOptionsTemplate">
-  <StackPanel>
-    <TextBlock Margin="0,10,0,2" Text="{loc:Text TodoItemStyle}" Foreground="{DynamicResource Brush.Text}" />
-    <ComboBox SelectedIndex="{Binding ItemStyle}" Style="{StaticResource ThemedComboBox}" AutomationProperties.Name="{loc:Text TodoItemStyle}" ToolTip="{loc:Text TodoItemStyleHelp}">
-      <ComboBoxItem Content="{loc:Text TodoStylePlain}"/><ComboBoxItem Content="{loc:Text TodoStyleFrame}"/><ComboBoxItem Content="{loc:Text TodoStyleLines}"/>
-    </ComboBox>
-    <TextBlock Margin="0,12,0,0" Text="{loc:Text TodoEdgeSpacing}" Foreground="{DynamicResource Brush.Text}" />
-    <Slider Minimum="0" Maximum="24" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding EdgeSpacing}" AutomationProperties.Name="{loc:Text TodoEdgeSpacing}" ToolTip="{loc:Text TodoEdgeSpacingHelp}" />
-    <TextBlock Margin="0,8,0,0" Text="{loc:Text TodoEntrySpacing}" Foreground="{DynamicResource Brush.Text}" />
-    <Slider Minimum="0" Maximum="24" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding EntrySpacing}" AutomationProperties.Name="{loc:Text TodoEntrySpacing}" ToolTip="{loc:Text TodoEntrySpacingHelp}" />
-  </StackPanel>
-</DataTemplate>
 
 <Style x:Key="TodoListBoxItem" TargetType="ListBoxItem" BasedOn="{StaticResource ThemedListBoxItem}">
   <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -404,260 +328,6 @@
   </Setter.Value></Setter>
 </Style>
 
-<DataTemplate x:Key="TodoOptionsTemplate">
-  <StackPanel>
-    <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" Text="{loc:Text TaskListOptions}" />
-    <CheckBox Margin="0,12,0,0" Content="{loc:Text ShowCompletedTaskSummary}" IsChecked="{Binding ShowSummary}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text ShowsTheNumberOfCompletedTasksAt}" />
-    <CheckBox Margin="0,10,0,0" Content="{loc:Text TodoOnlyIncomplete}" IsChecked="{Binding ShowOnlyIncomplete}" Style="{StaticResource ThemedCheckBox}" />
-    <TextBlock Margin="0,10,0,2" Text="{loc:Text TodoDisplayLimit}" Foreground="{DynamicResource Brush.Text}" />
-    <TextBox AutomationProperties.Name="{loc:Text TodoDisplayLimit}" Style="{StaticResource ThemedTextBox}" Text="{Binding CompletedDisplayLimit, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
-    <TextBlock Margin="0,10,0,2" Text="{loc:Text TodoKeepLimit}" Foreground="{DynamicResource Brush.Text}" />
-    <TextBox AutomationProperties.Name="{loc:Text TodoKeepLimit}" Style="{StaticResource ThemedTextBox}" Text="{Binding CompletedKeepLimit, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
-    <Button Margin="0,8,0,0" Content="{loc:Text TodoKeepAction}" Command="{Binding KeepCompletedCommand}" Style="{StaticResource ToolbarButton}" />
-    <Button Margin="0,8,0,0" Content="{loc:Text TodoClearAction}" Command="{Binding ClearCompletedCommand}" Style="{StaticResource ToolbarButton}" />
-    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource TodoSpacingOptionsTemplate}" />
-  </StackPanel>
-</DataTemplate>
-
-<DataTemplate x:Key="MicrosoftTodoOptionsTemplate">
-  <StackPanel>
-    <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" Text="{loc:Text TaskListOptions}" />
-    <CheckBox Margin="0,10,0,0" Content="{loc:Text TodoOnlyIncomplete}" IsChecked="{Binding ShowOnlyIncomplete}" Style="{StaticResource ThemedCheckBox}" />
-    <TextBlock Margin="0,10,0,2" Text="{loc:Text TodoDisplayLimit}" Foreground="{DynamicResource Brush.Text}" />
-    <TextBox AutomationProperties.Name="{loc:Text TodoDisplayLimit}" Style="{StaticResource ThemedTextBox}" Text="{Binding CompletedDisplayLimit, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
-    <TextBlock Margin="0,10,0,2" Text="{loc:Text TodoKeepLimit}" Foreground="{DynamicResource Brush.Text}" />
-    <TextBox AutomationProperties.Name="{loc:Text TodoKeepLimit}" Style="{StaticResource ThemedTextBox}" Text="{Binding CompletedKeepLimit, UpdateSourceTrigger=PropertyChanged, ValidatesOnExceptions=True}" />
-    <Button Margin="0,8,0,0" Content="{loc:Text TodoKeepAction}" Command="{Binding KeepCompletedCommand}" Style="{StaticResource ToolbarButton}" />
-    <Button Margin="0,8,0,0" Content="{loc:Text TodoClearAction}" Command="{Binding ClearCompletedCommand}" Style="{StaticResource ToolbarButton}" />
-    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource TodoSpacingOptionsTemplate}" />
-    <TextBlock Margin="0,8,0,0" Text="{loc:Text TodoSyncEnableFirst}" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Muted}" />
-  </StackPanel>
-</DataTemplate>
-
-<DataTemplate x:Key="WeatherOptionsTemplate">
-
-        <Border>
-
-          <Grid>
-
-            <Grid.RowDefinitions>
-
-              <RowDefinition Height="Auto" />
-
-              <RowDefinition Height="Auto" />
-
-              <RowDefinition Height="Auto" />
-
-              <RowDefinition Height="Auto" />
-
-            </Grid.RowDefinitions>
-
-
-
-            <StackPanel Grid.Row="0"><TextBlock
-
-                       FontWeight="SemiBold"
-
-                       Foreground="{DynamicResource Brush.Text}"
-
-                       Text="{loc:Text WeatherOptions}" />
-            <CheckBox Margin="0,8,0,0" Content="{loc:Text WeatherColorful}" IsChecked="{Binding ColorfulTheme}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherColorfulHelp}" />
-            <TextBlock Text="{loc:Text WeatherIconSet}" Foreground="{DynamicResource Brush.Text}" Margin="0,8,0,4"/>
-            <ComboBox ItemsSource="{Binding IconSetOptions}" DisplayMemberPath="Name" SelectedValuePath="Id" SelectedValue="{Binding IconSet}" Style="{StaticResource ThemedComboBox}" AutomationProperties.Name="{loc:Text WeatherIconSet}" ToolTip="{loc:Text WeatherIconSetHelp}"/></StackPanel>
-
-
-
-            <DockPanel Grid.Row="1"
-
-                       Margin="0,12,0,0">
-
-              <StackPanel DockPanel.Dock="Right"
-
-                          Orientation="Horizontal">
-
-                <Button Command="{Binding ClearLocationCommand}"
-
-                        Content="&#xE711;"
-
-                        Style="{StaticResource PanelActionGlyphButton}"
-
-                        ToolTip="{loc:Text ClearsThisPanelSLocationAndStops}" />
-
-              </StackPanel>
-
-              <TextBox Style="{StaticResource ThemedTextBox}"
-
-                       IsEnabled="{Binding IsNetworkEnabled}"
-
-                       AutomationProperties.Name="{loc:Text SearchForALocation}"
-
-                       Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-
-                       ToolTip="{loc:Text EnterACityNameThePanelSearches}" />
-
-            </DockPanel>
-
-
-
-            <Border Grid.Row="2"
-
-                    Margin="0,10,0,0"
-
-                    Background="{DynamicResource Brush.Surface.Alt}"
-
-                    BorderBrush="{DynamicResource Brush.Border}"
-
-                    BorderThickness="1"
-
-                    CornerRadius="{DynamicResource Token.CornerRadius.S}"
-
-                    Padding="8">
-
-              <ItemsControl ItemsSource="{Binding SearchResults}">
-
-                <ItemsControl.Style>
-
-                  <Style TargetType="ItemsControl">
-
-                    <Setter Property="Visibility" Value="Visible" />
-
-                    <Style.Triggers>
-
-                      <DataTrigger Binding="{Binding SearchResults.Count}" Value="0">
-
-                        <Setter Property="Visibility" Value="Collapsed" />
-
-                      </DataTrigger>
-
-                    </Style.Triggers>
-
-                  </Style>
-
-                </ItemsControl.Style>
-
-                <ItemsControl.ItemTemplate>
-
-                  <DataTemplate>
-
-                    <DockPanel Margin="0,0,0,4">
-
-                      <Button DockPanel.Dock="Right"
-
-                              Command="{Binding DataContext.SelectLocationCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-
-                              CommandParameter="{Binding}"
-
-                              Content="&#xE8FB;"
-
-                              Style="{StaticResource PanelActionGlyphButton}"
-
-                              ToolTip="{loc:Text SelectsThisLocationForTheCurrentPanel}" />
-
-                      <TextBlock VerticalAlignment="Center"
-
-                                 Foreground="{DynamicResource Brush.Text}"
-
-                                 Text="{Binding DisplayName}"
-
-                                 TextWrapping="Wrap" />
-
-                    </DockPanel>
-
-                  </DataTemplate>
-
-                </ItemsControl.ItemTemplate>
-
-              </ItemsControl>
-
-            </Border>
-
-
-
-            <StackPanel Grid.Row="3"
-
-                        Margin="0,12,0,0">
-
-              <TextBlock Foreground="{DynamicResource Brush.Text.Muted}"
-
-                         Text="{Binding AutoRefreshMinutes, StringFormat={loc:Text AutoRefreshEveryMin}}" />
-
-              <Slider Margin="0,4,0,0"
-
-                      IsSnapToTickEnabled="True"
-
-                      Maximum="180"
-
-                      Minimum="5"
-
-                      TickFrequency="5"
-
-                      Value="{Binding AutoRefreshMinutes}" />
-
-              <TextBlock Text="{loc:Text ModuleSpacing}" Foreground="{DynamicResource Brush.Text}" Margin="0,8,0,0"/><Slider Minimum="-8" Maximum="24" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding ModuleSpacing}" AutomationProperties.Name="{loc:Text ModuleSpacing}" ToolTip="{loc:Text ModuleSpacingHelp}"/><TextBlock Text="{loc:Text ModuleScale}" Foreground="{DynamicResource Brush.Text}" Margin="0,8,0,0"/><Slider Minimum="0.5" Maximum="2" TickFrequency="0.05" IsSnapToTickEnabled="True" Value="{Binding ModuleScale}" AutomationProperties.Name="{loc:Text ModuleScale}" ToolTip="{loc:Text ModuleScaleHelp}"/><CheckBox Content="{loc:Text WeatherShowLocation}" IsChecked="{Binding ShowLocation}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowIcon}" IsChecked="{Binding ShowIcon}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowTemperature}" IsChecked="{Binding ShowTemperature}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowCondition}" IsChecked="{Binding ShowCondition}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowDailyRange}" IsChecked="{Binding ShowDailyRange}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowSunrise}" IsChecked="{Binding ShowSunrise}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowSunset}" IsChecked="{Binding ShowSunset}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Content="{loc:Text WeatherShowForecast}" IsChecked="{Binding ShowForecast}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text WeatherVisibilityHelp}" /><CheckBox Margin="0,10,0,0"
-
-                        Content="{loc:Text ShowWindSpeed}"
-
-                        IsChecked="{Binding ShowWind}"
-
-                        Style="{StaticResource ThemedCheckBox}"
-
-                        ToolTip="{loc:Text ShowsOrHidesWindSpeedOnThe}" />
-
-              <CheckBox Margin="0,8,0,0"
-
-                        Content="{loc:Text ShowLastUpdateTime}"
-
-                        IsChecked="{Binding ShowUpdatedTime}"
-
-                        Style="{StaticResource ThemedCheckBox}"
-
-                        ToolTip="{loc:Text ShowsOrHidesTheTimeOfThe}" />
-
-      <StackPanel Margin="0,12,0,0">
-
-        <CheckBox Content="{loc:Text AllowConnectionsToOpenMeteo}"
-
-                  IsChecked="{Binding IsNetworkEnabled}"
-
-                  Style="{StaticResource ThemedCheckBox}"
-
-                  ToolTip="{loc:Text WhenEnabledOpenMeteoReceivesTheSearch}" />
-
-        <TextBlock Margin="0,6,0,0" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text.Muted}" Text="{loc:Text CurrentModelConditionsChooseACityIn}" />
-
-        <TextBlock
-
-                 Foreground="{DynamicResource Brush.Text.Muted}"
-
-                 Text="{Binding StatusText}"
-
-                 TextWrapping="Wrap"
-
-                 ToolTip="{loc:Text ShowsTheWeatherPanelSCurrentState}" />
-
-        <WrapPanel Margin="0,6,0,0">
-
-          <Button Content="Open-Meteo" Command="{Binding OpenSourceCommand}" CommandParameter="weather" Style="{StaticResource PanelActionButton}" ToolTip="{loc:Text OpensTheForecastProviderSWebsiteIn}" />
-
-          <Button Content="{loc:Text DataLicense}" Command="{Binding OpenSourceCommand}" CommandParameter="licence" Style="{StaticResource PanelActionButton}" ToolTip="{loc:Text OpensInformationAboutTheWeatherDataSources}" />
-
-          <Button Content="GeoNames" Command="{Binding OpenSourceCommand}" CommandParameter="geonames" Style="{StaticResource PanelActionButton}" ToolTip="{loc:Text OpensThePlaceNameSourceUsedBy}" />
-
-        </WrapPanel>
-
-        <TextBlock FontSize="11" Foreground="{DynamicResource Brush.Text.Muted}" TextWrapping="Wrap" Text="{loc:Text DataOpenMeteoCcBy40}" />
-
-      </StackPanel>
-
-            </StackPanel>
-
-          </Grid>
-
-        </Border>
-
-
-
-</DataTemplate>
 
 <DataTemplate x:Key="ExtensionOptionsTemplate"><Button Content="{loc:Text ExtensionOptions}" Command="{Binding ToggleOptionsCommand}" Style="{StaticResource PanelActionButton}" /></DataTemplate>
 
@@ -1348,60 +1018,46 @@
           <Border Width="360" Style="{StaticResource PanelPopupCard}">
 
             <DockPanel>
-              <controls:PopupDragHandle Target="{Binding ElementName=OptionsPopup}" Height="16" Cursor="SizeAll" Background="{DynamicResource Brush.Surface.Alt}" DockPanel.Dock="Top" AutomationProperties.Name="{loc:Text MoveMenu}"/>
+              <controls:PopupDragHandle Target="{Binding ElementName=OptionsPopup}" DockPanel.Dock="Top" AutomationProperties.Name="{loc:Text MoveMenu}"/>
             <ScrollViewer MaxHeight="524" VerticalScrollBarVisibility="Auto">
 
               <StackPanel>
 
               <ContentControl Content="{Binding ViewModel}" ContentTemplateSelector="{StaticResource PanelOptionsSelector}" />
 
-              <StackPanel DataContext="{Binding Appearance}" IsEnabled="{Binding IsReady}"><CheckBox Content="{loc:Text PanelShowName}" IsChecked="{Binding ShowPanelName}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelShowNameHelp}"/><CheckBox Content="{loc:Text PanelShowTabs}" IsChecked="{Binding ShowTabs}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelShowTabsHelp}"/><CheckBox Content="{loc:Text PanelLockWidth}" IsChecked="{Binding LockWidth}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelLockWidthHelp}"/><CheckBox Content="{loc:Text PanelLockHeight}" IsChecked="{Binding LockHeight}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelLockHeightHelp}"/></StackPanel>
-              <Expander Header="{loc:Text Appearance}" Margin="0,12,0,0" IsExpanded="False" Foreground="{DynamicResource Brush.Text}">
-
-              <StackPanel DataContext="{Binding Appearance}" IsEnabled="{Binding IsReady}">
-
-                <TextBlock Text="{loc:Text ThisPanelSAppearance}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
-
-                <TextBlock Text="{Binding MinScale, StringFormat={loc:Text PanelMinScaleFormat}}" Margin="0,12,0,4" Foreground="{DynamicResource Brush.Text}" />
-                <Slider Minimum="15" Maximum="{Binding MaxScale}" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding MinScale}" AutomationProperties.Name="{loc:Text PanelMinScale}" ToolTip="{loc:Text PanelMinScaleHelp}" />
-                <TextBlock Text="{Binding MaxScale, StringFormat={loc:Text PanelMaxScaleFormat}}" Margin="0,8,0,4" Foreground="{DynamicResource Brush.Text}" />
-                <Slider Minimum="{Binding MinScale}" Maximum="200" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding MaxScale}" AutomationProperties.Name="{loc:Text PanelMaxScale}" ToolTip="{loc:Text PanelMaxScaleHelp}" />
-
-                <TextBlock Text="{loc:Text BackgroundColor}" Margin="0,12,0,4" Foreground="{DynamicResource Brush.Text}" />
-
-                <controls:CompactColorPicker SelectedColor="{Binding BackgroundColor}" AutomationProperties.Name="{loc:Text PanelBackgroundColor}" />
-
-                <CheckBox Content="{loc:Text OverrideTextColor}" IsChecked="{Binding OverrideTextColor}" Style="{StaticResource ThemedCheckBox}" Margin="0,12,0,4" ToolTip="{loc:Text SetsATextColorForThisPanel}" />
-                <controls:CompactColorPicker IsEnabled="{Binding OverrideTextColor}" SelectedColor="{Binding TextColor}" DefaultBrushKey="Brush.Text" AutomationProperties.Name="{loc:Text PanelTextColor}" ToolTip="{loc:Text ChoosesACustomTextColorForThis}" />
-
-                <CheckBox Content="{loc:Text CustomFontAndSize}" IsChecked="{Binding CustomizeText}" Style="{StaticResource ThemedCheckBox}" Margin="0,12,0,4" />
-
-                <TextBlock Text="{loc:Text Font}" Margin="0,12,0,4" Foreground="{DynamicResource Brush.Text}" />
-
-                <ComboBox IsEnabled="{Binding CustomizeText}" ItemsSource="{Binding Fonts}" SelectedItem="{Binding FontFamily}" Style="{StaticResource ThemedComboBox}" AutomationProperties.Name="{loc:Text PanelFont}" />
-
-                <TextBlock Text="{Binding FontSize, StringFormat={loc:Text TextSize2}}" Margin="0,12,0,4" Foreground="{DynamicResource Brush.Text}" />
-
-                <Slider IsEnabled="{Binding CustomizeText}" Minimum="11" Maximum="24" Value="{Binding FontSize}" AutomationProperties.Name="{loc:Text PanelTextSize}" />
-
-                <Button Content="{loc:Text ChooseWallpaper}" Margin="0,12,0,0" Command="{Binding ChooseWallpaperCommand}" Style="{StaticResource ToolbarButton}" />
-
-                <TextBlock Text="{Binding WallpaperPath}" TextTrimming="CharacterEllipsis" Foreground="{DynamicResource Brush.Text.Muted}" />
-
-                <TextBlock Text="{loc:Text WallpaperVisibility}" Margin="0,12,0,4" Foreground="{DynamicResource Brush.Text}" />
-
-                <Slider Minimum="0" Maximum="1" Value="{Binding WallpaperOpacity}" AutomationProperties.Name="{loc:Text PanelWallpaperVisibility}" />
-
-                <WrapPanel Margin="0,12,0,0">
-
-                  <Button Content="{loc:Text DefaultAppearance}" Command="{Binding ResetCommand}" Style="{StaticResource PanelActionButton}" />
-
-                  <Button Content="{loc:Text RetrySave}" Command="{Binding RetrySaveCommand}" Style="{StaticResource PanelActionButton}" />
-
+              <StackPanel DataContext="{Binding Appearance}" IsEnabled="{Binding IsReady}"><CheckBox Margin="0,3" Content="{loc:Text PanelShowName}" IsChecked="{Binding ShowPanelName}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelShowNameHelp}"/><CheckBox Margin="0,3" Content="{loc:Text PanelShowTabs}" IsChecked="{Binding ShowTabs}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelShowTabsHelp}"/><CheckBox Margin="0,3" Content="{loc:Text PanelLockWidth}" IsChecked="{Binding LockWidth}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelLockWidthHelp}"/><CheckBox Margin="0,3" Content="{loc:Text PanelLockHeight}" IsChecked="{Binding LockHeight}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelLockHeightHelp}"/></StackPanel>
+              <Expander Header="{loc:Text Appearance}" Margin="0,8,0,0" IsExpanded="False" Foreground="{DynamicResource Brush.Text}">
+              <StackPanel DataContext="{Binding Appearance}" IsEnabled="{Binding IsReady}" Margin="0,6,0,0">
+                <Grid>
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="132"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/>
+                  </Grid.RowDefinitions>
+                  <TextBlock Grid.Row="0" Text="{Binding MinScale, StringFormat={loc:Text PanelMinScaleFormat}}" Foreground="{DynamicResource Brush.Text}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,8,0" />
+                  <Slider Grid.Row="0" Grid.Column="1" Margin="0,3" VerticalAlignment="Center" Minimum="15" Maximum="{Binding MaxScale}" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding MinScale}" AutomationProperties.Name="{loc:Text PanelMinScale}" ToolTip="{loc:Text PanelMinScaleHelp}" />
+                  <TextBlock Grid.Row="1" Text="{Binding MaxScale, StringFormat={loc:Text PanelMaxScaleFormat}}" Foreground="{DynamicResource Brush.Text}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,8,0" />
+                  <Slider Grid.Row="1" Grid.Column="1" Margin="0,3" VerticalAlignment="Center" Minimum="{Binding MinScale}" Maximum="200" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding MaxScale}" AutomationProperties.Name="{loc:Text PanelMaxScale}" ToolTip="{loc:Text PanelMaxScaleHelp}" />
+                  <TextBlock Grid.Row="2" Text="{loc:Text BackgroundColor}" Foreground="{DynamicResource Brush.Text}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,8,0" />
+                  <controls:CompactColorPicker Grid.Row="2" Grid.Column="1" Margin="0,3" HorizontalAlignment="Left" SelectedColor="{Binding BackgroundColor}" AutomationProperties.Name="{loc:Text PanelBackgroundColor}" />
+                  <CheckBox Grid.Row="3" Content="{loc:Text OverrideTextColor}" IsChecked="{Binding OverrideTextColor}" Style="{StaticResource ThemedCheckBox}" VerticalAlignment="Center" Margin="0,3,8,3" ToolTip="{loc:Text SetsATextColorForThisPanel}" />
+                  <controls:CompactColorPicker Grid.Row="3" Grid.Column="1" Margin="0,3" HorizontalAlignment="Left" IsEnabled="{Binding OverrideTextColor}" SelectedColor="{Binding TextColor}" DefaultBrushKey="Brush.Text" AutomationProperties.Name="{loc:Text PanelTextColor}" ToolTip="{loc:Text ChoosesACustomTextColorForThis}" />
+                  <CheckBox Grid.Row="4" Grid.ColumnSpan="2" Content="{loc:Text CustomFontAndSize}" IsChecked="{Binding CustomizeText}" Style="{StaticResource ThemedCheckBox}" Margin="0,3" />
+                  <TextBlock Grid.Row="5" Text="{loc:Text Font}" Foreground="{DynamicResource Brush.Text}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,8,0" />
+                  <ComboBox Grid.Row="5" Grid.Column="1" Margin="0,3" IsEnabled="{Binding CustomizeText}" ItemsSource="{Binding Fonts}" SelectedItem="{Binding FontFamily}" Style="{StaticResource ThemedComboBox}" AutomationProperties.Name="{loc:Text PanelFont}" />
+                  <TextBlock Grid.Row="6" Text="{Binding FontSize, StringFormat={loc:Text TextSize2}}" Foreground="{DynamicResource Brush.Text}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,8,0" />
+                  <Slider Grid.Row="6" Grid.Column="1" Margin="0,3" VerticalAlignment="Center" IsEnabled="{Binding CustomizeText}" Minimum="11" Maximum="24" Value="{Binding FontSize}" AutomationProperties.Name="{loc:Text PanelTextSize}" />
+                  <TextBlock Grid.Row="7" Text="{loc:Text WallpaperVisibility}" Foreground="{DynamicResource Brush.Text}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,8,0" />
+                  <Slider Grid.Row="7" Grid.Column="1" Margin="0,3" VerticalAlignment="Center" Minimum="0" Maximum="1" Value="{Binding WallpaperOpacity}" AutomationProperties.Name="{loc:Text PanelWallpaperVisibility}" />
+                </Grid>
+                <DockPanel Margin="0,6,0,0">
+                  <Button DockPanel.Dock="Left" Content="{loc:Text ChooseWallpaper}" Command="{Binding ChooseWallpaperCommand}" Style="{StaticResource PanelActionButton}" Margin="0,0,8,0" />
+                  <TextBlock Text="{Binding WallpaperPath}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontSize="{DynamicResource Token.FontSize.Caption}" Foreground="{DynamicResource Brush.Text.Muted}" />
+                </DockPanel>
+                <WrapPanel Margin="0,6,0,0">
+                  <Button Content="{loc:Text DefaultAppearance}" Command="{Binding ResetCommand}" Style="{StaticResource PanelActionButton}" Margin="0,0,8,0" />
+                  <Button Content="{loc:Text RetrySave}" Command="{Binding RetrySaveCommand}" Style="{StaticResource PanelActionButton}" Margin="0" />
                 </WrapPanel>
-
-                <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Margin="0,8,0,0" Foreground="{DynamicResource Brush.Text.Muted}" />
-
+                <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Margin="0,4,0,0" FontSize="{DynamicResource Token.FontSize.Caption}" Foreground="{DynamicResource Brush.Text.Muted}" />
               </StackPanel></Expander></StackPanel>
 
             </ScrollViewer>

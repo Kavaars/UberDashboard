@@ -63,7 +63,12 @@ internal sealed class IntegrationDiagnostics(IAppSettingsStore settings, IAppPat
                 var record = JsonSerializer.Serialize(new { timestamp = DateTimeOffset.Now.ToString("O"), level = "WARN", module = service,
                     operation = stage, errorType = error.GetType().Name, httpStatus = status,
                     reason = Reason(error), origin = Origin(error) });
-                if (File.Exists(FilePath) && new FileInfo(FilePath).Length >= MaxBytes) await File.WriteAllTextAsync(FilePath, "").ConfigureAwait(false);
+                if (File.Exists(FilePath) && new FileInfo(FilePath).Length >= MaxBytes)
+                {
+                    // Keep the newest half: the entry that matters is usually the latest one.
+                    var lines = await File.ReadAllLinesAsync(FilePath).ConfigureAwait(false);
+                    await File.WriteAllLinesAsync(FilePath, lines.Skip(lines.Length / 2)).ConfigureAwait(false);
+                }
                 await File.AppendAllTextAsync(FilePath, record + Environment.NewLine).ConfigureAwait(false);
                 _writeFailed = false;
             }

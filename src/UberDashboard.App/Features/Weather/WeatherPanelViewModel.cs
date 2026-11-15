@@ -159,7 +159,7 @@ public sealed partial class WeatherPanelViewModel : ObservableObject, IDisposabl
     partial void OnIconSetChanged(string value) => Changed?.Invoke(this, EventArgs.Empty);
     public IReadOnlyList<WeatherIconOption> IconSetOptions { get; } =
     [new("legacy", "WeatherIconsExisting"), new("line", "WeatherIconsLine"), new("color", "WeatherIconsColor"), new("mono", "WeatherIconsMono")];
-    public sealed record WeatherIconOption(string Id, string NameKey) { public string Name => UiText.Get(NameKey); }
+    public sealed record WeatherIconOption(string Id, string NameKey) { public string Name => UiText.Get(NameKey); public override string ToString() => Name; }
 
     [ObservableProperty]
     private string windText = "—";

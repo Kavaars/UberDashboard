@@ -72,7 +72,7 @@ public partial class App : System.Windows.Application
 
     private void LoadLocalizedResources()
     {
-        foreach (var resource in new[] { "Controls", "WindowFrame", "PanelTemplates" })
+        foreach (var resource in new[] { "Controls", "WindowFrame", "PanelTemplates", "PanelOptionTemplates" })
         {
             Resources.MergedDictionaries.Add(new ResourceDictionary
             {

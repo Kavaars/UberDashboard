@@ -51,7 +51,7 @@ internal static class Program
         var english = args.Contains("--english");
         UiText.Configure(english ? UiText.English : UiText.Polish);
         var app = new System.Windows.Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-        foreach (var resource in new[] { "Theme.Light", "VisualTokens", "Controls", "WindowFrame", "PanelTemplates" })
+        foreach (var resource in new[] { "Theme.Light", "VisualTokens", "Controls", "WindowFrame", "PanelTemplates", "PanelOptionTemplates" })
             app.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri($"pack://application:,,,/UberDashboard;component/Theming/{resource}.xaml") });
         SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext());
         Dispatcher.CurrentDispatcher.BeginInvoke(new Action(async () =>

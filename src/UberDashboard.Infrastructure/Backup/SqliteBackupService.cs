@@ -81,13 +81,10 @@ public sealed class SqliteBackupService
                         }
                     }
 
-                    if (File.Exists(finalPath))
-                    {
-                        File.Delete(finalPath);
-                    }
-
-                    File.Move(temporaryPath, finalPath);
-                    ApplyRetention(retentionCount);
+                    File.Move(temporaryPath, finalPath, overwrite: true);
+                    // The backup already exists; a failed cleanup of old files must not report it as failed.
+                    try { ApplyRetention(retentionCount); }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
                     return BackupResult.Ok(finalPath);
                 }
                 finally

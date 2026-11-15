@@ -28,9 +28,21 @@ public static class HomeAssistantValidation
     {
         if (!Uri.TryCreate((value ?? "").Trim(), UriKind.Absolute, out var uri) ||
             uri.Scheme is not ("http" or "https") || string.IsNullOrEmpty(uri.Host) ||
-            uri.UserInfo.Length > 0 || uri.Query.Length > 0 || uri.Fragment.Length > 0)
+            uri.UserInfo.Length > 0 || uri.Query.Length > 0 || uri.Fragment.Length > 0 ||
+            uri.Scheme == "http" && !IsLocalHost(uri))
             throw new ArgumentException("Invalid Home Assistant address.");
         return new Uri(uri.GetLeftPart(UriPartial.Authority) + uri.AbsolutePath.TrimEnd('/') + "/");
+    }
+
+    // The token is sent as a Bearer header, so plain http is allowed only inside the local network.
+    private static bool IsLocalHost(Uri uri)
+    {
+        if (uri.IsLoopback || uri.HostNameType == UriHostNameType.Dns && !uri.Host.Contains('.')) return true;
+        if (uri.Host.EndsWith(".local", StringComparison.OrdinalIgnoreCase) || uri.Host.EndsWith(".lan", StringComparison.OrdinalIgnoreCase)) return true;
+        if (!System.Net.IPAddress.TryParse(uri.Host.Trim('[', ']'), out var ip)) return false;
+        if (ip.IsIPv6LinkLocal || ip.IsIPv6SiteLocal || ip.IsIPv6UniqueLocal) return true;
+        var b = ip.GetAddressBytes();
+        return b.Length == 4 && (b[0] == 10 || b[0] == 172 && b[1] is >= 16 and <= 31 || b[0] == 192 && b[1] == 168 || b[0] == 169 && b[1] == 254);
     }
 
     /// <summary>Zwraca poprawne ID encji (np. light.salon) albo rzuca <see cref="ArgumentException"/>.</summary>

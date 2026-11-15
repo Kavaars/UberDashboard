@@ -109,6 +109,7 @@
        <Setter Property="ContextMenu"><Setter.Value>
         <ContextMenu DataContext="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}">
          <MenuItem Header="{loc:Text ShortcutEdit}" Command="{Binding EditCommand}"/>
+         <Separator/>
          <MenuItem Header="{loc:Text ShortcutRemove}" Command="{Binding RemoveCommand}" ToolTip="{loc:Text ShortcutRemoveTip}"/>
         </ContextMenu>
        </Setter.Value></Setter>

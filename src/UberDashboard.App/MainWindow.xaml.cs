@@ -2,6 +2,8 @@ using UberDashboard.Core.Localization;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Threading;
+using System.Globalization;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.IO;
@@ -28,6 +30,11 @@ public partial class MainWindow : Window
         if (sender is System.Windows.Controls.Button { Tag: UberDashboard.Application.Abstractions.DashboardSummary dashboard })
             await _viewModel.DeleteDashboardAsync(dashboard);
     }
+
+    private readonly DispatcherTimer _clockTimer = new() { Interval = TimeSpan.FromSeconds(1) };
+
+    /// <summary>Aktualizuje datę i godzinę (24h) w pasku górnym.</summary>
+    private void UpdateClock() => ClockText.Text = DateTime.Now.ToString("dddd, dd.MM.yyyy · HH:mm", CultureInfo.CurrentCulture);
 
     private readonly UberDashboard.App.Plugins.PluginManager _plugins;
     private readonly AppBarController _appBar;
@@ -81,6 +88,10 @@ public partial class MainWindow : Window
         _trayIconService = trayIconService;
 
         InitializeComponent();
+        _clockTimer.Tick += (_, _) => UpdateClock();
+        UpdateClock();
+        _clockTimer.Start();
+        Closed += (_, _) => _clockTimer.Stop();
         _theme.ThemeChanged += OnThemeChanged;
         DataContext = _viewModel;
         _viewModel.PropertyChanged += OnShellPropertyChanged;

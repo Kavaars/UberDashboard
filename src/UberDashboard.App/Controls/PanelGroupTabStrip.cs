@@ -137,7 +137,7 @@ public sealed class PanelGroupTabStrip : ScrollViewer
             var color = new MenuItem { Header = UiText.Get("TabColor") };
             foreach (var (key, hex) in TabColors)
             {
-                var swatch = new MenuItem { Header = UiText.Get(key), Icon = new System.Windows.Shapes.Rectangle { Width = 12, Height = 12, Fill = ColorBrush(hex) } };
+                var swatch = new MenuItem { Header = UiText.Get(key), Icon = new System.Windows.Shapes.Ellipse { Width = 12, Height = 12, Fill = ColorBrush(hex) } };
                 swatch.Click += async (_, _) => await Run(() => session.UpdateAsync(group => group.Recolor(tab.InstanceId, hex)));
                 color.Items.Add(swatch);
             }
@@ -160,15 +160,18 @@ public sealed class PanelGroupTabStrip : ScrollViewer
     /// <summary>Kolor tła zakładki; domyślny to tło zależne od tego, czy zakładka jest aktywna.</summary>
     private static void ApplyTabAppearance(Button button, PanelTab tab, bool selected)
     {
-        if (tab.Color is { } hex)
-        {
-            button.Background = ColorBrush(hex);
-            button.FontWeight = selected ? FontWeights.Bold : FontWeights.Normal;
-        }
+        button.FontWeight = selected ? FontWeights.Bold : FontWeights.Normal;
+        if (tab.Color is { } hex) button.Background = ColorBrush(hex);
         else
         {
-            button.SetResourceReference(Control.BackgroundProperty, selected ? "Brush.Surface.Alt" : "Brush.Surface");
-            button.FontWeight = FontWeights.Normal;
+            button.SetResourceReference(Control.BackgroundProperty, selected ? "Brush.Accent" : "Brush.Surface");
+            button.SetResourceReference(Control.ForegroundProperty, selected ? "Brush.Accent.Text" : "Brush.Text");
+        }
+        // Aktywna zakładka dostaje wyraźną ramkę akcentową (nadpisuje ramkę Microsoft To Do).
+        if (selected)
+        {
+            button.SetResourceReference(Control.BorderBrushProperty, "Brush.Accent");
+            button.BorderThickness = new Thickness(2);
         }
     }
 
