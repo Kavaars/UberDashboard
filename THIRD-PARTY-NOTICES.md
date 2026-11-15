@@ -21,6 +21,14 @@ The resource monitor uses LibreHardwareMonitorLib, distributed unmodified as a b
 
 Weather data and place search are provided by [Open-Meteo](https://open-meteo.com/) (data licensed CC BY 4.0). See Open-Meteo's terms for usage conditions.
 
+## Wallpapers
+
+The built-in wallpapers (`src/UberDashboard.App/Wallpapers`) are abstract images generated with an AI image generator for this project; they are not taken from third-party stock or photo collections. They are distributed together with the application under the project's MIT License, to the extent copyright applies to AI-generated images.
+
+## Fonts and weather icons
+
+No font files are bundled; the application uses fonts installed with Windows (Segoe UI family, Consolas). Weather icons are drawn by the application's own code or use Unicode characters rendered with system fonts.
+
 ## Plugins
 
 Plugins are separate programs with their own licenses and are not covered by this file.
