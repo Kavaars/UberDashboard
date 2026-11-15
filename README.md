@@ -62,6 +62,14 @@ Panel plugins are described in [`docs/PLUGINS.md`](docs/PLUGINS.md), with a samp
 
 Polish translations of the documentation are in [`docs/pl`](docs/pl).
 
+## Unsigned installer
+
+The installer is currently **not code-signed**. Windows SmartScreen will likely show an "unknown publisher" / "Windows protected your PC" warning when you run it; choose **More info → Run anyway** if you trust the download. You can compare the file with the one attached to the [release](https://github.com/Kavaars/UberDashboard/releases) or build it yourself from source.
+
+## Built with AI assistance
+
+This application was developed with the help of AI coding assistants (Claude by Anthropic). The code is reviewed and tested by the maintainer, but as with any software, use it at your own risk (see the [License](#license)).
+
 ## Feedback
 
 Found a bug or have an idea? [Open an issue](https://github.com/Kavaars/UberDashboard/issues).
