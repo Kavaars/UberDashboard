@@ -10,6 +10,6 @@ public class AboutInfoTests
         var info = new AboutInfo();
         Assert.Matches(@"^\d+\.\d+\.\d+$", info.AboutVersion);
         Assert.True(DateTime.TryParse(info.AboutBuildTime, out _));
-        Assert.Contains("1.9.0", info.AboutChangelog);
+        Assert.Contains("1.9.1", info.AboutChangelog);
     }
 }
