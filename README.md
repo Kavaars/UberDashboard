@@ -4,13 +4,14 @@ Twój własny pulpit z notatkami, zadaniami, kalendarzem, pogodą i skrótami �
 
 [Strona projektu](https://github.com/Kavaars/UberDashboard) · [Historia zmian](changelog.txt) · [Polityka prywatności / Privacy Policy](PRIVACY.md) · [Zgłoś problem](https://github.com/Kavaars/UberDashboard/issues)
 
-## Zrzuty ekranu
+## Zrzuty ekranu / Screenshots
 
-Zrzuty powstają z danych przykładowych (`dotnet run --project tests/UberDashboard.Screenshots -- docs/screenshots`), więc nie zawierają żadnych prywatnych treści.
+Zrzuty powstają z danych przykładowych w angielskim interfejsie (`dotnet run --project tests/UberDashboard.Screenshots -- docs/screenshots`), więc nie zawierają żadnych prywatnych treści. / Generated from mock data, English UI.
 
-![Pulpit – ciemny motyw](docs/screenshots/main-dark.png)
-![Pulpit – jasny motyw](docs/screenshots/main-light.png)
-![Ustawienia – wygląd](docs/screenshots/settings-1-dark.png)
+![Dark theme with wallpaper](docs/screenshots/main-current-dark.png)
+![Light theme](docs/screenshots/main-light.png)
+![Blue dark theme, three columns](docs/screenshots/main-ocean-dark.png)
+![Warm light theme](docs/screenshots/main-warm-light.png)
 
 ## Co potrafi aplikacja
 
