@@ -57,3 +57,24 @@ credentials*.json
 
 # graphify knowledge graph output
 graphify-out/
+
+## Internal notes, plans and AI-agent tooling (not part of the public repo)
+AGENTS.md
+CLAUDE.md
+.claude/
+.codex/
+*.graphify-bak
+PLAN_BUDOWY.md
+listaZmian.md
+problemy.md
+wersje.md
+ZASADY_PROJEKTU.md
+docs/superpowers/
+docs/AUDYT_*.md
+docs/MACIERZ_*.md
+docs/PLAN_IMPORT_*.md
+docs/ROZWOJ.md
+docs/SYNCHRONIZACJA_*.md
+docs/UI_KIERUNEK_*.md
+docs/WDROZENIE_*.md
+docs/WYTYCZNE_PANELI.md
