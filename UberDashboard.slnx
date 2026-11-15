@@ -18,5 +18,6 @@
     <Project Path="tests/UberDashboard.Infrastructure.Tests/UberDashboard.Infrastructure.Tests.csproj" />
     <Project Path="tests/UberDashboard.PluginChecks/UberDashboard.PluginChecks.csproj" />
     <Project Path="tests/UberDashboard.VisualChecks/UberDashboard.VisualChecks.csproj" />
+    <Project Path="tests/UberDashboard.Screenshots/UberDashboard.Screenshots.csproj" />
   </Folder>
 </Solution>
