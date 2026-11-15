@@ -1,19 +1,21 @@
-# Wzory paneli wtyczek
+# Plugin panel templates
 
-Projekt zawiera dwa punkty wyjścia: `simple` (pusta treść) i `modular` (dwa przykładowe elementy do usunięcia lub zastąpienia). Aby utworzyć własną wtyczkę, skopiuj folder, zmień namespace i nazwę DLL, unikalne ID w `plugin.json`, oba `TypeId` oraz nazwy. Można usunąć niepotrzebny deskryptor z modułu i odpowiedni wpis manifestu.
+[Wersja polska](../../docs/pl/PanelTemplates.md)
+
+The project contains two starting points: `simple` (empty content) and `modular` (two sample items to delete or replace). To create your own plugin, copy the folder, then change the namespace and DLL name, the unique ID in `plugin.json`, both `TypeId` values and the names. You can remove an unneeded descriptor from the module and the matching manifest entry.
 
 ```powershell
 dotnet build plugins/PanelTemplates/PanelTemplates.Plugin.csproj -c Release
 ```
 
-Projekt korzysta tylko z publicznych `Contracts` i przechodniego `Core`; nie odwołuje się do `App`. Manifest wymaga API 1.3.0. Do paczki `.udplugin` umieszcza się bezpośrednio w ZIP `plugin.json` i DLL wtyczki, bez katalogu nadrzędnego i bez kopii DLL hosta. Przykład wymaga gospodarza obsługującego API 1.3.0.
+The project uses only the public `Contracts` and the transitive `Core`; it does not reference `App`. The manifest requires API 1.3.0. A `.udplugin` package contains `plugin.json` and the plugin DLL directly in the ZIP, with no parent folder and no copy of the host DLLs. The sample requires a host that supports API 1.3.0.
 
-## Wspólne elementy obu wzorów
+## What both templates share
 
-`TemplateModule` rejestruje deskryptory w tle, deskryptor ma stabilne TypeId i fabrykę, a `TemplateInstance` zachowuje ID z `PanelContext`. Własna treść jest dostarczona przez `IPanelContent`; host zapewnia kartę, zakładki, układ zewnętrzny i wygląd. `IPanelStateNotifications` zgłasza trwałe zmiany i wersję do autozapisu. Stan ma wersję schematu; nieznany schemat jest odrzucany. Każda instancja ma własny widok i dane. Przy dodaniu I/O, timerów i opcji należy uzupełnić cykl życia, anulowanie oraz `IPanelOptions` zgodnie z `docs/WYTYCZNE_PANELI.md` i `docs/PLUGINY.md`.
+`TemplateModule` registers descriptors in the background; a descriptor has a stable TypeId and a factory, and `TemplateInstance` keeps the ID from `PanelContext`. Custom content is supplied through `IPanelContent`; the host provides the card, tabs, outer layout and appearance. `IPanelStateNotifications` reports persistent changes and a version for autosave. State has a schema version; an unknown schema is rejected. Every instance has its own view and data. When you add I/O, timers and options, complete the lifecycle, cancellation and `IPanelOptions` as described in [`docs/PLUGINS.md`](../../docs/PLUGINS.md).
 
-## Panel modułowy
+## Modular panel
 
-`IModularPanel` udostępnia hostowi przejściowy tryb edycji, identyfikatory i pozycje; nie zapisuj samego trybu edycji. Host udostępnia jego przełącznik w menu panelu. `TemplateModel` zapisuje pozycje w swoim JSON i zgłasza zmianę przez instancję. `ModuleGrid.Restore` przywraca stare lub niepełne pozycje, a `ModuleGrid.Move` przesuwa kolizje. `ModularView` i `ModularItemsPanel` są kodem widoku wtyczki: zapewniają siatkę, przeciąganie i Ctrl+Shift+strzałki; mogą zostać dostosowane we własnej kopii. ID elementów muszą być stabilne i unikalne w instancji. Puste pola są zachowywane; liczba kolumn wizualnych zmienia się z szerokością bez zmiany zapisanych współrzędnych.
+`IModularPanel` gives the host a transient edit mode, item identifiers and positions; do not persist the edit mode itself. The host exposes its toggle in the panel menu. `TemplateModel` stores positions in its own JSON and reports the change through the instance. `ModuleGrid.Restore` restores old or incomplete positions, and `ModuleGrid.Move` shifts colliding items. `ModularView` and `ModularItemsPanel` are the plugin's view code: they provide the grid, dragging and Ctrl+Shift+arrow keys, and can be adapted in your own copy. Item IDs must be stable and unique within an instance. Empty cells are preserved; the number of visual columns changes with the width without changing the stored coordinates.
 
-Przed dystrybucją sprawdź niezależność instancji i zakładek, zapis i odczyt, błędny i starszy stan, przeciąganie, klawiaturę, motywy, małe rozmiary, DPI i czytnik ekranu. Wzór ma dwa elementy demonstracyjne, nie pobiera danych i nie zapewnia aplikacji funkcji domenowej. Wtyczki wykonują się w procesie hosta i nie są izolowane.
+Before distributing, check the independence of instances and tabs, saving and loading, invalid and older state, dragging, keyboard use, themes, small sizes, DPI and screen readers. The template has two demonstration items, fetches no data and provides no domain functionality to the application. Plugins run in the host process and are not isolated.

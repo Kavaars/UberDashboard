@@ -1,35 +1,36 @@
-# Microsoft To Do w UberDashboard
+# Microsoft To Do in UberDashboard
 
-Otwórz **Menu → Ustawienia → Integracje → Otwórz kreator Microsoft To Do**.
+[Wersja polska](pl/MICROSOFT_TODO.md)
 
-1. Wpisz identyfikator aplikacji (Application/Client ID) z Microsoft Entra i wybierz **Połącz konto i pobierz listy**. Przy zmianie konta użyj **Wybierz inne konto Microsoft**.
-2. Wskaż panel **Lista zadań** na aktywnym pulpicie. Jeśli nie ma takiego panelu, dodaj go z menu pulpitu.
-3. Zaznacz przy wybranych listach **Importuj kopię**, **Synchronizuj** lub obie opcje. Wybierz **Zapisz wybór i pobierz zadania**.
+Open **Menu → Settings → Integrations → Open the Microsoft To Do wizard**.
 
-Import tworzy lokalną edytowalną kopię. Połączenie konta wymaga zgody `Tasks.ReadWrite`. Zapisanie wyboru list włącza dla nich synchronizację dwukierunkową; pozycja **Synchronizacja dwukierunkowa** w menu kontekstowym zakładki otwiera edytor zadań; pole i przycisk + w panelu dodają zadania do kolejki synchronizacji. Wcześniej ręcznie wstrzymane synchronizacje pozostają wstrzymane. Lokalne importy nie są automatycznie publikowane. Dokładne statusy Microsoft są zachowywane, również poza prostym wykonane/niewykonane.
+1. Enter the application (client) ID from Microsoft Entra and choose **Connect account and fetch lists**. To switch accounts use **Choose another Microsoft account**.
+2. Pick the **To-do list** panel on the active dashboard. If there is none, add it from the dashboard menu.
+3. For the lists you want, tick **Import a copy**, **Sync**, or both. Choose **Save selection and fetch tasks**.
 
-Zmiana jest najpierw zapisywana lokalnie wraz z kolejką. Edytor pokazuje oczekujące operacje, konflikty, ponowienie i wstrzymanie. **Centrum synchronizacji** w Integracjach umożliwia powrót do powiązań. Usunięcie samej karty nie wysyła usunięcia zadań do usługi. Powiązanie dwukierunkowe należy wstrzymać w jego edytorze; dotychczasowy kreator wyboru odczytu nie zarządza jeszcze wszystkimi nowymi powiązaniami. Pełny zakres API, odłączenie z kopiami oraz testy kont pozostają opisane jako otwarte w [stanie wdrożenia](SYNCHRONIZACJA_DWUKIERUNKOWA.md).
+An import creates a local, editable copy. Connecting the account requires the `Tasks.ReadWrite` permission. Saving the list selection turns on two-way sync for those lists; the **Two-way sync** item in a tab's context menu opens the task editor; the field and + button in the panel add tasks to the sync queue. Syncs you paused manually earlier stay paused. Local imports are not published automatically. Exact Microsoft statuses are preserved, also beyond a simple done/not done.
 
-## Konfiguracja klienta
+A change is first saved locally together with the queue. The editor shows pending operations, conflicts, retry and pause. The **Sync center** in Integrations lets you return to the links. Deleting just the tab does not send task deletions to the service. Pause a two-way link in its editor; the existing read-selection wizard does not yet manage all of the newer links. The full API coverage, detaching with copies and account tests remain open items.
 
-1. Zarejestruj publiczną aplikację desktopową w Microsoft Entra. Aby obsłużyć konta osobiste i organizacyjne, wybierz rejestrację wielodostępną z kontami osobistymi Microsoft.
-2. Dodaj platformę aplikacji mobilnych i desktopowych oraz adres przekierowania `http://localhost` dla przeglądarki systemowej. Włącz publiczne przepływy klienta.
-3. Dodaj delegowane uprawnienie Microsoft Graph `Tasks.ReadWrite`. Polityka organizacji może wymagać zgody administratora.
-4. Skopiuj Application/Client ID do kreatora. Przy pierwszym otwarciu kreator może wstępnie uzupełnić wartość z dotychczasowej zmiennej `UBERDASHBOARD_MS_TODO_CLIENT_ID`.
+The tab of a linked list can be removed locally, or you can choose to also delete the Microsoft To Do list after confirmation. Deleting from the account goes through the sync queue; a list with pending changes or without the required permissions will not be deleted. If an operation is unconfirmed, the tab stays and the operation's state can be checked in the sync center.
 
-MSAL otwiera logowanie Microsoft w przeglądarce. Cache uwierzytelniania jest chroniony mechanizmem Windows i przechowywany w katalogu `Credentials` profilu aplikacji. **Rozłącz zapisane konto** czyści sesję aplikacji dla tego klienta.
+## Client setup
 
-[Konfiguracja klienta desktopowego Microsoft Entra](https://learn.microsoft.com/en-us/azure/active-directory/develop/scenario-desktop-app-registration) · [Odczyt zadań w Microsoft Graph](https://learn.microsoft.com/en-us/graph/api/todotasklist-list-tasks?view=graph-rest-1.0)
+1. Register a public desktop application in Microsoft Entra. To support personal and organizational accounts, choose a multi-tenant registration that includes personal Microsoft accounts.
+2. Add the mobile and desktop applications platform and the redirect URI `http://localhost` for the system browser. Enable public client flows.
+3. Add the delegated Microsoft Graph permission `Tasks.ReadWrite`. Organization policy may require administrator consent.
+4. Copy the Application (client) ID into the wizard. On first open the wizard may pre-fill the value from the older `UBERDASHBOARD_MS_TODO_CLIENT_ID` environment variable.
 
-## Aktualizacja bazy
+MSAL opens the Microsoft sign-in in your browser. The authentication cache is protected by Windows and stored in the `Credentials` folder of the application profile. **Disconnect saved account** clears the application's session for that client.
 
-Schemat 3 przenosi zadania wbudowanych list ToDo z JSON do tabeli `TodoItem`. Przed migracją istniejącej bazy aplikacja zapisuje spójną kopię SQLite `pre-todo-v3-*.db` w katalogu `Backups` profilu. W bazie zachowuje też pierwotny JSON migrowanych list. Nieprawidłowe dane źródłowe przerywają transakcję.
+[Microsoft Entra desktop client setup](https://learn.microsoft.com/en-us/azure/active-directory/develop/scenario-desktop-app-registration) · [Reading tasks in Microsoft Graph](https://learn.microsoft.com/en-us/graph/api/todotasklist-list-tasks?view=graph-rest-1.0)
 
-Powrót do aplikacji sprzed migracji wymaga przywrócenia kopii bazy sprzed aktualizacji. Przed przywróceniem należy zamknąć aplikację i zachować osobną kopię aktualnych danych.
+## Database update
 
+Schema 3 moves the tasks of built-in to-do lists from JSON to the `TodoItem` table. Before migrating an existing database the application saves a consistent SQLite copy `pre-todo-v3-*.db` in the profile's `Backups` folder. It also keeps the original JSON of the migrated lists in the database. Invalid source data aborts the transaction.
 
-Zakładkę powiązanej listy można usunąć lokalnie albo wybrać usunięcie również listy Microsoft To Do po potwierdzeniu. Usunięcie z konta korzysta z kolejki synchronizacji; lista z oczekującymi zmianami lub bez odpowiednich uprawnień nie zostanie usunięta. W razie niepotwierdzonej operacji zakładka pozostaje, a stan operacji można sprawdzić w centrum synchronizacji.
+Going back to a pre-migration version of the application requires restoring the database copy made before the update. Close the application and keep a separate copy of the current data before restoring.
 
-### Dziennik integracji
+## Integration log
 
-W Ustawieniach → Integracje można włączyć lub wyłączyć logowanie zdarzeń, odświeżyć kopiowalny dziennik i wyczyścić jego wpisy. Logowanie jest domyślnie włączone; ustawienie pozostaje zapisane po ponownym uruchomieniu. Dziennik obejmuje wybrane błędy synchronizacji w tle i uruchamianej w edytorze, odświeżania oraz logowania Microsoft i Google. Zawiera czas, usługę, etap, typ błędu, kod HTTP oraz bezpieczny kod przyczyny i moduł, jeżeli są dostępne. Nie zapisuje komunikatów wyjątków, tokenów, adresów kont ani treści zadań. Plik `LOGS/integration.txt` w profilu aplikacji jest ograniczony do około 1 MB; po osiągnięciu limitu starsze wpisy są zastępowane. Wyłączenie zatrzymuje nowe wpisy, nie usuwa istniejących.
+In Settings → Integrations you can turn event logging on or off, refresh a copyable log and clear its entries. Logging is on by default; the setting persists across restarts. The log covers selected errors from background sync and sync run in the editor, refreshes, and Microsoft and Google sign-in. It contains the time, service, stage, error type, HTTP status and a safe reason code and module where available. It does not record exception messages, tokens, account addresses or task contents. The `LOGS/integration.txt` file in the application profile is limited to about 1 MB; once the limit is reached, older entries are replaced. Turning logging off stops new entries and does not delete existing ones.

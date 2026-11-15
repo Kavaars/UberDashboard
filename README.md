@@ -51,8 +51,21 @@ Your data stays on your computer. The app contacts the network only for features
 
 ## Plugins
 
-Panel plugins are described in [`docs/PLUGINY.md`](docs/PLUGINY.md) (Polish), with a sample project in [`plugins/PanelTemplates`](plugins/PanelTemplates).
+Panel plugins are described in [`docs/PLUGINS.md`](docs/PLUGINS.md), with a sample project in [`plugins/PanelTemplates`](plugins/PanelTemplates).
+
+## Documentation
+
+- [Plugins](docs/PLUGINS.md)
+- [Microsoft To Do](docs/MICROSOFT_TODO.md)
+- [Shortcuts panel](docs/PANEL_SHORTCUTS.md)
+- [Calendar and resource monitor](docs/PANELS_CALENDAR_AND_RESOURCES.md)
+
+Polish translations of the documentation are in [`docs/pl`](docs/pl).
 
 ## Feedback
 
 Found a bug or have an idea? [Open an issue](https://github.com/Kavaars/UberDashboard/issues).
+
+## License
+
+UberDashboard is released under the [MIT License](LICENSE). Third-party components are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

@@ -12,6 +12,8 @@
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <Version>1.9.0</Version>
     <Product>UberDashboard</Product>
+    <Copyright>Copyright (c) 2026 Kavaars</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Kavaars/UberDashboard</RepositoryUrl>
     <PackageProjectUrl>https://github.com/Kavaars/UberDashboard</PackageProjectUrl>
     <NeutralLanguage>pl-PL</NeutralLanguage>

@@ -1,4 +1,5 @@
 # Pluginy paneli UberDashboard
+[English version](../PLUGINS.md)
 
 Dotyczy bieżącej wersji roboczej **1.9.0**, kontraktu paneli **1.3.0** i pluginu **Ramka na zdjęcia 1.1.0**.
 
@@ -129,4 +130,4 @@ Wtyczka może zaimplementować opcjonalny `UberDashboard.Contracts.Panels.IRespo
 
 ## Rodzaje paneli i wzory
 
-W katalogu [`plugins/PanelTemplates`](plugins/PanelTemplates/README.md) znajdują się kompilowalne wzory panelu zwykłego i modułowego. Dokumentacja opisuje wspólne obowiązki obu rodzajów, osobny kontrakt modułów, zapis stanu, przygotowanie paczki i listę odbioru. Zwykły panel dostarcza własną treść; modułowy udostępnia też układ elementów i tryb edycji przez `IModularPanel`. Oba korzystają z tej samej karty, zakładek i cyklu życia hosta. Aktualne API modułowe wymaga kontraktu **1.3.0**.
+W katalogu [`plugins/PanelTemplates`](PanelTemplates.md) znajdują się kompilowalne wzory panelu zwykłego i modułowego. Dokumentacja opisuje wspólne obowiązki obu rodzajów, osobny kontrakt modułów, zapis stanu, przygotowanie paczki i listę odbioru. Zwykły panel dostarcza własną treść; modułowy udostępnia też układ elementów i tryb edycji przez `IModularPanel`. Oba korzystają z tej samej karty, zakładek i cyklu życia hosta. Aktualne API modułowe wymaga kontraktu **1.3.0**.

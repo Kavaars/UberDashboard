@@ -1,4 +1,5 @@
 # Panel Skróty (1.9.0)
+[English version](../PANEL_SHORTCUTS.md)
 
 Dodaj panel **Skróty** z katalogu paneli. Przycisk **Dodaj skrót** otwiera edytor nazwy, celu, ikony i kolorów. Cel może być pełną ścieżką do aplikacji, folderu, dokumentu lub skrótu Windows (.lnk/.url), albo adresem http:// lub https://. Dostępne są wybór pliku i folderu oraz rozwijanie zmiennych środowiskowych, np. %SystemRoot%.
 
