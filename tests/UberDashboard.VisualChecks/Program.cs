@@ -6,6 +6,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using UberDashboard.App.Hosting;
+using UberDashboard.App.Controls;
+using UberDashboard.App.Settings;
 using UberDashboard.App.Shell;
 using UberDashboard.App.Theming;
 using UberDashboard.Core.Localization;
@@ -40,6 +42,42 @@ internal static class Program
         using (var drawing = background.RenderOpen())
             drawing.DrawRectangle((System.Windows.Media.Brush)app.FindResource("Brush.Window.Background"), null, new Rect(size));
         bitmap.Render(background);
+    }
+
+    private static async Task RenderTabOverflowAsync(PanelLeafViewModel leaf, System.Windows.Application app, string output)
+    {
+        var session = leaf.TabSession!;
+        var original = session.Group.ActiveId;
+        for (var index = 1; index <= 5; index++)
+        {
+            await session.AddAsync();
+            await session.UpdateAsync(group => group.Rename(group.ActiveId, $"Project notes {index}"));
+        }
+        await session.SelectAsync(original);
+        var appearance = leaf.Appearance!;
+        appearance.CustomizeText = true;
+        appearance.FontSize = 24;
+        var size = new Size(320, 280);
+        foreach (var mode in Enum.GetValues<PanelTabOverflow>())
+        {
+            appearance.TabOverflow = mode;
+            var card = new ContentControl { Content = leaf, ContentTemplate = (DataTemplate)app.FindResource("PanelLeafTemplate") };
+            card.Measure(size); card.Arrange(new Rect(size)); card.UpdateLayout();
+            await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            var strip = Descendants(card).OfType<PanelGroupTabStrip>().Single();
+            var arrows = ((DockPanel)strip.Content).Children.OfType<Button>().ToArray();
+            if (strip.Overflow != mode || strip.ActualWidth < size.Width * .8 ||
+                arrows.Any(arrow => (arrow.Visibility == Visibility.Visible) != (mode == PanelTabOverflow.Scroll)))
+                throw new InvalidOperationException($"Panel tab strip failed to render {mode}.");
+            ValidateGlyphs(card);
+            var bitmap = new RenderTargetBitmap((int)size.Width, (int)size.Height, 96, 96, PixelFormats.Pbgra32);
+            DrawBackground(bitmap, app, size); bitmap.Render(card);
+            var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
+            using var image = File.Create(Path.Combine(output, $"tab-overflow-{mode}.png"));
+            encoder.Save(image);
+        }
+        appearance.TabOverflow = PanelTabOverflow.Scroll;
+        Console.WriteLine("TAB OVERFLOW RENDER PASS");
     }
 
     [STAThread]
@@ -363,6 +401,7 @@ internal static class Program
                     throw new InvalidOperationException("Live font preview did not update immediately");
                 await liveSettings.FlushAsync();
                 var customLeaf = shell.Panels.First();
+                await RenderTabOverflowAsync(customLeaf, app, output);
                 customLeaf.Appearance!.CustomizeText = true;
                 customLeaf.Appearance.FontFamily = "Verdana";
                 customLeaf.Appearance.FontSize = 17;

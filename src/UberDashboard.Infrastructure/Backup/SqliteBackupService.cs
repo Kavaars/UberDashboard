@@ -53,14 +53,14 @@ public sealed class SqliteBackupService
         int retentionCount = 10,
         CancellationToken cancellationToken = default) =>
         _queue.EnqueueExclusiveAsync(
-            _ =>
+            token =>
             {
                 _database.EnsureInitialized();
                 Directory.CreateDirectory(_paths.BackupsDirectory);
 
                 var stamp = _clock.UtcNow.ToUniversalTime()
-                    .ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
-                var finalPath = Path.Combine(_paths.BackupsDirectory, $"{BackupFilePrefix}{stamp}.db");
+                    .ToString("yyyyMMdd-HHmmss-fffffff", CultureInfo.InvariantCulture);
+                var finalPath = Path.Combine(_paths.BackupsDirectory, $"{BackupFilePrefix}{stamp}-{Guid.NewGuid():N}.db");
                 var temporaryPath = finalPath + ".tmp";
 
                 try
@@ -81,7 +81,8 @@ public sealed class SqliteBackupService
                         }
                     }
 
-                    File.Move(temporaryPath, finalPath, overwrite: true);
+                    token.ThrowIfCancellationRequested();
+                    File.Move(temporaryPath, finalPath);
                     // The backup already exists; a failed cleanup of old files must not report it as failed.
                     try { ApplyRetention(retentionCount); }
                     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }

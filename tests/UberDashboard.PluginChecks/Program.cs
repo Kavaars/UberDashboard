@@ -105,11 +105,12 @@ internal static class Program
             manager.RefreshPanelsAsync = shell.RefreshPluginPanelsAsync;
             await shell.InitializeAsync();
             var ui = provider.GetRequiredService<PluginSettingsViewModel>();
+            ui.ConfirmInstall = (_, _) => true;
 
             using (var cancellation = new CancellationTokenSource())
             {
                 cancellation.Cancel();
-                try { await manager.InstallAsync(package, cancellation.Token); throw new InvalidOperationException("Cancellation ignored"); }
+                try { await manager.InstallAsync(package, (_, _) => true, cancellation.Token); throw new InvalidOperationException("Cancellation ignored"); }
                 catch (OperationCanceledException) { Check(manager.Installed.Count == 0, "Cancelled installation has no side effects"); }
             }
             var broken = Path.Combine(output, "broken.udplugin");
@@ -118,7 +119,7 @@ internal static class Program
                 zip.CreateEntryFromFile(Path.Combine(AppContext.BaseDirectory, "photo-plugin.json"), "plugin.json");
                 using var bad = new StreamWriter(zip.CreateEntry("PhotoFrame.Plugin.dll").Open()); bad.Write("invalid DLL");
             }
-            try { await manager.InstallAsync(broken); throw new InvalidOperationException("Bad DLL was accepted"); }
+            try { await manager.InstallAsync(broken, (_, _) => true); throw new InvalidOperationException("Bad DLL was accepted"); }
             catch (BadImageFormatException)
             {
                 Check(manager.Installed.Count == 0 && !Directory.GetDirectories(Path.Combine(profile, "Plugins")).Any(), "Failed module load rolls back package and registrations");
@@ -139,6 +140,13 @@ internal static class Program
             dropWindow.RaiseEvent(over);
             Check(over.Handled && over.Effects == DragDropEffects.Copy, "Package drag advertises copy action");
             var dropped = DragArgs(dropWindow, new System.Windows.DataObject(System.Windows.DataFormats.FileDrop, new[] { package }), System.Windows.DragDrop.PreviewDropEvent);
+            ui.ConfirmInstall = (_, _) => false;
+            dropWindow.RaiseEvent(dropped);
+            var declinedDeadline = Stopwatch.StartNew();
+            while (ui.IsBusy && declinedDeadline.Elapsed < TimeSpan.FromSeconds(10)) await Task.Delay(10);
+            Check(dropped.Handled && !ui.IsBusy && manager.Installed.Count == 0, "Declining a dropped package prevents installation");
+            ui.ConfirmInstall = (_, _) => true;
+            dropped = DragArgs(dropWindow, new System.Windows.DataObject(System.Windows.DataFormats.FileDrop, new[] { package }), System.Windows.DragDrop.PreviewDropEvent);
             dropWindow.RaiseEvent(dropped);
             var installDeadline = Stopwatch.StartNew();
             while (ui.IsBusy && installDeadline.Elapsed < TimeSpan.FromSeconds(10)) await Task.Delay(10);
@@ -146,7 +154,7 @@ internal static class Program
             dropWindow.Close();
             Check(shell.PanelTypes.Any(p => p.TypeId == TypeId), "Panel menu updates without restart");
             Console.WriteLine($"Install elapsed: {watch.ElapsedMilliseconds} ms");
-            await AssertRejected(() => manager.InstallAsync(package), "Duplicate install rejected");
+            await AssertRejected(() => manager.InstallAsync(package, (_, _) => true), "Duplicate install rejected");
             await shell.AddPanelCommand.ExecuteAsync(TypeId);
             var leaf = shell.Panels.Single(); instanceId = leaf.InstanceId; dashboardId = shell.SelectedDashboard!.DashboardId;
             Check(leaf.HasOptions && leaf.PanelContent is FrameworkElement, "Native panel card and options contract");
@@ -226,7 +234,7 @@ internal static class Program
             Check(leaf.InstanceId == instanceId && Value<int>(leaf.ViewModel, "IntervalSeconds") == 1, "Fresh host restores plugin panel state from SQLite");
             await manager.RemoveAsync(manager.Installed.Single());
             Check(shell.Panels.Single().ViewModel is UnavailablePanelViewModel, "Removing active plugin leaves recoverable placeholder");
-            await manager.InstallAsync(package);
+            await manager.InstallAsync(package, (_, _) => true);
             Check(shell.Panels.Single().ViewModel is IPanelOptions, "Reinstall replaces placeholder with functional panel");
             var model = shell.Panels.Single().ViewModel;
             await CallAsync(model, "SelectAsync", Path.Combine(photos, "a.png"), false);
@@ -253,7 +261,7 @@ internal static class Program
         var shell = provider.GetRequiredService<ShellViewModel>();
         manager.RefreshPanelsAsync = shell.RefreshPluginPanelsAsync;
         await shell.InitializeAsync();
-        await manager.InstallAsync(package);
+        await manager.InstallAsync(package, (_, _) => true);
         await shell.AddPanelCommand.ExecuteAsync("pl.uberdashboard.paneltemplates.modular");
         var leaf = shell.Panels.Single();
         Check(leaf.HasModularEditing && leaf.ViewModel is IModularPanel, "Modular plugin exposes host edit menu");

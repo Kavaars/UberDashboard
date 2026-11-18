@@ -16,7 +16,7 @@ The state of an old panel stays in the first tab. Existing notepad tabs are migr
 
 1. Run UberDashboard 1.2.0 or newer.
 2. Drag **one `.udplugin` file** from Explorer onto the main window or the settings window. Alternatively open **Options and Settings → Plugins → Install from file…**.
-3. Wait for confirmation. The real state of the operation is shown while it runs; **Cancel operation** aborts it before it is committed. Do not close the program while installing.
+3. Review the package name and source path. Confirm only if you trust the source. The app loads the plugin code after confirmation, and **Cancel operation** is available before installation is committed.
 4. Choose the new panel type from the **Add panel** menu. Installation does not add an instance to every dashboard automatically.
 5. The **Plugins** tab lists names, versions, identifiers and installation state. **Remove** disables the code and deletes its package without deleting panel data.
 

@@ -305,6 +305,28 @@
             </Border>
             <Border Margin="0,12,0,0" Style="{StaticResource SettingsGroup}">
               <StackPanel>
+                <TextBlock Style="{StaticResource SettingsSectionTitle}" Text="{loc:Text DatabaseBackup}"/>
+                <WrapPanel>
+                  <Button Command="{Binding CreateDatabaseBackupCommand}" Content="{loc:Text CreateDatabaseBackup}"
+                          ToolTip="{loc:Text CreateDatabaseBackupHelp}"/>
+                  <Button Command="{Binding CreateDatabaseBackupCancelCommand}" Content="{loc:Text Cancel}"/>
+                </WrapPanel>
+                <TextBlock Text="{loc:Text DatabaseBackupInProgress}">
+                  <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource SettingHint}">
+                      <Setter Property="Visibility" Value="Collapsed"/>
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding CreateDatabaseBackupCommand.IsRunning}" Value="True">
+                          <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </TextBlock.Style>
+                </TextBlock>
+              </StackPanel>
+            </Border>
+            <Border Margin="0,12,0,0" Style="{StaticResource SettingsGroup}">
+              <StackPanel>
                 <TextBlock Style="{StaticResource SettingsSectionTitle}" Text="{loc:Text SystemIntegration}"/>
                 <Grid>
                   <Grid.ColumnDefinitions>

@@ -100,15 +100,4 @@ public sealed class DatabaseWorkQueueTests
         Assert.True(drained);
     }
 
-    [Fact]
-    public async Task Pending_count_changed_event_is_raised()
-    {
-        await using var queue = new DatabaseWorkQueue();
-        var raised = 0;
-        queue.PendingCountChanged += (_, _) => Interlocked.Increment(ref raised);
-
-        await queue.EnqueueAsync(_ => 1);
-
-        Assert.True(raised >= 2);
-    }
 }

@@ -11,9 +11,12 @@ using UberDashboard.App.Toasts;
 
 namespace UberDashboard.App.Settings;
 
+public enum PanelTabOverflow { Scroll = 0, Shrink = 1, Wrap = 2 }
+
 public sealed record PanelAppearanceSettings
 {
     public bool ShowTabs { get; init; } = true;
+    public PanelTabOverflow TabOverflow { get; init; }
     public bool ShowPanelName { get; init; } = true;
     public double MinScale { get; init; } = 15;
     public double MaxScale { get; init; } = 200;
@@ -29,6 +32,7 @@ public sealed record PanelAppearanceSettings
     public double WallpaperOpacity { get; init; } = .3;
     public PanelAppearanceSettings Normalize() => this with
     {
+        TabOverflow = Enum.IsDefined(TabOverflow) ? TabOverflow : PanelTabOverflow.Scroll,
         MinScale = double.IsFinite(MinScale) ? Math.Clamp(MinScale, 15, 200) : 15,
         MaxScale = Math.Max(double.IsFinite(MinScale) ? Math.Clamp(MinScale, 15, 200) : 15, double.IsFinite(MaxScale) ? Math.Clamp(MaxScale, 15, 200) : 200),
         TextColor = new ApplicationSettings { SurfaceColor = TextColor }.Normalize().SurfaceColor,
@@ -57,7 +61,7 @@ public sealed partial class PanelAppearanceViewModel : ObservableObject
     {
         _store = store; _clock = clock; _toasts = toasts; _key = $"panel.appearance.{id:N}";
         ChooseWallpaperCommand = new RelayCommand(ChooseWallpaper);
-        ResetCommand = new RelayCommand(() => Apply(new() { LockWidth = LockWidth, LockHeight = LockHeight, ShowTabs = ShowTabs, ShowPanelName = ShowPanelName }));
+        ResetCommand = new RelayCommand(() => Apply(new() { LockWidth = LockWidth, LockHeight = LockHeight, ShowTabs = ShowTabs, TabOverflow = TabOverflow, ShowPanelName = ShowPanelName }));
         RetrySaveCommand = new AsyncRelayCommand(() => _saveTask = SaveAsync());
     }
     public static IReadOnlyList<string> AvailableFonts { get; } = System.Windows.Media.Fonts.SystemFontFamilies.Select(f => f.Source).Order().ToArray();
@@ -70,6 +74,7 @@ public sealed partial class PanelAppearanceViewModel : ObservableObject
     [ObservableProperty] private bool lockWidth;
     [ObservableProperty] private bool lockHeight;
     [ObservableProperty] private bool showTabs = true;
+    [ObservableProperty] private PanelTabOverflow tabOverflow;
     [ObservableProperty] private bool showPanelName = true;
     [ObservableProperty] private string? backgroundColor;
     [ObservableProperty] private string? fontFamily;
@@ -82,7 +87,7 @@ public sealed partial class PanelAppearanceViewModel : ObservableObject
     [ObservableProperty] private ImageSource? wallpaper;
     [ObservableProperty] private string status = "";
     [ObservableProperty] private bool isReady;
-    public PanelAppearanceSettings Snapshot => new PanelAppearanceSettings { ShowTabs = ShowTabs, ShowPanelName = ShowPanelName, MinScale = MinScale, MaxScale = MaxScale, LockWidth = LockWidth, LockHeight = LockHeight, OverrideTextColor = OverrideTextColor, TextColor = TextColor, CustomizeText = CustomizeText, BackgroundColor = BackgroundColor, FontFamily = FontFamily, FontSize = FontSize, WallpaperPath = WallpaperPath, WallpaperOpacity = WallpaperOpacity }.Normalize();
+    public PanelAppearanceSettings Snapshot => new PanelAppearanceSettings { ShowTabs = ShowTabs, TabOverflow = TabOverflow, ShowPanelName = ShowPanelName, MinScale = MinScale, MaxScale = MaxScale, LockWidth = LockWidth, LockHeight = LockHeight, OverrideTextColor = OverrideTextColor, TextColor = TextColor, CustomizeText = CustomizeText, BackgroundColor = BackgroundColor, FontFamily = FontFamily, FontSize = FontSize, WallpaperPath = WallpaperPath, WallpaperOpacity = WallpaperOpacity }.Normalize();
     public async Task LoadAsync()
     {
         try
@@ -99,7 +104,7 @@ public sealed partial class PanelAppearanceViewModel : ObservableObject
         var loading = _loading; _loading = true;
         MinScale = value.MinScale; MaxScale = value.MaxScale;
         LockWidth = value.LockWidth; LockHeight = value.LockHeight;
-        ShowTabs = value.ShowTabs; ShowPanelName = value.ShowPanelName;
+        ShowTabs = value.ShowTabs; TabOverflow = value.TabOverflow; ShowPanelName = value.ShowPanelName;
         CustomizeText = value.CustomizeText; OverrideTextColor = value.OverrideTextColor; TextColor = value.TextColor;
         BackgroundColor = value.BackgroundColor; FontFamily = value.FontFamily; FontSize = value.FontSize;
         WallpaperPath = value.WallpaperPath; WallpaperOpacity = value.WallpaperOpacity;
@@ -109,7 +114,7 @@ public sealed partial class PanelAppearanceViewModel : ObservableObject
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
     {
         base.OnPropertyChanged(e);
-        if (e.PropertyName is nameof(ShowTabs) or nameof(ShowPanelName) or nameof(MinScale) or nameof(MaxScale) or nameof(LockWidth) or nameof(LockHeight) or nameof(CustomizeText) or nameof(OverrideTextColor) or nameof(TextColor) or nameof(BackgroundColor) or nameof(FontFamily) or nameof(FontSize) or nameof(WallpaperPath) or nameof(WallpaperOpacity))
+        if (e.PropertyName is nameof(ShowTabs) or nameof(TabOverflow) or nameof(ShowPanelName) or nameof(MinScale) or nameof(MaxScale) or nameof(LockWidth) or nameof(LockHeight) or nameof(CustomizeText) or nameof(OverrideTextColor) or nameof(TextColor) or nameof(BackgroundColor) or nameof(FontFamily) or nameof(FontSize) or nameof(WallpaperPath) or nameof(WallpaperOpacity))
         {
             base.OnPropertyChanged(new System.ComponentModel.PropertyChangedEventArgs(nameof(Snapshot)));
             if (e.PropertyName == nameof(WallpaperPath)) _ = LoadWallpaperAsync();

@@ -5,6 +5,19 @@ namespace UberDashboard.App.Tests.Settings;
 
 public sealed class AppearanceRegressionTests
 {
+    [Theory]
+    [InlineData("{}", PanelTabOverflow.Scroll)]
+    [InlineData("{\"TabOverflow\":999}", PanelTabOverflow.Scroll)]
+    [InlineData("{\"TabOverflow\":1}", PanelTabOverflow.Shrink)]
+    [InlineData("{\"TabOverflow\":2}", PanelTabOverflow.Wrap)]
+    public void Tab_overflow_round_trips_and_defaults_to_scrolling(string json, PanelTabOverflow expected)
+    {
+        var settings = System.Text.Json.JsonSerializer.Deserialize<PanelAppearanceSettings>(json)!.Normalize();
+        Assert.Equal(expected, settings.TabOverflow);
+        Assert.Equal(settings, System.Text.Json.JsonSerializer.Deserialize<PanelAppearanceSettings>(
+            System.Text.Json.JsonSerializer.Serialize(settings)));
+    }
+
     [Fact]
     public void Panel_text_override_round_trips_and_old_settings_default_to_theme()
     {

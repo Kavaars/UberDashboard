@@ -790,11 +790,16 @@ public sealed class ShellViewModel : ObservableObject
         StatusMessage = UiText.Format("WindowMode2", WindowModeLabel);
     }
 
+    internal Func<DashboardSummary, bool> ConfirmDashboardDeletion { get; set; } = dashboard =>
+        Controls.ThemedMessageBox.Show(UiText.Format("ConfirmDeleteDashboardData", dashboard.Name), UiText.Get("DeleteDashboard2"),
+            System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning, System.Windows.MessageBoxResult.No)
+        == System.Windows.MessageBoxResult.Yes;
+
     public async Task DeleteDashboardAsync(DashboardSummary dashboard)
     {
         if (IsBusy || Dashboards.Count <= 1 || !Dashboards.Contains(dashboard)) return;
+        if (!ConfirmDashboardDeletion(dashboard)) return;
         var active = dashboard.DashboardId == CurrentDashboardId;
-        if (active && Controls.ThemedMessageBox.Show(UiText.Format("DeleteTheActiveDashboardItsPanelsAnd", dashboard.Name), UiText.Get("DeleteDashboard2"), System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning, System.Windows.MessageBoxResult.No) != System.Windows.MessageBoxResult.Yes) return;
         try
         {
             if (active)
@@ -813,9 +818,21 @@ public sealed class ShellViewModel : ObservableObject
                 _suppressDashboardReload = true;
                 try { SelectedDashboard = next; } finally { _suppressDashboardReload = false; }
             }
+            var records = await _instances.ListForDashboardAsync(dashboard.DashboardId, CancellationToken.None).ConfigureAwait(true);
             await _dashboards.DeleteAsync(dashboard.DashboardId, CancellationToken.None).ConfigureAwait(true);
             Dashboards.Remove(dashboard);
             _toasts.Show(UiText.Format("DeletedDashboard", dashboard.Name), ToastSeverity.Success);
+            if (_services?.GetService(typeof(Features.Integrations.IntegrationAccounts)) is Features.Integrations.IntegrationAccounts accounts)
+            {
+                var calendars = records.Where(record => record.PluginId == AppServiceCollectionExtensions.BuiltInPluginId &&
+                    record.PanelTypeId == Features.Calendar.CalendarPanelDescriptor.Id).Select(record => record.InstanceId).ToArray();
+                try { await Task.Run(() => accounts.RemoveGoogleSessionsAsync(calendars, CancellationToken.None)).ConfigureAwait(true); }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Nie wyczyszczono sesji Google usuniętego pulpitu {DashboardId}.", dashboard.DashboardId);
+                    _toasts.Show(UiText.Get("DeletedDashboardSessionCleanupFailed"), ToastSeverity.Warning);
+                }
+            }
         }
         catch (Exception ex)
         {

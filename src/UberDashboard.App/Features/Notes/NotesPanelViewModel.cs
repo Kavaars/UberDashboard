@@ -89,6 +89,7 @@ public sealed class NotesPanelViewModel : ObservableObject, IPanelOptionsPresent
     }
     private string _title = string.Empty;
     private string _richContent = string.Empty;
+    private Func<string>? _captureEditor;
     private string _plainText = string.Empty;
     private int _revision = 1;
     private bool _hasUnsavedChanges;
@@ -137,12 +138,8 @@ public sealed class NotesPanelViewModel : ObservableObject, IPanelOptionsPresent
         get => _richContent;
         set
         {
-            if (SetProperty(ref _richContent, value))
-            {
-                PlainText = NotesRichContentSerializer
-                    .ToPlainText(NotesRichContentSerializer.Deserialize(value, NotesContentFormat.XamlPackage, _plainText));
-                MarkChanged();
-            }
+            _captureEditor = null;
+            if (SetProperty(ref _richContent, value)) MarkChanged();
         }
     }
 
@@ -224,15 +221,30 @@ public sealed class NotesPanelViewModel : ObservableObject, IPanelOptionsPresent
         return SnapshotCurrent() with { Tabs = Tabs.Select(t => t.Document).ToList(), SelectedTabIndex = Math.Max(0, Tabs.IndexOf(_selectedTab!)) };
     }
 
-    private NotesDocument SnapshotCurrent() => new()
+    internal void OnEditorChanged(string plainText, Func<string> capture)
     {
-        Title = _title,
-        PlainText = _plainText,
-        RichContent = _richContent,
-        RichContentFormat = string.IsNullOrWhiteSpace(_richContent) ? NotesContentFormat.PlainText : NotesContentFormat.XamlPackage,
-        WordWrapEnabled = WordWrapEnabled,
-        Revision = _revision,
-    };
+        _captureEditor = capture;
+        PlainText = plainText;
+        MarkChanged();
+    }
+
+    private NotesDocument SnapshotCurrent()
+    {
+        if (_captureEditor is { } capture)
+        {
+            _richContent = capture();
+            _captureEditor = null;
+        }
+        return new()
+        {
+            Title = _title,
+            PlainText = _plainText,
+            RichContent = _richContent,
+            RichContentFormat = string.IsNullOrWhiteSpace(_richContent) ? NotesContentFormat.PlainText : NotesContentFormat.XamlPackage,
+            WordWrapEnabled = WordWrapEnabled,
+            Revision = _revision,
+        };
+    }
 
     /// <summary>Wczytuje stan z magazynu bez zgłaszania zmiany do autozapisu.</summary>
     public void Load(NotesDocument document)
@@ -253,7 +265,10 @@ public sealed class NotesPanelViewModel : ObservableObject, IPanelOptionsPresent
         try
         {
             Title = document.Title;
-            PlainText = document.PlainText;
+            PlainText = string.IsNullOrEmpty(document.PlainText) && !string.IsNullOrEmpty(document.RichContent) &&
+                document.RichContentFormat == NotesContentFormat.XamlPackage
+                ? NotesRichContentSerializer.ToPlainText(NotesRichContentSerializer.Deserialize(document.RichContent, document.RichContentFormat, null))
+                : document.PlainText;
             RichContent = document.RichContentFormat == NotesContentFormat.XamlPackage
                 ? document.RichContent
                 : ConvertPlainTextToPayload(document.PlainText);
@@ -325,7 +340,8 @@ public sealed class NotesPanelViewModel : ObservableObject, IPanelOptionsPresent
             return;
         }
 
-        if (!IsEmpty && UberDashboard.App.Controls.ThemedMessageBox.Show(
+        var current = SnapshotCurrent();
+        if ((!IsEmpty || HasContent(current)) && UberDashboard.App.Controls.ThemedMessageBox.Show(
             UiText.Get("ImportingReplacesTheNoteSTitleText"),
             UiText.Get("ReplaceNote"), System.Windows.MessageBoxButton.OKCancel,
             System.Windows.MessageBoxImage.Warning, System.Windows.MessageBoxResult.Cancel) != System.Windows.MessageBoxResult.OK)
@@ -339,6 +355,7 @@ public sealed class NotesPanelViewModel : ObservableObject, IPanelOptionsPresent
             var payload = sources[0].Text;
             var (title, content) = SplitImportedText(payload, Path.GetFileNameWithoutExtension(dialog.FileName));
 
+            SnapshotCurrent();
             _suppressNotifications = true;
             try
             {

@@ -18,6 +18,8 @@ A personal desktop dashboard for Windows 11: notes, to-do lists, calendar, weath
 - **Plugins** — extra panels shipped as `.udplugin` packages (for example a photo frame).
 - **Personalization** — light, dark or system theme, accent and surface colors, 10 ready-made color themes, fonts, wallpapers, corner radius, spacing and per-panel appearance. The UI is available in English and Polish.
 
+In a panel's options, use **When tabs overflow** to fit all tabs on one row, scroll with arrows, or wrap to more rows. Each panel saves its own choice. On short panels, scroll vertically within the tab strip to reach additional rows.
+
 ## Screenshots
 
 | Light theme | Blue dark theme |
@@ -52,6 +54,12 @@ Your data stays on your computer. The app contacts the network only for features
 ## Plugins
 
 Panel plugins are described in [`docs/PLUGINS.md`](docs/PLUGINS.md), with a sample project in [`plugins/PanelTemplates`](plugins/PanelTemplates).
+
+## Database backups
+
+Open **Settings → Application → Create database backup** to save a verified copy of the local SQLite database in the profile's `Backups` folder. Keep a separate copy if you need it beyond the ten retained by the app. Microsoft and Google sessions, plugin files and referenced files are stored separately.
+
+To restore a database copy, close UberDashboard, move the existing `Data/dashboard.db` and any matching `-wal` and `-shm` files to a safe folder, then copy the chosen backup to `Data/dashboard.db`. Reopen offline with the same or a compatible newer version. Review pending cloud sync changes before reconnecting.
 
 ## Documentation
 

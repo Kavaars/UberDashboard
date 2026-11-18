@@ -9,6 +9,7 @@ using UberDashboard.App.Shell;
 using UberDashboard.App.SystemIntegration;
 using UberDashboard.App.Theming;
 using UberDashboard.App.Toasts;
+using UberDashboard.Infrastructure.Backup;
 
 namespace UberDashboard.App.Settings;
 
@@ -24,6 +25,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly IStartupRegistrationService _startupRegistrationService;
     private readonly ITrayIconService _trayIconService;
     private readonly IColorPickerService _colorPickerService;
+    private readonly SqliteBackupService? _backups;
     private bool _loaded;
     private bool _saving;
     private int _revision;
@@ -33,7 +35,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private bool _integrationDirty;
     private Task _pendingSave = Task.CompletedTask;
     [ObservableProperty] private string saveStatus = UiText.Get("ChangesSaveAutomatically");
-    public Task FlushAsync() => _pendingSave;
+    public Task FlushAsync() => Task.WhenAll(_pendingSave, CreateDatabaseBackupCommand.ExecutionTask ?? Task.CompletedTask);
     internal void NotifyProjectLinkFailure() => _toasts.Show(UiText.Get("CouldNotOpenProjectLink"), ToastSeverity.Warning);
     public IAsyncRelayCommand RetrySaveCommand { get; }
 
@@ -89,7 +91,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         IToastService toasts,
         IStartupRegistrationService startupRegistrationService,
         ITrayIconService trayIconService,
-        IColorPickerService colorPickerService)
+        IColorPickerService colorPickerService,
+        SqliteBackupService? backups = null)
     {
         ArgumentNullException.ThrowIfNull(applicationSettingsService);
         ArgumentNullException.ThrowIfNull(windowModeSettingsService);
@@ -110,6 +113,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _startupRegistrationService = startupRegistrationService;
         _trayIconService = trayIconService;
         _colorPickerService = colorPickerService;
+        _backups = backups;
 
         ThemeOptions = Enum.GetValues<ThemeKind>();
         WindowModes = Enum.GetValues<WindowMode>();
@@ -132,6 +136,24 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     /// <summary>Akcja przypięta przez okno do zamknięcia widoku.</summary>
     public Action? RequestClose { get; set; }
+
+    [RelayCommand(IncludeCancelCommand = true)]
+    private async Task CreateDatabaseBackupAsync(CancellationToken token)
+    {
+        if (_backups is null) return;
+        try
+        {
+            var result = await _backups.CreateBackupAsync(cancellationToken: token).ConfigureAwait(true);
+            _toasts.Show(result.IsSuccess ? UiText.Format("DatabaseBackupCreated", result.BackupFile!) : result.Message!,
+                result.IsSuccess ? ToastSeverity.Success : ToastSeverity.Error);
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "Nie udało się utworzyć kopii SQLite.");
+            _toasts.Show(UiText.Get("DatabaseBackupFailed"), ToastSeverity.Error);
+        }
+    }
 
     /// <summary>Dostępne tryby motywu.</summary>
     public IReadOnlyList<ThemeKind> ThemeOptions { get; }

@@ -18,6 +18,7 @@ namespace UberDashboard.App;
 public partial class App : System.Windows.Application
 {
     private IHost? _host;
+    private ProfileInstance? _profileInstance;
     private Features.Todo.MicrosoftTodoRefresh? _todoRefresh;
     internal Settings.MicrosoftTodoWizard? MicrosoftTodo => _host?.Services.GetRequiredService<Settings.MicrosoftTodoWizard>();
     internal Features.Integrations.IntegrationSyncService? Integrations => _host?.Services.GetRequiredService<Features.Integrations.IntegrationSyncService>();
@@ -33,7 +34,15 @@ public partial class App : System.Windows.Application
 
         try
         {
-            _host = AppHostBuilder.Build();
+            var profile = new UberDashboard.Infrastructure.Paths.AppPaths().ProfileRoot;
+            _profileInstance = new ProfileInstance(profile);
+            if (!_profileInstance.IsPrimary)
+            {
+                _profileInstance.RequestActivation();
+                Shutdown();
+                return;
+            }
+            _host = AppHostBuilder.Build(profile);
             await _host.StartAsync().ConfigureAwait(true);
         }
         catch (Exception ex)
@@ -66,6 +75,7 @@ public partial class App : System.Windows.Application
         var window = _host.Services.GetRequiredService<MainWindow>();
         MainWindow = window;
         window.Show();
+        _profileInstance.Listen(() => _ = Dispatcher.InvokeAsync(window.ActivateFromSecondLaunch));
         _todoRefresh = _host.Services.GetRequiredService<Features.Todo.MicrosoftTodoRefresh>();
         _todoRefresh.Start();
     }
@@ -85,9 +95,13 @@ public partial class App : System.Windows.Application
     protected override void OnExit(ExitEventArgs e)
     {
         _todoRefresh?.Dispose();
-        TryShutdownHost();
-        Log.CloseAndFlush();
-        base.OnExit(e);
+        try
+        {
+            TryShutdownHost();
+            Log.CloseAndFlush();
+            base.OnExit(e);
+        }
+        finally { _profileInstance?.Dispose(); }
     }
 
     /// <summary>Opróżnia autozapis i zwalnia host przed zniknięciem działającego Dispatchera.</summary>

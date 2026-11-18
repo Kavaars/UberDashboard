@@ -54,8 +54,12 @@ public sealed class NotesPanelInstance : IPanelInstance, IPanelPersistenceObserv
     }
 
     /// <inheritdoc />
-    public ValueTask<ReadOnlyMemory<byte>> CaptureStateAsync(CancellationToken cancellationToken) =>
-        ValueTask.FromResult<ReadOnlyMemory<byte>>(JsonSerializer.SerializeToUtf8Bytes(_viewModel.Snapshot()));
+    public async ValueTask<ReadOnlyMemory<byte>> CaptureStateAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var snapshot = _viewModel.Snapshot();
+        return await Task.Run(() => JsonSerializer.SerializeToUtf8Bytes(snapshot), cancellationToken).ConfigureAwait(false);
+    }
 
     /// <inheritdoc />
     public ValueTask SuspendAsync(CancellationToken cancellationToken) => ValueTask.CompletedTask;

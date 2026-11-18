@@ -4,6 +4,7 @@ using UberDashboard.Application.Abstractions;
 using UberDashboard.App.Hosting;
 using UberDashboard.App.Panels;
 using UberDashboard.App.Shell;
+using UberDashboard.App.Settings;
 using UberDashboard.Core.Layout;
 using UberDashboard.Infrastructure.DependencyInjection;
 using UberDashboard.Infrastructure.Paths;
@@ -13,6 +14,90 @@ namespace UberDashboard.App.Tests.Shell;
 
 public sealed class ShellPersistenceRegressionTests
 {
+    [Fact]
+    public async Task Application_settings_command_creates_a_database_backup()
+    {
+        await RunOnStaAsync(async () =>
+        {
+            await using var f = new ShellFixture();
+            await f.Shell.InitializeAsync();
+            await f.AppSettings.CreateDatabaseBackupCommand.ExecuteAsync(null);
+            Assert.Single(System.IO.Directory.GetFiles(f.Paths.BackupsDirectory, "dashboard-*.db"));
+        });
+    }
+
+    [Fact]
+    public async Task Rich_note_packages_edits_on_flush_and_keeps_the_last_input_when_hidden()
+    {
+        await RunOnStaAsync(async () =>
+        {
+            await using var f = new ShellFixture();
+            await f.Shell.InitializeAsync();
+            await f.Shell.AddPanelCommand.ExecuteAsync("notes");
+            var leaf = Assert.Single(f.Shell.Panels);
+            var group = leaf.TabSession!;
+            var note = Assert.IsType<UberDashboard.App.Features.Notes.NotesPanelViewModel>(leaf.ViewModel);
+            var editor = new UberDashboard.App.Controls.BindableRichTextBox { DataContext = note };
+            var previousPayload = note.RichContent;
+            editor.AppendText("First ");
+            editor.AppendText("last edit");
+            Assert.Equal("First last edit", note.PlainText);
+            Assert.Equal(previousPayload, note.RichContent);
+            Assert.True(note.HasUnsavedChanges);
+
+            await f.Shell.HidePanelCommand.ExecuteAsync(leaf);
+            var stored = await f.Instances.GetAsync(group.Group.ActiveId);
+            var snapshot = System.Text.Json.JsonSerializer.Deserialize<UberDashboard.App.Features.Notes.NotesDocument>(stored!.StateJson!);
+            Assert.Equal("First last edit", snapshot!.PlainText);
+            var restored = UberDashboard.App.Features.Notes.NotesRichContentSerializer.Deserialize(snapshot.RichContent, snapshot.RichContentFormat, null);
+            Assert.Equal(snapshot.PlainText, UberDashboard.App.Features.Notes.NotesRichContentSerializer.ToPlainText(restored));
+            note.Load(snapshot with { PlainText = "" });
+            Assert.Equal("First last edit", note.PlainText);
+        });
+    }
+
+    [Fact]
+    public async Task Inactive_dashboard_requires_confirmation_and_deletion_removes_its_google_credentials()
+    {
+        await RunOnStaAsync(async () =>
+        {
+            await using var f = new ShellFixture();
+            await f.Shell.InitializeAsync();
+            var dashboard = await f.DashboardStore.CreateAsync("Do usunięcia", f.Clock.UtcNow);
+            f.Shell.Dashboards.Add(dashboard);
+            var id = PanelInstanceId.New();
+            var now = f.Clock.UtcNow;
+            await f.Instances.UpsertAsync(new(id, dashboard.DashboardId, AppServiceCollectionExtensions.BuiltInPluginId,
+                "calendar", "Calendar", false, null, null, null, 1, now, now));
+            var storage = new PanelStorage(f.Paths.GetPluginInstanceDirectory(AppServiceCollectionExtensions.BuiltInPluginId, id));
+            const string file = "google-calendar.session";
+            const string key = "integration.google.sessions";
+            var references = System.Text.Json.JsonSerializer.Serialize(new[] { new { InstanceId = id.Value, ClientId = "client", AccountId = "account" } });
+            await f.Settings.SetAsync(key, references, now);
+            await storage.WriteAsync(file, new byte[] { 1 }, default);
+
+            var confirmations = 0;
+            f.Shell.ConfirmDashboardDeletion = candidate => { Assert.Equal(dashboard, candidate); confirmations++; return false; };
+            await f.Shell.DeleteDashboardAsync(dashboard);
+            Assert.Equal(1, confirmations);
+            Assert.NotNull(await f.DashboardStore.GetAsync(dashboard.DashboardId));
+            Assert.NotNull(await storage.ReadAsync(file, default));
+
+            f.Shell.ConfirmDashboardDeletion = _ => true;
+            await f.Shell.DeleteDashboardAsync(dashboard);
+            Assert.Null(await f.DashboardStore.GetAsync(dashboard.DashboardId));
+            Assert.Null(await storage.ReadAsync(file, default));
+            Assert.Equal("[]", await f.Settings.GetAsync(key));
+
+            // A stale session left by a failed cleanup or an older version cannot supply a token.
+            await f.Settings.SetAsync(key, references, now);
+            await storage.WriteAsync(file, new byte[] { 1 }, default);
+            var binding = new UberDashboard.Core.Synchronization.SyncBinding(Guid.NewGuid(),
+                UberDashboard.Core.Synchronization.SyncProviderKind.GoogleCalendar, "client", "account", "calendars/primary/events", "Test");
+            Assert.Null(await f.Accounts.GetAccessTokenAsync(binding, true, default));
+        });
+    }
+
     [Fact]
     public async Task Microsoft_link_refreshes_the_same_tab_and_survives_reload_without_touching_local_tasks()
     {
@@ -397,7 +482,7 @@ public sealed class ShellPersistenceRegressionTests
             {
                 window.Show();
                 await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.ApplicationIdle);
-                var items = Assert.IsType<System.Windows.Controls.StackPanel>(strip.Content);
+                var items = Assert.IsAssignableFrom<System.Windows.Controls.Panel>(TabViewport(strip).Content);
                 Assert.Equal(2, items.Children.Count);
                 var first = session.Group.ActiveId;
                 Assert.False(((System.Windows.Controls.MenuItem)((System.Windows.Controls.Button)items.Children[0]).ContextMenu.Items[0]).IsEnabled);
@@ -450,6 +535,84 @@ public sealed class ShellPersistenceRegressionTests
             finally { window.Close(); }
         });
     }
+
+    [Fact]
+    public async Task Tab_overflow_changes_layout_and_persists_independently_for_each_panel()
+    {
+        await RunOnStaAsync(async () =>
+        {
+            await using var f = new ShellFixture();
+            await f.Shell.InitializeAsync();
+            await f.Shell.AddPanelCommand.ExecuteAsync("todo");
+            var first = Assert.Single(f.Shell.Panels);
+            await f.Shell.AddPanelCommand.ExecuteAsync("todo");
+            var other = f.Shell.Panels.Single(panel => panel.InstanceId != first.InstanceId);
+            var session = first.TabSession!;
+            for (var index = 0; index < 5; index++)
+            {
+                await session.AddAsync();
+                await session.UpdateAsync(group => group.Rename(group.ActiveId, $"Long tab caption {index}"));
+            }
+            await session.SelectAsync(session.Group.Tabs[0].InstanceId);
+
+            var strip = new UberDashboard.App.Controls.PanelGroupTabStrip { Session = session };
+            strip.SetBinding(UberDashboard.App.Controls.PanelGroupTabStrip.OverflowProperty,
+                new System.Windows.Data.Binding(nameof(PanelAppearanceViewModel.TabOverflow)) { Source = first.Appearance });
+            var window = new System.Windows.Window { Content = strip, Width = 240, Height = 240, ShowInTaskbar = false, ShowActivated = false, WindowStyle = System.Windows.WindowStyle.None, Left = -20000, Top = -20000 };
+            try
+            {
+                window.Show();
+                await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                var viewport = TabViewport(strip);
+                var items = Assert.IsAssignableFrom<System.Windows.Controls.Panel>(viewport.Content);
+                var buttons = items.Children.OfType<System.Windows.Controls.Button>().Where(button => button.Tag is UberDashboard.Core.Panels.PanelTab).ToArray();
+                var arrows = ((System.Windows.Controls.DockPanel)strip.Content).Children.OfType<System.Windows.Controls.Button>().ToArray();
+                Assert.Equal(2, arrows.Length);
+                double X(System.Windows.Controls.Button button) => button.TranslatePoint(new System.Windows.Point(), viewport).X;
+                double Y(System.Windows.Controls.Button button) => button.TranslatePoint(new System.Windows.Point(), viewport).Y;
+
+                Assert.True(viewport.ScrollableWidth > 0);
+                Assert.All(arrows, arrow => Assert.True(arrow.IsVisible));
+                Assert.False(arrows[0].IsEnabled);
+                arrows[1].RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                await UntilAsync(() => viewport.HorizontalOffset > 0 && arrows[0].IsEnabled);
+                arrows[0].RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                await UntilAsync(() => viewport.HorizontalOffset == 0);
+                Assert.Equal(session.Group.Tabs[0].InstanceId, session.Group.ActiveId);
+
+                first.Appearance!.TabOverflow = PanelTabOverflow.Shrink;
+                await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                Assert.All(arrows, arrow => Assert.False(arrow.IsVisible));
+                Assert.All(buttons, button => Assert.Equal(Y(buttons[0]), Y(button), 0));
+                Assert.All(buttons, button => Assert.True(button.ActualWidth > 0 && X(button) + button.ActualWidth <= viewport.ActualWidth + 1));
+
+                first.Appearance.TabOverflow = PanelTabOverflow.Wrap;
+                await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                Assert.All(arrows, arrow => Assert.False(arrow.IsVisible));
+                Assert.True(Y(buttons[^1]) > Y(buttons[0]));
+                Assert.All(buttons, button => Assert.True(X(button) + button.ActualWidth <= viewport.ActualWidth + 1));
+
+                first.Appearance.TabOverflow = PanelTabOverflow.Scroll;
+                window.Width = 1080;
+                await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                Assert.All(arrows, arrow => Assert.False(arrow.IsVisible));
+
+                first.Appearance.TabOverflow = PanelTabOverflow.Wrap;
+                other.Appearance!.TabOverflow = PanelTabOverflow.Shrink;
+                await f.Shell.FlushAppearancesAsync();
+                foreach (var panel in new[] { first, other })
+                {
+                    var reloaded = new PanelAppearanceViewModel(panel.InstanceId.Value, f.Settings, f.Clock, f.Toasts);
+                    await reloaded.LoadAsync();
+                    Assert.Equal(panel.Appearance!.TabOverflow, reloaded.TabOverflow);
+                }
+            }
+            finally { window.Close(); }
+        });
+    }
+
+    private static System.Windows.Controls.ScrollViewer TabViewport(UberDashboard.App.Controls.PanelGroupTabStrip strip) =>
+        ((System.Windows.Controls.DockPanel)strip.Content).Children.OfType<System.Windows.Controls.ScrollViewer>().Single();
 
     private static async Task UntilAsync(Func<bool> condition)
     {
@@ -954,6 +1117,13 @@ public sealed class ShellPersistenceRegressionTests
         public IPanelInstanceStore Instances { get; }
         public ILayoutStore Layouts { get; }
         public IAppSettingsStore Settings => _provider.GetRequiredService<IAppSettingsStore>();
+        public IDashboardStore DashboardStore => _provider.GetRequiredService<IDashboardStore>();
+        public IAppPaths Paths => _provider.GetRequiredService<IAppPaths>();
+        public SettingsViewModel AppSettings => _provider.GetRequiredService<SettingsViewModel>();
+        public UberDashboard.App.Features.Integrations.IntegrationAccounts Accounts =>
+            _provider.GetRequiredService<UberDashboard.App.Features.Integrations.IntegrationAccounts>();
+        public IClock Clock => _provider.GetRequiredService<IClock>();
+        public UberDashboard.App.Toasts.IToastService Toasts => _provider.GetRequiredService<UberDashboard.App.Toasts.IToastService>();
         public RecordingConfirmation Confirmation { get; } = new();
         public ValueTask DisposeAsync() => _provider.DisposeAsync();
     }

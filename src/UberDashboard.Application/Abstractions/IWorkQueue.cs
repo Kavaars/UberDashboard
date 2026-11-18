@@ -13,8 +13,6 @@ public interface IWorkQueue : IAsyncDisposable
     /// <summary><see langword="true"/>, gdy kolejka ma choć jedno zadanie w toku.</summary>
     bool HasPendingWork => PendingCount > 0;
 
-    /// <summary>Zdarzenie podnoszone przy zmianie <see cref="PendingCount"/>.</summary>
-    event EventHandler? PendingCountChanged;
 
     /// <summary>Kolejkuje zadanie zwracające wynik.</summary>
     Task<T> EnqueueAsync<T>(Func<CancellationToken, T> work, CancellationToken cancellationToken = default);

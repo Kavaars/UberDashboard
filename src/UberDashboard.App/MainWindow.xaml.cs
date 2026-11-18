@@ -265,6 +265,14 @@ public partial class MainWindow : Window
         }
     }
 
+    internal void ActivateFromSecondLaunch()
+    {
+        if (_shutdownPending) return;
+        if (!IsVisible) RestoreFromTray();
+        if (WindowState == WindowState.Minimized) SystemCommands.RestoreWindow(this);
+        Activate();
+    }
+
     private void RestoreFromTray()
     {
         if (_viewModel.IsDockedBar && !IsVisible) return;

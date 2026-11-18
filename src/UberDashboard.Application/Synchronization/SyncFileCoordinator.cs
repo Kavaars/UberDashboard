@@ -120,7 +120,16 @@ public sealed partial class SyncCoordinator
             var claimed = next with { State = SyncTransferState.Sending, Attempts = next.Attempts + 1, RetryAt = clock.UtcNow.AddMinutes(5),
                 FinalChunkSent = next.Stage == SyncTransferStage.Upload && !next.ProbeRequired && next.Uploaded + SyncFileRules.ChunkSize >= next.File.Size ||
                     state.Binding.Provider == SyncProviderKind.MicrosoftTodo && next.Stage == SyncTransferStage.StartSession && next.File.Size == 0 };
-            await UpdateAsync(bindingId, s => s with { Transfers = s.FileTransfers.Select(t => t.Id == next.Id ? claimed : t).ToArray() }, token).ConfigureAwait(false);
+            var acquired = false;
+            await UpdateAsync(bindingId, current =>
+            {
+                var candidate = current.FileTransfers.FirstOrDefault(t => t.Id == next.Id);
+                acquired = current.Binding.Enabled && !(current.Binding.NotBefore > clock.UtcNow) &&
+                    candidate is not null && candidate.State == next.State && candidate.Stage == next.Stage &&
+                    candidate.Attempts == next.Attempts && candidate.RetryAt == next.RetryAt && candidate.Uploaded == next.Uploaded;
+                return acquired ? current with { Transfers = current.FileTransfers.Select(t => t.Id == next.Id ? claimed : t).ToArray() } : current;
+            }, token).ConfigureAwait(false);
+            if (!acquired) continue;
             SyncTransfer result;
             try { result = await provider.AdvanceAsync(state.Binding, owner, claimed, token).ConfigureAwait(false); }
             catch (SyncAuthenticationException) { result = claimed with { State = SyncTransferState.AuthenticationRequired, ErrorCode = "file-authentication-required" }; }
@@ -135,8 +144,13 @@ public sealed partial class SyncCoordinator
             catch (Exception error) when (error is OperationCanceledException or HttpRequestException or IOException or System.Text.Json.JsonException)
             { result = InterruptedTransfer(state.Binding, claimed); }
             result = result with { RetryAt = result.State == SyncTransferState.Retry ? result.RetryAt ?? clock.UtcNow.AddSeconds(Math.Min(3600, Math.Pow(2, Math.Min(result.Attempts, 10))) + Random.Shared.NextDouble() * 3) : null };
-            await UpdateAsync(bindingId, s => s with { Transfers = s.FileTransfers.Select(t => t.Id == next.Id ? result : t).ToArray(),
-                Binding = result.State == SyncTransferState.Retry && result.RetryAt is { } retry ? s.Binding with { NotBefore = retry } : s.Binding }, CancellationToken.None).ConfigureAwait(false);
+            await UpdateAsync(bindingId, s =>
+            {
+                if (!s.FileTransfers.Any(t => t.Id == claimed.Id && t.State == SyncTransferState.Sending &&
+                    t.Attempts == claimed.Attempts && t.RetryAt == claimed.RetryAt)) return s;
+                return s with { Transfers = s.FileTransfers.Select(t => t.Id == next.Id ? result : t).ToArray(),
+                    Binding = result.State == SyncTransferState.Retry && result.RetryAt is { } retry ? s.Binding with { NotBefore = retry } : s.Binding };
+            }, CancellationToken.None).ConfigureAwait(false);
             token.ThrowIfCancellationRequested();
             if (result.State != SyncTransferState.Pending) return;
         }

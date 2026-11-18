@@ -11,7 +11,8 @@ using UberDashboard.Core.Synchronization;
 namespace UberDashboard.App.Features.Integrations;
 
 /// <summary>Only credential references are stored in settings; bearer/refresh tokens stay in protected stores.</summary>
-internal sealed class IntegrationAccounts(MicrosoftTodoSession microsoft, IAppSettingsStore settings, IAppPaths paths, IClock clock, IIntegrationDiagnostics? diagnostics = null)
+internal sealed class IntegrationAccounts(MicrosoftTodoSession microsoft, IAppSettingsStore settings, IAppPaths paths, IClock clock,
+    IIntegrationDiagnostics? diagnostics = null, IPanelInstanceStore? instances = null)
     : IIntegrationAccountService, IIntegrationFileAccountService
 {
     private const string Key = "integration.google.sessions";
@@ -22,10 +23,30 @@ internal sealed class IntegrationAccounts(MicrosoftTodoSession microsoft, IAppSe
         await _gate.WaitAsync(token).ConfigureAwait(false);
         try
         {
+            if (!await IsCalendarAsync(instanceId, token).ConfigureAwait(false))
+                throw new InvalidOperationException("The calendar panel no longer exists.");
             var references = await ReadReferencesAsync(token).ConfigureAwait(false);
             var updated = references.Where(r => r.InstanceId != instanceId.Value)
                 .Append(new GoogleReference(instanceId.Value, connection.ClientId, connection.AccountId)).ToArray();
             await settings.SetAsync(Key, JsonSerializer.Serialize(updated), clock.UtcNow, token).ConfigureAwait(false);
+        }
+        finally { _gate.Release(); }
+    }
+
+    internal async Task RemoveGoogleSessionsAsync(IReadOnlyCollection<PanelInstanceId> ids, CancellationToken token)
+    {
+        if (ids.Count == 0) return;
+        await _gate.WaitAsync(token).ConfigureAwait(false);
+        try
+        {
+            foreach (var id in ids)
+                await GoogleClient(id).DisconnectAsync(token).ConfigureAwait(false);
+
+            var removed = ids.Select(id => id.Value).ToHashSet();
+            var references = await ReadReferencesAsync(token).ConfigureAwait(false);
+            var remaining = references.Where(reference => !removed.Contains(reference.InstanceId)).ToArray();
+            if (remaining.Length != references.Length)
+                await settings.SetAsync(Key, JsonSerializer.Serialize(remaining), clock.UtcNow, token).ConfigureAwait(false);
         }
         finally { _gate.Release(); }
     }
@@ -47,15 +68,15 @@ internal sealed class IntegrationAccounts(MicrosoftTodoSession microsoft, IAppSe
         foreach (var reference in (await ReadReferencesAsync(token).ConfigureAwait(false))
             .Where(r => r.ClientId == binding.ClientId && r.AccountId == binding.AccountId))
         {
-            var storage = new PanelStorage(paths.GetPluginInstanceDirectory(AppServiceCollectionExtensions.BuiltInPluginId,
-                new PanelInstanceId(reference.InstanceId)));
-            var client = new GoogleCalendarClient(storage);
+            var id = new PanelInstanceId(reference.InstanceId);
+            if (!await IsCalendarAsync(id, token).ConfigureAwait(false)) continue;
+            var client = GoogleClient(id);
             string? access;
             try { access = await client.GetAccessTokenAsync(binding.ClientId, binding.AccountId, write, token,
                 files ? [GoogleCalendarClient.FileScope] : GoogleCalendarClient.RequiredScopes(binding, write)).ConfigureAwait(false); }
             catch (Exception error) when (error is Google.Apis.Auth.OAuth2.Responses.TokenResponseException or System.Security.Cryptography.CryptographicException)
             { diagnostics?.Report("GoogleCalendar", "oauth", error); throw new SyncAuthenticationException(); }
-            if (access is not null) return access;
+            if (access is not null && await IsCalendarAsync(id, token).ConfigureAwait(false)) return access;
         }
         return null;
     }
@@ -67,8 +88,9 @@ internal sealed class IntegrationAccounts(MicrosoftTodoSession microsoft, IAppSe
     {
         foreach (var reference in (await ReadReferencesAsync(token).ConfigureAwait(false)).Where(r => r.ClientId == binding.ClientId && r.AccountId == binding.AccountId))
         {
-            var storage = new PanelStorage(paths.GetPluginInstanceDirectory(AppServiceCollectionExtensions.BuiltInPluginId, new PanelInstanceId(reference.InstanceId)));
-            var client = new GoogleCalendarClient(storage); var connection = await client.GetConnectionAsync(token).ConfigureAwait(false);
+            var id = new PanelInstanceId(reference.InstanceId);
+            if (!await IsCalendarAsync(id, token).ConfigureAwait(false)) continue;
+            var client = GoogleClient(id); var connection = await client.GetConnectionAsync(token).ConfigureAwait(false);
             if (connection?.ClientId != binding.ClientId || connection.AccountId != binding.AccountId) continue;
             if (files) await client.RequestFileAccessAsync(binding.ClientId, binding.AccountId, token, forceConsent).ConfigureAwait(false);
             else await client.RequestAccessAsync(binding, token, forceConsent).ConfigureAwait(false);
@@ -89,6 +111,13 @@ internal sealed class IntegrationAccounts(MicrosoftTodoSession microsoft, IAppSe
         var json = await settings.GetAsync(Key, token).ConfigureAwait(false);
         return json is null ? [] : JsonSerializer.Deserialize<GoogleReference[]>(json) ?? [];
     }
+
+    private GoogleCalendarClient GoogleClient(PanelInstanceId id) =>
+        new(new PanelStorage(paths.GetPluginInstanceDirectory(AppServiceCollectionExtensions.BuiltInPluginId, id)));
+
+    private async Task<bool> IsCalendarAsync(PanelInstanceId id, CancellationToken token) =>
+        instances is not null && await instances.GetAsync(id, token).ConfigureAwait(false) is { } record &&
+        record.PluginId == AppServiceCollectionExtensions.BuiltInPluginId && record.PanelTypeId == CalendarPanelDescriptor.Id;
 
     private sealed record GoogleReference(Guid InstanceId, string ClientId, string AccountId);
 }

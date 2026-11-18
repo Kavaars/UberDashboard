@@ -10,6 +10,8 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
     IEnumerable<ISyncFileProvider>? fileProviders = null, IIntegrationDiagnostics? diagnostics = null) : ISyncCoordinator
 {
     private readonly ConcurrentDictionary<(SyncProviderKind Provider, string Client, string Account), SemaphoreSlim> _gates = new();
+    private readonly ConcurrentDictionary<Guid, Guid> _relationPositions = new();
+    private const int RelationsPerCycle = 8;
     private readonly IReadOnlyDictionary<SyncProviderKind, ISyncProvider> _providers = providers.ToDictionary(p => p.Kind);
     private readonly IReadOnlyDictionary<SyncProviderKind, ISyncFileProvider> _fileProviders = (fileProviders ?? []).ToDictionary(p => p.Kind);
 
@@ -90,24 +92,11 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
                 o.State == SyncOperationState.Sending && o.RetryAt <= clock.UtcNow
                     ? o with { State = SyncOperationState.UnknownOutcome, ErrorCode = "interrupted-write" } : o).ToArray() }, token).ConfigureAwait(false);
             await ReconcileUnknownAsync(bindingId, provider, token).ConfigureAwait(false);
-            await PullAsync(state.Binding, provider, state.Cursor, token).ConfigureAwait(false);
+            var changedItems = await PullAsync(state.Binding, provider, state.Cursor, token).ConfigureAwait(false);
             if (provider is ISyncRelationProvider relations)
             {
                 var relatedState = await RequiredAsync(bindingId, token).ConfigureAwait(false);
-                var parents = relatedState.Items.Where(e => e.Kind == SyncEntityKind.Item && e.RemoteId is not null && e.Baseline is not null &&
-                    !(e.Conflicts is { Length: > 0 } && e.Remote is null)).ToArray();
-                var snapshots = await relations.ReadRelationsAsync(relatedState.Binding, parents, token).ConfigureAwait(false);
-                await UpdateAsync(bindingId, s =>
-                {
-                    foreach (var snapshot in snapshots)
-                    {
-                        if (!parents.Any(p => p.LocalId == snapshot.ParentId) || !Enum.IsDefined(snapshot.Kind) || snapshot.Kind == SyncEntityKind.Item)
-                            throw new InvalidDataException("Invalid related collection snapshot.");
-                        s = ApplyRemote(s, snapshot.Items.ToDictionary(e => e.Id, StringComparer.Ordinal), true, s.Cursor,
-                            provider.AtomicGroups, snapshot.Kind, snapshot.ParentId);
-                    }
-                    return s;
-                }, token).ConfigureAwait(false);
+                await RefreshRelationsAsync(relatedState, provider, relations, changedItems, token).ConfigureAwait(false);
             }
 
             await ProcessSeriesAsync(bindingId, provider, token).ConfigureAwait(false);
@@ -220,7 +209,51 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
         }
     }
 
-    private async Task PullAsync(SyncBinding binding, ISyncProvider provider, string? cursor, CancellationToken token)
+    private async Task RefreshRelationsAsync(SyncState state, ISyncProvider provider, ISyncRelationProvider relations,
+        IReadOnlySet<string> changedItems, CancellationToken token)
+    {
+        var binding = state.Binding;
+        var parents = state.Items.Where(e => e.Kind == SyncEntityKind.Item && e.RemoteId is not null && e.Baseline is not null &&
+            !(e.Conflicts is { Length: > 0 } && e.Remote is null)).OrderBy(e => e.LocalId).ToArray();
+        if (parents.Length == 0) return;
+        if (parents.Length > RelationsPerCycle)
+        {
+            var queued = state.Queue.Select(o => o.EntityId).ToHashSet();
+            var related = state.Items.Where(e => e.ParentId is not null && queued.Contains(e.LocalId)).Select(e => e.ParentId!.Value).ToHashSet();
+            related.UnionWith(state.FileTransfers.Where(t => t.IsActive).Select(t => t.EntityId));
+            var priority = parents.Where(e => related.Contains(e.LocalId)).Concat(parents.Where(e => changedItems.Contains(e.RemoteId!)))
+                .DistinctBy(e => e.LocalId).Take(RelationsPerCycle / 2).ToArray();
+            var last = _relationPositions.GetValueOrDefault(binding.Id);
+            var rotating = parents.Where(e => e.LocalId.CompareTo(last) > 0).Concat(parents.Where(e => e.LocalId.CompareTo(last) <= 0))
+                .Except(priority).Take(RelationsPerCycle - priority.Length).ToArray();
+            _relationPositions[binding.Id] = rotating[^1].LocalId;
+            parents = [.. priority, .. rotating];
+        }
+
+        try
+        {
+            var snapshots = await relations.ReadRelationsAsync(binding, parents, token).ConfigureAwait(false);
+            var parentIds = parents.Select(p => p.LocalId).ToHashSet();
+            await UpdateAsync(binding.Id, current =>
+            {
+                foreach (var snapshot in snapshots)
+                {
+                    if (!parentIds.Contains(snapshot.ParentId) || !Enum.IsDefined(snapshot.Kind) || snapshot.Kind == SyncEntityKind.Item)
+                        throw new InvalidDataException("Invalid related collection snapshot.");
+                    current = ApplyRemote(current, snapshot.Items.ToDictionary(e => e.Id, StringComparer.Ordinal), true, current.Cursor,
+                        provider.AtomicGroups, snapshot.Kind, snapshot.ParentId);
+                }
+                return current;
+            }, token).ConfigureAwait(false);
+        }
+        catch (Exception error) when (error is IOException or HttpRequestException or System.Text.Json.JsonException or SyncAuthenticationException ||
+            error is OperationCanceledException && !token.IsCancellationRequested)
+        {
+            diagnostics?.Report(binding.Provider.ToString(), "relations", error);
+        }
+    }
+
+    private async Task<IReadOnlySet<string>> PullAsync(SyncBinding binding, ISyncProvider provider, string? cursor, CancellationToken token)
     {
         var changes = new Dictionary<string, SyncRemoteEntity>(StringComparer.Ordinal);
         var pages = new HashSet<string>(StringComparer.Ordinal);
@@ -264,6 +297,7 @@ public sealed partial class SyncCoordinator(ISyncStore store, IEnumerable<ISyncP
         if (SyncContainers.IsCatalog(binding) || GoogleCalendarAccess.IsSubscriptions(binding))
             await ApplyCatalogPullAsync(binding, (pending, state) => Apply(state, pending), token).ConfigureAwait(false);
         else await UpdateAsync(binding.Id, state => Apply(state), token).ConfigureAwait(false);
+        return changes.Keys.ToHashSet(StringComparer.Ordinal);
     }
 
     private SyncState ApplyRemote(SyncState state, Dictionary<string, SyncRemoteEntity> changes, bool full,

@@ -10,6 +10,21 @@ namespace UberDashboard.Application.Tests.Synchronization;
 public sealed class FileSyncCoordinatorTests
 {
     [Fact]
+    public async Task Losing_the_attachment_claim_does_not_send_the_transfer()
+    {
+        var s = new Setup(SyncProviderKind.MicrosoftTodo);
+        var owner = s.Store.State.Items[0];
+        s.Store.State = s.Store.State with { Transfers = [new(Guid.NewGuid(), owner.LocalId, File,
+            SyncTransferStage.Upload, RemoteId: "file", OwnerRemoteId: owner.RemoteId)] };
+        s.Store.CompeteForTransfer = true;
+
+        await s.Coordinator.SynchronizeAsync(s.Binding.Id);
+
+        Assert.Equal(0, s.Files.Uploads);
+        Assert.Equal(SyncTransferState.Sending, Assert.Single(s.Store.State.FileTransfers).State);
+    }
+
+    [Fact]
     public async Task Google_upload_finishes_before_first_event_write_and_links_into_the_latest_local_revision()
     {
         var setup = new Setup(SyncProviderKind.GoogleCalendar, draft: true); var entity = setup.Store.State.Items[0];
@@ -128,10 +143,17 @@ public sealed class FileSyncCoordinatorTests
     private sealed class MemoryStore(SyncState state) : ISyncStore
     {
         public SyncState State = state;
+        public bool CompeteForTransfer { get; set; }
         public Task<IReadOnlyList<SyncBinding>> ListAsync(CancellationToken token = default) => Task.FromResult<IReadOnlyList<SyncBinding>>([State.Binding]);
         public Task<SyncState?> ReadAsync(Guid bindingId, CancellationToken token = default) => Task.FromResult(JsonSerializer.Deserialize<SyncState>(JsonSerializer.Serialize(State)));
         public Task<bool> SaveAsync(SyncState value, long expectedVersion, CancellationToken token = default)
-        { if (expectedVersion != State.Version) return Task.FromResult(false); State = JsonSerializer.Deserialize<SyncState>(JsonSerializer.Serialize(value with { Version = expectedVersion + 1 }))!; return Task.FromResult(true); }
+        {
+            if (expectedVersion != State.Version) return Task.FromResult(false);
+            State = JsonSerializer.Deserialize<SyncState>(JsonSerializer.Serialize(value with { Version = expectedVersion + 1 }))!;
+            if (!CompeteForTransfer || !value.FileTransfers.Any(t => t.State == SyncTransferState.Sending)) return Task.FromResult(true);
+            CompeteForTransfer = false;
+            return Task.FromResult(false);
+        }
     }
     private sealed class RootProvider(SyncProviderKind kind) : ISyncProvider
     {

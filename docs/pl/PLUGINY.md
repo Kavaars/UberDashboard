@@ -16,7 +16,7 @@ Stan starego panelu pozostaje w pierwszej zakładce. Dotychczasowe zakładki not
 
 1. Uruchom UberDashboard 1.2.0 lub nowszy.
 2. Przeciągnij **jeden plik `.udplugin`** z Eksploratora na główne okno albo okno ustawień. Możesz też wejść w **Opcje i Ustawienia → Pluginy → Zainstaluj z pliku…**.
-3. Poczekaj na potwierdzenie. Podczas pracy pojawia się rzeczywisty stan operacji; **Anuluj operację** przerywa ją przed zatwierdzeniem. Nie zamykaj programu w trakcie instalowania.
+3. Sprawdź nazwę paczki i ścieżkę źródłową. Potwierdź tylko wtedy, gdy ufasz źródłu. Aplikacja załaduje kod pluginu po potwierdzeniu. **Anuluj operację** jest dostępne przed zatwierdzeniem instalacji.
 4. W menu **Dodaj panel** wybierz nowy typ panelu. Instalacja nie dodaje automatycznie instancji na każdym pulpicie.
 5. W zakładce **Pluginy** widoczne są nazwy, wersje, identyfikatory i stan instalacji. **Usuń** wyłącza kod i usuwa jego paczkę, bez kasowania danych paneli.
 

@@ -1,3 +1,6 @@
+2026-11-18T09:22:00+01:00 | 1.10.0: tryby zakładek per panel, bezpieczniejsze potwierdzanie usuwania i instalacji pluginów, zarządzanie sesjami Google, kopie bazy z ustawień, aktywacja istniejącego okna oraz poprawki synchronizacji i notatek.
+2026-11-18T09:12:53+01:00 | Dodano potwierdzenia usuwania pulpitu i instalacji pluginu, porządkowanie sesji Google, kopię bazy w ustawieniach i aktywację istniejącego okna przy drugim uruchomieniu. Usprawniono synchronizację i zapis notatek.
+2026-11-18T08:05:44+01:00 | W opcjach każdego panelu można wybrać dopasowanie zakładek do jednego rzędu, przewijanie strzałkami lub dodawanie kolejnych rzędów.
 2026-11-15T11:08:36+01:00 | 1.9.1: Licencja MIT i informacje o komponentach zewnętrznych dołączone do aplikacji; dokumentacja po angielsku z polskimi tłumaczeniami.
 2026-11-13T19:46:38+01:00 | Afirmacje: pisz po kliknięciu w panel; osobne pole usunięto. Zakładki: kolor tła w menu zakładki. Pogoda: większe max/min i bieżące warunki. Monitor zasobów: jednakowe moduły, podpowiedź opisuje wskaźnik, bez czasu pomiaru. Usunięto przycisk Edytuj układ z paska; zostaje w menu Układ.
 2026-11-11T19:01:44+01:00 | Odświeżono kafelki monitora zasobów: ikony, czytelniejsze wartości i wskaźniki procentowe.

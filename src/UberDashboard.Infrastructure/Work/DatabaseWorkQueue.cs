@@ -50,9 +50,6 @@ public sealed class DatabaseWorkQueue : IWorkQueue
     }
 
     /// <inheritdoc />
-    public event EventHandler? PendingCountChanged;
-
-    /// <inheritdoc />
     public Task<T> EnqueueAsync<T>(Func<CancellationToken, T> work, CancellationToken cancellationToken = default) =>
         Enqueue(work, cancellationToken);
 
@@ -176,7 +173,6 @@ public sealed class DatabaseWorkQueue : IWorkQueue
             Monitor.Pulse(_sync);
         }
 
-        RaisePendingCountChanged();
         return completion.Task;
     }
 
@@ -272,10 +268,7 @@ public sealed class DatabaseWorkQueue : IWorkQueue
         }
 
         idle?.TrySetResult();
-        RaisePendingCountChanged();
     }
-
-    private void RaisePendingCountChanged() => PendingCountChanged?.Invoke(this, EventArgs.Empty);
 
     private sealed class WorkItem
     {

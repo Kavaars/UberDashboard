@@ -3,6 +3,7 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 
                     xmlns:controls="clr-namespace:UberDashboard.App.Controls"
+                    xmlns:settings="clr-namespace:UberDashboard.App.Settings"
 
                     xmlns:documents="clr-namespace:System.Windows.Documents;assembly=PresentationFramework"
 
@@ -26,6 +27,7 @@
 
 
   <controls:PanelScaleConverter x:Key="PanelScaleConverter"/>
+  <controls:PanelTabRowsHeightConverter x:Key="PanelTabRowsHeight"/>
   <BooleanToVisibilityConverter x:Key="CalendarVisibility"/>
   <weather:WeatherTemperatureBrushConverter x:Key="WeatherTemperatureBrush"/>
 
@@ -459,11 +461,11 @@
 
                                     AcceptsTab="True"
 
-                                    DocumentPayload="{Binding RichContent, UpdateSourceTrigger=PropertyChanged}"
+                                    DocumentPayload="{Binding RichContent, Mode=OneWay}"
 
                                     IsDocumentWordWrapEnabled="{Binding WordWrapEnabled}"
 
-                                    PlainText="{Binding PlainText, UpdateSourceTrigger=PropertyChanged}"
+                                    PlainText="{Binding PlainText, Mode=OneWay}"
 
                                     Style="{StaticResource ThemedRichTextBox}"
 
@@ -1025,7 +1027,29 @@
 
               <ContentControl Content="{Binding ViewModel}" ContentTemplateSelector="{StaticResource PanelOptionsSelector}" />
 
-              <StackPanel DataContext="{Binding Appearance}" IsEnabled="{Binding IsReady}"><CheckBox Margin="0,3" Content="{loc:Text PanelShowName}" IsChecked="{Binding ShowPanelName}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelShowNameHelp}"/><CheckBox Margin="0,3" Content="{loc:Text PanelShowTabs}" IsChecked="{Binding ShowTabs}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelShowTabsHelp}"/><CheckBox Margin="0,3" Content="{loc:Text PanelLockWidth}" IsChecked="{Binding LockWidth}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelLockWidthHelp}"/><CheckBox Margin="0,3" Content="{loc:Text PanelLockHeight}" IsChecked="{Binding LockHeight}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelLockHeightHelp}"/></StackPanel>
+              <StackPanel IsEnabled="{Binding Appearance.IsReady}">
+                <CheckBox Margin="0,3" Content="{loc:Text PanelShowName}" IsChecked="{Binding Appearance.ShowPanelName}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelShowNameHelp}"/>
+                <CheckBox Margin="0,3" Content="{loc:Text PanelShowTabs}" IsChecked="{Binding Appearance.ShowTabs}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelShowTabsHelp}"/>
+                <DockPanel Margin="0,3">
+                  <DockPanel.Style>
+                    <Style TargetType="DockPanel">
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding TabSession}" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </DockPanel.Style>
+                  <TextBlock x:Name="TabOverflowLabel" Text="{loc:Text PanelTabOverflow}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                  <ComboBox Style="{StaticResource ThemedComboBox}" IsEnabled="{Binding Appearance.ShowTabs}" SelectedValuePath="Tag"
+                            SelectedValue="{Binding Appearance.TabOverflow, Mode=TwoWay}" AutomationProperties.LabeledBy="{Binding ElementName=TabOverflowLabel}"
+                            ToolTip="{loc:Text PanelTabOverflowHelp}">
+                    <ComboBoxItem Tag="{x:Static settings:PanelTabOverflow.Shrink}" Content="{loc:Text PanelTabOverflowShrink}"/>
+                    <ComboBoxItem Tag="{x:Static settings:PanelTabOverflow.Scroll}" Content="{loc:Text PanelTabOverflowScroll}"/>
+                    <ComboBoxItem Tag="{x:Static settings:PanelTabOverflow.Wrap}" Content="{loc:Text PanelTabOverflowWrap}"/>
+                  </ComboBox>
+                </DockPanel>
+                <CheckBox Margin="0,3" Content="{loc:Text PanelLockWidth}" IsChecked="{Binding Appearance.LockWidth}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelLockWidthHelp}"/>
+                <CheckBox Margin="0,3" Content="{loc:Text PanelLockHeight}" IsChecked="{Binding Appearance.LockHeight}" Style="{StaticResource ThemedCheckBox}" ToolTip="{loc:Text PanelLockHeightHelp}"/>
+              </StackPanel>
               <Expander Header="{loc:Text Appearance}" Margin="0,8,0,0" IsExpanded="False" Foreground="{DynamicResource Brush.Text}">
               <StackPanel DataContext="{Binding Appearance}" IsEnabled="{Binding IsReady}" Margin="0,6,0,0">
                 <Grid>
@@ -1081,9 +1105,18 @@
 
                 ToolTip="{loc:Text PanelHeaderWithFormattingOptionsAndLayout}"><Border.Style><Style TargetType="Border"><Style.Triggers><DataTrigger Binding="{Binding IsSpace}" Value="True"><Setter Property="Visibility" Value="Collapsed" /></DataTrigger><DataTrigger Binding="{Binding TabSession.IsBusy}" Value="True"><Setter Property="IsEnabled" Value="False" /></DataTrigger></Style.Triggers></Style></Border.Style>
 
-          <DockPanel>
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto"/>
+              <ColumnDefinition Width="*"/>
+              <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-            <WrapPanel DockPanel.Dock="Right" MaxWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=controls:PanelAppearanceBorder}, Converter={StaticResource PanelHeaderWidth}}">
+            <WrapPanel Grid.Column="2" VerticalAlignment="Top" MaxWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=controls:PanelAppearanceBorder}, Converter={StaticResource PanelHeaderWidth}}">
 
               <Button AutomationProperties.Name="{loc:Text TextFormatting}" Command="{Binding ToggleFormattingCommand}"
 
@@ -1193,7 +1226,7 @@
 
 
 
-            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+            <StackPanel Grid.Column="0" VerticalAlignment="Top" Orientation="Horizontal">
 
               <Border Width="28"
 
@@ -1224,6 +1257,7 @@
               </Border>
 
               <TextBlock VerticalAlignment="Center"
+                         MaxWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=controls:PanelAppearanceBorder}, Converter={StaticResource PanelHeaderWidth}, ConverterParameter=Title}"
 
                          FontWeight="SemiBold"
 
@@ -1252,9 +1286,29 @@
                        ToolTip="{loc:Text ThisPanelHasChangesWaitingToBe}" />
 
             </StackPanel>
-            <controls:PanelGroupTabStrip Session="{Binding TabSession}" Margin="8,0,0,0" VerticalAlignment="Center" Visibility="{Binding Appearance.ShowTabs, Converter={StaticResource BoolToVisibility}}" />
+            <controls:PanelGroupTabStrip Session="{Binding TabSession}" Overflow="{Binding Appearance.TabOverflow}"
+                                        VerticalAlignment="Center" Visibility="{Binding Appearance.ShowTabs, Converter={StaticResource BoolToVisibility}}">
+              <controls:PanelGroupTabStrip.Style>
+                <Style TargetType="controls:PanelGroupTabStrip">
+                  <Setter Property="Grid.Column" Value="1"/>
+                  <Setter Property="Margin" Value="8,0,0,0"/>
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=controls:PanelAppearanceBorder}, Converter={StaticResource PanelHeaderWidth}, ConverterParameter=SeparateTabRow}" Value="True">
+                      <Setter Property="Grid.Row" Value="1"/>
+                      <Setter Property="Grid.Column" Value="0"/>
+                      <Setter Property="Grid.ColumnSpan" Value="3"/>
+                      <Setter Property="Margin" Value="0,3,0,0"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding TabSession}" Value="{x:Null}"><Setter Property="Margin" Value="0"/></DataTrigger>
+                    <Trigger Property="Overflow" Value="Wrap">
+                      <Setter Property="MaxHeight" Value="{Binding ActualHeight, RelativeSource={RelativeSource AncestorType=controls:PanelAppearanceBorder}, Converter={StaticResource PanelTabRowsHeight}}"/>
+                    </Trigger>
+                  </Style.Triggers>
+                </Style>
+              </controls:PanelGroupTabStrip.Style>
+            </controls:PanelGroupTabStrip>
 
-          </DockPanel>
+          </Grid>
 
         </Border>
 

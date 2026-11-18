@@ -30,6 +30,10 @@ public sealed class PluginSettingsViewModel : ObservableObject
     public IAsyncRelayCommand InstallCommand { get; }
     public IAsyncRelayCommand<InstalledPlugin> RemoveCommand { get; }
     public IRelayCommand CancelCommand { get; }
+    internal Func<UberDashboard.Contracts.Plugins.PluginManifest, string, bool> ConfirmInstall { get; set; } = (manifest, path) =>
+        Controls.ThemedMessageBox.Show(UiText.Format("ConfirmTrustedPluginInstall", manifest.Name, path), UiText.Get("InstallPlugin"),
+            System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning, System.Windows.MessageBoxResult.No)
+        == System.Windows.MessageBoxResult.Yes;
     private async Task ChooseAsync()
     {
         var dialog = new UberDashboard.App.Controls.ThemedFileDialog { Filter = UiText.Get("UberdashboardPluginUdpluginUdplugin"), Title = UiText.Get("InstallPlugin"), Multiselect = false };
@@ -37,7 +41,7 @@ public sealed class PluginSettingsViewModel : ObservableObject
     }
     public Task InstallFileAsync(string file) => StartAsync(UiText.Get("CheckingAndInstallingPlugin"), async token =>
     {
-        await _manager.InstallAsync(file, token);
+        await _manager.InstallAsync(file, ConfirmInstall, token);
         return UiText.Get("PluginInstalledItsPanelIsAvailableUnder");
     });
     private Task RemoveAsync(InstalledPlugin? plugin) => plugin is null ? Task.CompletedTask : StartAsync(UiText.Get("RemovingPlugin"), async token =>

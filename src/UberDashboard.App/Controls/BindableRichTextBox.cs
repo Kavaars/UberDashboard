@@ -91,6 +91,11 @@ public sealed class BindableRichTextBox : WpfRichTextBox
         try
         {
             ClearSerializedThemeColors(Document);
+            if (DataContext is NotesPanelViewModel note)
+            {
+                note.OnEditorChanged(NotesRichContentSerializer.ToPlainText(Document), CaptureDocument);
+                return;
+            }
             var content = NotesRichContentSerializer.Serialize(Document);
             SetCurrentValue(DocumentPayloadProperty, content.Payload);
             SetCurrentValue(PlainTextProperty, content.PlainText);
@@ -99,6 +104,15 @@ public sealed class BindableRichTextBox : WpfRichTextBox
         {
             _isInternalUpdate = false;
         }
+    }
+
+    private string CaptureDocument()
+    {
+        var payload = NotesRichContentSerializer.Serialize(Document).Payload;
+        _isInternalUpdate = true;
+        try { SetCurrentValue(DocumentPayloadProperty, payload); }
+        finally { _isInternalUpdate = false; }
+        return payload;
     }
 
     private static void OnDocumentPayloadChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

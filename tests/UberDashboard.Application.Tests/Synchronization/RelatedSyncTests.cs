@@ -154,6 +154,46 @@ public sealed class RelatedSyncTests
     }
 
     [Fact]
+    public async Task Large_lists_rotate_a_bounded_set_of_related_tasks()
+    {
+        var (store, provider, coordinator) = Setup();
+        var parents = Enumerable.Range(0, 25).Select(i => Parent(i.ToString(System.Globalization.CultureInfo.InvariantCulture))).ToArray();
+        store.State = store.State with { Entities = parents, Cursor = "cursor" };
+        for (var i = 0; i < 4; i++) await coordinator.SynchronizeAsync(store.State.Binding.Id);
+        Assert.All(provider.RelationReads, batch => Assert.Equal(8, batch.Length));
+        Assert.Equal(parents.Length, provider.RelationReads.SelectMany(batch => batch).Distinct().Count());
+    }
+
+    [Fact]
+    public async Task Related_read_timeout_does_not_block_ordinary_task_write()
+    {
+        var (store, provider, coordinator) = Setup();
+        var parent = Parent("remote");
+        store.State = store.State with { Entities = [parent], Cursor = "cursor" };
+        provider.RelationsError = new HttpRequestException("Temporary related read error.");
+        await coordinator.EditAsync(store.State.Binding.Id, parent.LocalId, Fields("title", "Updated"));
+        await coordinator.SynchronizeAsync(store.State.Binding.Id);
+        Assert.Single(provider.Writes);
+        Assert.Empty(store.State.Queue);
+    }
+
+    [Fact]
+    public async Task Scheduler_recovers_after_a_failed_binding_read()
+    {
+        var (store, provider, coordinator) = Setup();
+        store.FailNextList = true;
+        var reachedProvider = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        provider.BeforeReadPage = () => reachedProvider.TrySetResult();
+        var scheduler = new SyncScheduler(store, coordinator, new Clock(),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<SyncScheduler>.Instance);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+        var worker = scheduler.RunAsync(timeout.Token);
+        try { await reachedProvider.Task.WaitAsync(timeout.Token); }
+        finally { await timeout.CancelAsync(); }
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => worker);
+    }
+
+    [Fact]
     public async Task Root_full_snapshot_does_not_delete_unrelated_cached_children()
     {
         var (store, provider, coordinator) = Setup(); var parent = Parent("remote"); var child = Child(parent);
@@ -256,7 +296,13 @@ public sealed class RelatedSyncTests
     private sealed class Store(SyncState state) : ISyncStore
     {
         public SyncState State { get; set; } = state;
-        public Task<IReadOnlyList<SyncBinding>> ListAsync(CancellationToken token = default) => Task.FromResult<IReadOnlyList<SyncBinding>>([State.Binding]);
+        public bool FailNextList { get; set; }
+        public Task<IReadOnlyList<SyncBinding>> ListAsync(CancellationToken token = default)
+        {
+            if (!FailNextList) return Task.FromResult<IReadOnlyList<SyncBinding>>([State.Binding]);
+            FailNextList = false;
+            return Task.FromException<IReadOnlyList<SyncBinding>>(new IOException("Temporary store failure."));
+        }
         public Task<SyncState?> ReadAsync(Guid id, CancellationToken token = default) => Task.FromResult<SyncState?>(JsonSerializer.Deserialize<SyncState>(JsonSerializer.Serialize(State)));
         public Task<bool> SaveAsync(SyncState value, long expectedVersion, CancellationToken token = default)
         { if (expectedVersion != State.Version) return Task.FromResult(false); State = value with { Version = expectedVersion + 1 }; return Task.FromResult(true); }
@@ -270,9 +316,20 @@ public sealed class RelatedSyncTests
         public bool Unknown { get; set; }
         public int Gets { get; private set; }
         public Exception? GetError { get; set; }
+        public Exception? RelationsError { get; set; }
+        public Action? BeforeReadPage { get; set; }
+        public List<Guid[]> RelationReads { get; } = [];
         public List<(string Path, SyncOperation Operation)> Writes { get; } = [];
-        public Task<SyncPage> ReadPageAsync(SyncBinding binding, string? cursor, string? page, CancellationToken token) => Task.FromResult(Page);
-        public Task<IReadOnlyList<SyncRelationSnapshot>> ReadRelationsAsync(SyncBinding binding, IReadOnlyList<SyncEntity> parents, CancellationToken token) => Task.FromResult(Relations);
+        public Task<SyncPage> ReadPageAsync(SyncBinding binding, string? cursor, string? page, CancellationToken token)
+        {
+            BeforeReadPage?.Invoke();
+            return Task.FromResult(Page);
+        }
+        public Task<IReadOnlyList<SyncRelationSnapshot>> ReadRelationsAsync(SyncBinding binding, IReadOnlyList<SyncEntity> parents, CancellationToken token)
+        {
+            RelationReads.Add(parents.Select(parent => parent.LocalId).ToArray());
+            return RelationsError is { } error ? Task.FromException<IReadOnlyList<SyncRelationSnapshot>>(error) : Task.FromResult(Relations);
+        }
         public Task<SyncRemoteEntity?> GetAsync(SyncBinding binding, string id, CancellationToken token)
         { Gets++; if (GetError is not null) throw GetError; return Task.FromResult(Page.Items.Concat(Relations.SelectMany(r => r.Items)).FirstOrDefault(e => e.Id == id)); }
         public Task<SyncWriteResult> WriteAsync(SyncBinding binding, SyncOperation operation, CancellationToken token)

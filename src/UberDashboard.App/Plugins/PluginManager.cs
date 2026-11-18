@@ -78,8 +78,9 @@ public sealed class PluginManager(IAppPaths paths, PanelCatalog catalog, PanelHo
         finally { _gate.Release(); }
     }
 
-    public async Task InstallAsync(string package, CancellationToken token = default)
+    public async Task InstallAsync(string package, Func<PluginManifest, string, bool> confirm, CancellationToken token = default)
     {
+        ArgumentNullException.ThrowIfNull(confirm);
         await _gate.WaitAsync(token);
         var staging = Path.Combine(paths.PluginsDirectory, ".staging-" + Guid.NewGuid().ToString("N"));
         LoadedPlugin? loaded = null;
@@ -91,6 +92,9 @@ public sealed class PluginManager(IAppPaths paths, PanelCatalog catalog, PanelHo
             if (Installed.Any(p => string.Equals(p.Id, manifest.Id, StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidDataException(UiText.Get("ThisPluginIsAlreadyInstalledRemoveThe"));
             if (manifest.Panels.Any(p => catalog.Contains(p.TypeId))) throw new InvalidDataException(UiText.Get("ThePanelIdIsAlreadyInUse"));
+            token.ThrowIfCancellationRequested();
+            if (!confirm(manifest, Path.GetFullPath(package))) throw new OperationCanceledException();
+            token.ThrowIfCancellationRequested();
             // Najpierw pełne ładowanie modułu i walidacja rejestracji. Błąd nie publikuje częściowej instalacji.
             loaded = await LoadAsync(staging, manifest, token);
             token.ThrowIfCancellationRequested();

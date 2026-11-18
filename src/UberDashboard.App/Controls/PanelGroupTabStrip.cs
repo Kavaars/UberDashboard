@@ -1,10 +1,14 @@
 using UberDashboard.Core.Localization;
 using System.Collections.Immutable;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Threading;
 using UberDashboard.App.Panels;
+using UberDashboard.App.Settings;
+using UberDashboard.Core.Layout;
 using UberDashboard.Core.Panels;
 using Button = System.Windows.Controls.Button;
 using TextBox = System.Windows.Controls.TextBox;
@@ -13,7 +17,7 @@ using ContextMenu = System.Windows.Controls.ContextMenu;
 using MenuItem = System.Windows.Controls.MenuItem;
 using Binding = System.Windows.Data.Binding;
 using Point = System.Windows.Point;
-using Orientation = System.Windows.Controls.Orientation;
+using Size = System.Windows.Size;
 using DragDrop = System.Windows.DragDrop;
 using DragDropEffects = System.Windows.DragDropEffects;
 using MessageBox = UberDashboard.App.Controls.ThemedMessageBox;
@@ -21,22 +25,92 @@ using MessageBox = UberDashboard.App.Controls.ThemedMessageBox;
 namespace UberDashboard.App.Controls;
 
 /// <summary>Wspólny pasek zakładek dla instancji wszystkich typów paneli.</summary>
-public sealed class PanelGroupTabStrip : ScrollViewer
+public sealed class PanelGroupTabStrip : System.Windows.Controls.UserControl
 {
     public static readonly DependencyProperty SessionProperty = DependencyProperty.Register(nameof(Session), typeof(PanelGroupSession), typeof(PanelGroupTabStrip), new PropertyMetadata(null, OnSessionChanged));
     public PanelGroupSession? Session { get => (PanelGroupSession?)GetValue(SessionProperty); set => SetValue(SessionProperty, value); }
-    private readonly StackPanel _items = new() { Orientation = Orientation.Horizontal };
+    public static readonly DependencyProperty OverflowProperty = DependencyProperty.Register(nameof(Overflow), typeof(PanelTabOverflow), typeof(PanelGroupTabStrip),
+        new PropertyMetadata(PanelTabOverflow.Scroll, (d, _) => ((PanelGroupTabStrip)d).UpdateOverflow()));
+    public PanelTabOverflow Overflow { get => (PanelTabOverflow)GetValue(OverflowProperty); set => SetValue(OverflowProperty, value); }
+    private readonly TabItemsPanel _items = new();
+    private readonly ScrollViewer _viewport = new() { Focusable = false };
+    private readonly Button _left;
+    private readonly Button _right;
     private Point _start;
     private ImmutableArray<PanelTab> _rendered = [];
+    private PanelInstanceId? _lastActive;
     internal Func<PanelTab, bool> ConfirmDeletion { get; set; } = tab => ThemedMessageBox.Show(UiText.Format("DeleteTheTabAndItsData", tab.Name), UiText.Get("DeleteTab"), MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
     public PanelGroupTabStrip()
     {
-        HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden;
-        PreviewMouseWheel += (_, e) => { if (ScrollableWidth <= 0) return; ScrollToHorizontalOffset(HorizontalOffset - e.Delta); e.Handled = true; };
-        VerticalScrollBarVisibility = ScrollBarVisibility.Disabled;
-        Content = _items;
-        Loaded += (_, _) => { if (Session is { } session) { session.Changed -= Changed; session.Changed += Changed; } };
+        Focusable = false;
+        HorizontalContentAlignment = System.Windows.HorizontalAlignment.Stretch;
+        VerticalContentAlignment = System.Windows.VerticalAlignment.Stretch;
+        _viewport.Content = _items;
+        _left = CreateArrow(Dock.Left, "\uE76B", "PanelTabScrollLeft", "PanelTabScrollLeftHelp", -1);
+        _right = CreateArrow(Dock.Right, "\uE76C", "PanelTabScrollRight", "PanelTabScrollRightHelp", 1);
+        var layout = new DockPanel { ClipToBounds = true };
+        layout.Children.Add(_left);
+        layout.Children.Add(_right);
+        layout.Children.Add(_viewport);
+        Content = layout;
+        _viewport.ScrollChanged += (_, _) => UpdateArrows();
+        SizeChanged += (_, _) => UpdateArrows();
+        PreviewMouseWheel += (_, e) =>
+        {
+            if (Overflow != PanelTabOverflow.Scroll || _viewport.ScrollableWidth <= 0) return;
+            _viewport.ScrollToHorizontalOffset(_viewport.HorizontalOffset - e.Delta);
+            e.Handled = true;
+        };
+        UpdateOverflow();
+        Loaded += (_, _) =>
+        {
+            if (Session is not { } session) return;
+            session.Changed -= Changed;
+            session.Changed += Changed;
+            Changed(session, EventArgs.Empty);
+            RevealActiveTab();
+        };
         Unloaded += (_, _) => { if (Session is { } session) session.Changed -= Changed; };
+    }
+
+    private Button CreateArrow(Dock dock, string glyph, string label, string help, int direction)
+    {
+        var button = new Button { Content = glyph, Width = 22, MinWidth = 0, Margin = new Thickness(0), VerticalAlignment = VerticalAlignment.Center, ToolTip = UiText.Get(help), Visibility = Visibility.Collapsed };
+        button.SetResourceReference(StyleProperty, "PanelActionGlyphButton");
+        AutomationProperties.SetName(button, UiText.Get(label));
+        DockPanel.SetDock(button, dock);
+        button.Click += (_, _) => _viewport.ScrollToHorizontalOffset(_viewport.HorizontalOffset + direction * Math.Max(16, _viewport.ViewportWidth * .75));
+        return button;
+    }
+
+    private void UpdateOverflow()
+    {
+        _items.Shrink = Overflow == PanelTabOverflow.Shrink;
+        _items.InvalidateMeasure();
+        _viewport.HorizontalScrollBarVisibility = Overflow == PanelTabOverflow.Scroll ? ScrollBarVisibility.Hidden : ScrollBarVisibility.Disabled;
+        _viewport.VerticalScrollBarVisibility = Overflow == PanelTabOverflow.Wrap ? ScrollBarVisibility.Auto : ScrollBarVisibility.Disabled;
+        _viewport.ScrollToHorizontalOffset(0);
+        _viewport.ScrollToVerticalOffset(0);
+        UpdateArrows();
+        RevealActiveTab();
+    }
+
+    private void UpdateArrows()
+    {
+        // Compare with the strip's full width so the arrows' own space cannot keep them visible.
+        var visibility = Overflow == PanelTabOverflow.Scroll && _viewport.ExtentWidth > ActualWidth + .5
+            ? Visibility.Visible : Visibility.Collapsed;
+        _left.Visibility = _right.Visibility = visibility;
+        _left.IsEnabled = _viewport.HorizontalOffset > .5;
+        _right.IsEnabled = _viewport.ScrollableWidth - _viewport.HorizontalOffset > .5;
+    }
+
+    private void RevealActiveTab()
+    {
+        if (!IsLoaded) return;
+        _ = Dispatcher.InvokeAsync(() => _items.Children.OfType<Button>()
+            .FirstOrDefault(button => button.Tag is PanelTab tab && tab.InstanceId == Session?.Group.ActiveId)?.BringIntoView(),
+            DispatcherPriority.Loaded);
     }
     private static void OnSessionChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
@@ -56,6 +130,9 @@ public sealed class PanelGroupTabStrip : ScrollViewer
                 ApplyTabAppearance(button, tab, selected);
                 System.Windows.Automation.AutomationProperties.SetItemStatus(button, session.HasNewTodoItems(tab.InstanceId) ? UiText.Get("TodoTabNewItems") : selected ? UiText.Get("Active") : UiText.Get("Inactive"));
             }
+        if (_lastActive == session.Group.ActiveId) return;
+        _lastActive = session.Group.ActiveId;
+        RevealActiveTab();
     }
     private async Task Run(Func<Task> action)
     {
@@ -67,10 +144,12 @@ public sealed class PanelGroupTabStrip : ScrollViewer
     {
         _items.Children.Clear();
         _rendered = Session?.Group.Tabs ?? [];
+        _lastActive = Session?.Group.ActiveId;
         if (Session is not { } session) return;
         foreach (var tab in session.Group.Tabs)
         {
-            var button = new Button { Tag = tab, Content = tab.Name, Padding = new Thickness(10, 5, 10, 5), Margin = new Thickness(0, 0, 3, 0), AllowDrop = true };
+            var button = new Button { Tag = tab, Content = TabCaption(tab), Padding = new Thickness(5, 5, 5, 5), Margin = new Thickness(0, 0, 2, 0),
+                MinWidth = 0, ClipToBounds = true, ToolTip = tab.Name, AllowDrop = true };
             button.SetResourceReference(StyleProperty, "PanelActionButton");
             ApplyMicrosoftTodoBorder(button, session.IsMicrosoftTodoTab(tab.InstanceId), session.HasNewTodoItems(tab.InstanceId));
             button.SetResourceReference(Control.ForegroundProperty, "Brush.Text");
@@ -156,6 +235,56 @@ public sealed class PanelGroupTabStrip : ScrollViewer
         System.Windows.Automation.AutomationProperties.SetName(add, UiText.Get("AddTab"));
         add.Click += async (_, _) => await Run(() => session.AddAsync());
         _items.Children.Add(add);
+        RevealActiveTab();
+    }
+
+    private static TextBlock TabCaption(PanelTab tab)
+    {
+        var caption = new TextBlock { Text = tab.Name, TextTrimming = TextTrimming.CharacterEllipsis };
+        caption.SetBinding(TextBlock.ForegroundProperty, new Binding(nameof(Foreground))
+        {
+            RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor, typeof(Button), 1),
+        });
+        return caption;
+    }
+
+    private sealed class TabItemsPanel : WrapPanel
+    {
+        public bool Shrink { get; set; }
+        private double[] _widths = [];
+
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            if (!Shrink || InternalChildren.Count == 0) return base.MeasureOverride(availableSize);
+
+            var naturalSize = base.MeasureOverride(new Size(double.PositiveInfinity, availableSize.Height));
+            if (_widths.Length != InternalChildren.Count) _widths = new double[InternalChildren.Count];
+            var addWidth = InternalChildren[^1].DesiredSize.Width;
+            var tabWidth = naturalSize.Width - addWidth;
+            var availableTabs = Math.Max(0, availableSize.Width - addWidth);
+            var scale = tabWidth > availableTabs ? availableTabs / tabWidth : 1;
+            for (var index = 0; index < _widths.Length; index++)
+            {
+                var child = InternalChildren[index];
+                var width = index == _widths.Length - 1 ? Math.Min(addWidth, availableSize.Width) : child.DesiredSize.Width * scale;
+                _widths[index] = width;
+                child.Measure(new Size(width, availableSize.Height));
+            }
+            return new Size(Math.Min(availableSize.Width, naturalSize.Width), naturalSize.Height);
+        }
+
+        protected override Size ArrangeOverride(Size finalSize)
+        {
+            if (!Shrink || InternalChildren.Count == 0) return base.ArrangeOverride(finalSize);
+
+            var left = 0d;
+            for (var index = 0; index < _widths.Length; index++)
+            {
+                InternalChildren[index].Arrange(new Rect(left, 0, _widths[index], finalSize.Height));
+                left += _widths[index];
+            }
+            return finalSize;
+        }
     }
     /// <summary>Kolor tła zakładki; domyślny to tło zależne od tego, czy zakładka jest aktywna.</summary>
     private static void ApplyTabAppearance(Button button, PanelTab tab, bool selected)
@@ -205,7 +334,8 @@ public sealed class PanelGroupTabStrip : ScrollViewer
     private void Rename(Button button, PanelTab tab, PanelGroupSession session)
     {
         if (button.Content is TextBox) return;
-        var input = new TextBox { Text = tab.Name, MinWidth = 70 };
+        var caption = button.Content;
+        var input = new TextBox { Text = tab.Name, MinWidth = Overflow == PanelTabOverflow.Shrink ? 0 : 70 };
         button.Content = input;
         var finished = false;
         async Task Finish(bool save)
@@ -213,7 +343,7 @@ public sealed class PanelGroupTabStrip : ScrollViewer
             if (finished) return;
             finished = true;
             if (save) await Run(() => session.UpdateAsync(group => group.Rename(tab.InstanceId, input.Text)));
-            button.Content = tab.Name; button.Focus();
+            button.Content = caption; button.Focus();
         }
         input.KeyDown += async (_, e) => { if (e.Key == Key.Enter) { e.Handled = true; await Finish(true); } else if (e.Key == Key.Escape) { e.Handled = true; await Finish(false); } };
         input.LostKeyboardFocus += async (_, _) => await Finish(true);

@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
 using UberDashboard.Application.Abstractions;
+using UberDashboard.Core.Synchronization;
 
 namespace UberDashboard.Application.Synchronization;
 
@@ -21,7 +22,16 @@ public sealed class SyncScheduler(ISyncStore store, ISyncCoordinator coordinator
             using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
             do
             {
-                foreach (var binding in await store.ListAsync(token).ConfigureAwait(false))
+                IReadOnlyList<SyncBinding> bindings;
+                try { bindings = await store.ListAsync(token).ConfigureAwait(false); }
+                catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+                catch (Exception error)
+                {
+                    logger.LogWarning("Could not read synchronization bindings. ErrorType={ErrorType}", error.GetType().Name);
+                    continue;
+                }
+
+                foreach (var binding in bindings)
                 {
                     if (!binding.Enabled) continue;
                     var requested = _requested.TryRemove(binding.Id, out _);
